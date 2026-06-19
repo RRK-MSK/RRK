@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { MerchDoodle } from "@/components/site/merch-doodle";
+import { PosterCalendar } from "@/components/site/poster-calendar";
 import { RevealOnView } from "@/components/site/reveal-on-view";
 import { VideoHero } from "@/components/site/video-hero";
 
@@ -22,6 +23,241 @@ const programs = [
     description:
       "Позже появятся абонементы, интенсивы и закрытые программы. Сейчас первый вход в среду клуба открыт через разовое посещение.",
     status: "В разработке",
+  },
+];
+
+const posterEvents = [
+  {
+    tone: "solid",
+    date: "2 июля (чт)",
+    time: "19:00-22:30",
+    title: "Логика абсурда",
+    description: "Жизнь не обязана быть логичной.",
+    focus: "Развиваем гибкость мышления и способность принимать неожиданное.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "4 июля (сб)",
+    time: "14:30-18:00",
+    title: "Ошибки как топливо",
+    focus: "Учимся превращать ошибки в материал для роста.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "4 июля (сб)",
+    time: "19:00-22:30",
+    title: "Ошибки как топливо",
+    focus: "Учимся превращать ошибки в материал для роста.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "solid",
+    date: "5 июля (вс)",
+    time: "14:30-18:00",
+    title: "Тело говорит раньше слов",
+    focus: "Работа с пластикой, походкой, пространством и внутренним состоянием.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "5 июля (вс)",
+    time: "19:00-22:30",
+    title: "Тело говорит раньше слов",
+    focus: "Работа с пластикой, походкой, пространством и внутренним состоянием.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "highlight",
+    date: "7 июля (вт)",
+    time: "12:00-14:00",
+    label: "ДК x РРК",
+    title: "COFFEE JAM",
+    description: "Зарядка для soft skills",
+    price: "Регистрация",
+  },
+  {
+    tone: "soft",
+    date: "7 июля (вт)",
+    time: "19:00-22:30",
+    title: "Почему в голове все звучит лучше?",
+    focus: "Как научиться говорить так же уверенно вслух.",
+    host: "Александр Гронский",
+    price: "4400₽",
+  },
+  {
+    tone: "solid",
+    date: "9 июля (чт)",
+    time: "14:30-18:00",
+    title: "Какой я персонаж?",
+    focus: "Каждый день мы играем роли. Пора выбрать свою осознанно.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "9 июля (чт)",
+    time: "19:00-22:30",
+    title: "Какой я персонаж?",
+    focus: "Каждый день мы играем роли. Пора выбрать свою осознанно.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "solid",
+    date: "12 июля (вс)",
+    time: "16:00-20:00",
+    title: "BIG ТРЕНИРОВКА В ПИТЕРЕ",
+    focus: "Философия РРК, играем сцены, создаем связи и узнаем себя.",
+    price: "5000₽",
+  },
+  {
+    tone: "solid",
+    date: "16 июля (чт)",
+    time: "14:30-18:00",
+    title: "Искусство делать других ярче",
+    focus: "Харизма рождается там, где есть внимание к партнеру.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "16 июля (чт)",
+    time: "19:00-22:30",
+    title: "Искусство делать других ярче",
+    focus: "Харизма рождается там, где есть внимание к партнеру.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "18 июля (сб)",
+    time: "14:30-18:00",
+    title: "Страх тишины",
+    focus: "Почему пауза делает речь сильнее.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "solid",
+    date: "18 июля (сб)",
+    time: "19:00-22:30",
+    title: "Страх тишины",
+    focus: "Почему пауза делает речь сильнее.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "19 июля (вс)",
+    time: "14:30-18:00",
+    title: "Спокойствие в хаосе",
+    focus: "Что делать, когда разговор идет не по плану.",
+    host: "Александр Гронский",
+    price: "4400₽",
+  },
+  {
+    tone: "solid",
+    date: "19 июля (вс)",
+    time: "19:00-22:30",
+    title: "Спокойствие в хаосе",
+    focus: "Что делать, когда разговор идет не по плану.",
+    host: "Александр Гронский",
+    price: "4400₽",
+  },
+  {
+    tone: "highlight",
+    date: "21 июля (вт)",
+    time: "12:00-14:00",
+    label: "ДК x РРК",
+    title: "COFFEE JAM",
+    description: "Зарядка для soft skills",
+    price: "Регистрация",
+  },
+  {
+    tone: "soft",
+    date: "21 июля (вт)",
+    time: "19:00-22:30",
+    title: "Жизнь как сцена",
+    focus: "Мы уже импровизируем каждый день, просто не замечаем этого.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "solid",
+    date: "23 июля (чт)",
+    time: "14:30-18:00",
+    title: "Конфликт - двигатель общения",
+    focus: "Самые интересные разговоры начинаются там, где появляются разные интересы.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "23 июля (чт)",
+    time: "19:00-22:30",
+    title: "Свобода начинается с ошибки",
+    focus: "Почему страх выглядеть глупо мешает жить.",
+    host: "Александр Гронский",
+    price: "4400₽",
+  },
+  {
+    tone: "solid",
+    date: "24 июля (пт)",
+    time: "18:00-23:00",
+    title: "МАФИЯ В ДУХЕ РРК",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "26 июля (вс)",
+    time: "14:00-22:00",
+    title: "БИГ-ТРЕНИРОВКА",
+    description: "Интенсив от РРК.",
+    focus: "День, который меняет взгляд на жизнь + кофе и диджей.",
+    price: "10 000₽",
+  },
+  {
+    tone: "solid",
+    date: "28 июля (вт)",
+    time: "14:30-18:00",
+    title: "Обстоятельства решают все",
+    focus: "Мы не меняем личность - мы меняем обстоятельства.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "28 июля (вт)",
+    time: "19:00-22:30",
+    title: "Обстоятельства решают все",
+    focus: "Мы не меняем личность - мы меняем обстоятельства.",
+    host: "Влас Ибрагимов",
+    price: "4400₽",
+  },
+  {
+    tone: "solid",
+    date: "30 июля (чт)",
+    time: "14:30-18:00",
+    title: "Речь без воды",
+    focus: "Как говорить просто, понятно и по делу.",
+    host: "Гронский Александр",
+    price: "4400₽",
+  },
+  {
+    tone: "soft",
+    date: "30 июля (чт)",
+    time: "19:00-22:30",
+    title: "Речь без воды",
+    focus: "Как говорить просто, понятно и по делу.",
+    host: "Гронский Александр",
+    price: "4400₽",
   },
 ];
 
@@ -105,7 +341,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="about" className="site-section site-section-light">
+      <section id="about" className="site-section site-section-light about-section">
+        <MerchDoodle />
         <div className="section-heading">
           <span>О клубе</span>
           <h2>Русский Разговорный Клуб повышает качество жизни через сильное окружение</h2>
@@ -173,6 +410,21 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section id="schedule" className="site-section poster-section">
+        <div className="section-heading">
+          <span>Афиша РРК</span>
+          <h2>Ближайшие тренировки, коллаборации и большие встречи клуба</h2>
+        </div>
+        <PosterCalendar events={posterEvents} />
+        <div className="poster-footer">
+          <p>По записи: @rrclubadmin</p>
+          <p>На каждую тренировку 10 мест</p>
+          <a href="https://t.me/rrclubadmin" className="site-button primary" target="_blank" rel="noreferrer">
+            Написать на запись
+          </a>
+        </div>
+      </section>
+
       <section id="merch" className="site-section merch-section">
         <div className="section-heading">
           <span>Мерч РРК</span>
@@ -180,7 +432,6 @@ export default function HomePage() {
         </div>
         <div className="merch-layout">
           <div className="merch-visual">
-            <MerchDoodle />
             <div className="merch-image-card">
               <Image
                 src="/merch-photo.jpg"
