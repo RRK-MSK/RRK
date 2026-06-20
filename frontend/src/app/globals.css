@@ -873,6 +873,7 @@ th {
   width: fit-content;
   min-width: 220px;
   justify-content: center;
+  text-align: center;
   gap: 10px;
 }
 
@@ -1561,6 +1562,8 @@ th {
 .site-button-visit {
   min-height: 64px;
   padding-inline: 24px;
+  justify-content: center;
+  text-align: center;
 }
 
 .hero-facts {
@@ -1834,6 +1837,29 @@ th {
   line-height: 1.7;
 }
 
+.about-manifesto-rules {
+  display: grid;
+  gap: 14px;
+}
+
+.about-manifesto-rule {
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(19, 11, 13, 0.08);
+}
+
+.about-manifesto-rule:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.about-manifesto-rule strong {
+  font-size: 15px;
+  line-height: 1.35;
+  color: #2b1711;
+}
+
 .programs-section {
   background:
     radial-gradient(circle at right top, rgba(143, 9, 20, 0.08), transparent 28%),
@@ -1961,12 +1987,51 @@ th {
   color: #2b1711;
 }
 
+.poster-calendar-detail-head h3 {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.poster-calendar-detail-date-main {
+  font-weight: 700;
+}
+
+.poster-calendar-detail-date-meta {
+  font-size: 0.64em;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(43, 23, 17, 0.56);
+}
+
 .poster-calendar-head p,
 .poster-calendar-detail-head p,
 .poster-calendar-note p {
   margin: 0;
   line-height: 1.55;
   color: rgba(43, 23, 17, 0.78);
+}
+
+.poster-calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.poster-calendar-legend-item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(94, 44, 37, 0.1);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2b1711;
 }
 
 .poster-calendar-note {
@@ -2010,6 +2075,10 @@ th {
 }
 
 .poster-calendar-day {
+  --calendar-day-accent: #7a1325;
+  --calendar-day-surface: rgba(122, 19, 37, 0.08);
+  --calendar-day-surface-selected: rgba(122, 19, 37, 0.16);
+  --calendar-day-shadow: rgba(122, 19, 37, 0.14);
   position: relative;
   display: grid;
   align-content: space-between;
@@ -2028,14 +2097,14 @@ th {
 }
 
 .poster-calendar-day.has-event {
-  border-color: rgba(122, 19, 37, 0.18);
-  background: linear-gradient(180deg, rgba(122, 19, 37, 0.08), rgba(255, 255, 255, 0.82));
+  border-color: color-mix(in srgb, var(--calendar-day-accent) 22%, white);
+  background: linear-gradient(180deg, var(--calendar-day-surface), rgba(255, 255, 255, 0.82));
 }
 
 .poster-calendar-day.is-selected {
-  border-color: rgba(122, 19, 37, 0.48);
-  background: linear-gradient(180deg, rgba(122, 19, 37, 0.16), rgba(255, 246, 246, 0.96));
-  box-shadow: 0 16px 30px rgba(122, 19, 37, 0.14);
+  border-color: color-mix(in srgb, var(--calendar-day-accent) 48%, white);
+  background: linear-gradient(180deg, var(--calendar-day-surface-selected), rgba(255, 246, 246, 0.96));
+  box-shadow: 0 16px 30px var(--calendar-day-shadow);
   transform: translateY(-2px);
 }
 
@@ -2044,13 +2113,61 @@ th {
   font-weight: 700;
 }
 
+.poster-calendar-day.kind-standard {
+  --calendar-day-accent: #7a1325;
+  --calendar-day-surface: rgba(122, 19, 37, 0.08);
+  --calendar-day-surface-selected: rgba(122, 19, 37, 0.16);
+  --calendar-day-shadow: rgba(122, 19, 37, 0.14);
+}
+
+.poster-calendar-day.kind-collab,
+.poster-calendar-legend-item.kind-collab {
+  --calendar-day-accent: #9b5b16;
+  --calendar-day-surface: rgba(155, 91, 22, 0.12);
+  --calendar-day-surface-selected: rgba(155, 91, 22, 0.2);
+  --calendar-day-shadow: rgba(155, 91, 22, 0.16);
+}
+
+.poster-calendar-day.kind-spb,
+.poster-calendar-legend-item.kind-spb {
+  --calendar-day-accent: #215e92;
+  --calendar-day-surface: rgba(33, 94, 146, 0.12);
+  --calendar-day-surface-selected: rgba(33, 94, 146, 0.2);
+  --calendar-day-shadow: rgba(33, 94, 146, 0.16);
+}
+
+.poster-calendar-day.kind-big,
+.poster-calendar-legend-item.kind-big {
+  --calendar-day-accent: #7a2f7f;
+  --calendar-day-surface: rgba(122, 47, 127, 0.12);
+  --calendar-day-surface-selected: rgba(122, 47, 127, 0.2);
+  --calendar-day-shadow: rgba(122, 47, 127, 0.16);
+}
+
+.poster-calendar-day.kind-standard,
+.poster-calendar-legend-item.kind-standard {
+  --calendar-day-accent: #7a1325;
+  --calendar-day-surface: rgba(122, 19, 37, 0.08);
+  --calendar-day-surface-selected: rgba(122, 19, 37, 0.16);
+  --calendar-day-shadow: rgba(122, 19, 37, 0.14);
+}
+
+.poster-calendar-legend-item.kind-standard,
+.poster-calendar-legend-item.kind-collab,
+.poster-calendar-legend-item.kind-spb,
+.poster-calendar-legend-item.kind-big {
+  border-color: color-mix(in srgb, var(--calendar-day-accent) 24%, white);
+  background: linear-gradient(180deg, var(--calendar-day-surface), rgba(255, 255, 255, 0.94));
+  color: color-mix(in srgb, var(--calendar-day-accent) 82%, black);
+}
+
 .poster-calendar-day-count {
   justify-self: start;
-  min-width: 24px;
+  min-width: 40px;
   min-height: 24px;
-  padding: 0 7px;
+  padding: 0 8px;
   border-radius: 999px;
-  background: #7a1325;
+  background: var(--calendar-day-accent);
   color: #fff7f7;
   font-size: 11px;
   font-weight: 700;
@@ -2101,6 +2218,25 @@ th {
   text-transform: uppercase;
 }
 
+.poster-event-spots {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.poster-event-spots strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.poster-event-spots span {
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.82;
+}
+
 .poster-event-label,
 .poster-event-description,
 .poster-event-focus,
@@ -2129,6 +2265,82 @@ th {
 
 .poster-event-host {
   font-weight: 600;
+}
+
+.poster-event-soft .poster-event-spots {
+  background: rgba(122, 19, 37, 0.08);
+}
+
+.crm-class-load-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.crm-class-load-card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: var(--shadow);
+}
+
+.crm-class-load-card h3 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.crm-class-load-meta,
+.crm-class-load-revenue {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.crm-class-load-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.crm-class-load-stats div {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(112, 17, 34, 0.05);
+}
+
+.crm-class-load-stats span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.crm-class-load-stats strong {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.crm-class-load-progress {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(112, 17, 34, 0.08);
+}
+
+.crm-class-load-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #a31228 0%, #d26779 100%);
 }
 
 .poster-footer {
@@ -2397,12 +2609,12 @@ th {
   text-overflow: ellipsis;
 }
 
-section#founders > div.founders-grid > article.founder-card:nth-child(2) > div.founder-copy > h3 {
-  font-size: 15px;
-}
-
-section#founders > div.founders-grid > article.founder-card:nth-child(3) > div.founder-copy > h3 {
-  font-size: 15px;
+@media (min-width: 761px) {
+  .founders-grid .founder-card:first-child .founder-copy h3 {
+    font-family: var(--font-sans), Arial, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+  }
 }
 
 .founder-details {
@@ -3103,6 +3315,10 @@ section#founders > div.founders-grid > article.founder-card:nth-child(3) > div.f
     font-size: 24px;
   }
 
+  .poster-calendar-detail-head h3 {
+    gap: 8px;
+  }
+
   .poster-calendar-board,
   .poster-calendar-detail,
   .poster-event-empty,
@@ -3133,7 +3349,7 @@ section#founders > div.founders-grid > article.founder-card:nth-child(3) > div.f
   }
 
   .poster-calendar-day-count {
-    min-width: 20px;
+    min-width: 34px;
     min-height: 20px;
     padding: 0 6px;
     font-size: 10px;
@@ -3144,6 +3360,23 @@ section#founders > div.founders-grid > article.founder-card:nth-child(3) > div.f
     gap: 8px;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .crm-class-load-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-class-load-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .crm-class-load-stats {
+    gap: 10px;
+  }
+
+  .crm-class-load-stats strong {
+    font-size: 20px;
   }
 
   .poster-footer {

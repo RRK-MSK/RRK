@@ -1,7 +1,9 @@
 import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, SimpleTable } from "@/components/crm/ui";
-import { expenseMetrics, expenseRows } from "@/lib/crm-data";
+import { getExpensesPageData } from "@/lib/crm-store";
 
-export default function ExpensesPage() {
+export default async function ExpensesPage() {
+  const { metrics, rows } = await getExpensesPageData();
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -12,7 +14,7 @@ export default function ExpensesPage() {
       />
 
       <SectionCard title="Сводка расходов" description="Текущие затраты клуба и влияние на маржинальность месяца.">
-        <MetricGrid items={expenseMetrics} />
+        <MetricGrid items={metrics} />
       </SectionCard>
 
       <SectionCard title="Реестр расходов" description="Операционный список расходов по категориям и периодам." rightLabel="8 активных строк">
@@ -20,7 +22,7 @@ export default function ExpensesPage() {
           filters={["Все", "Аренда", "Маркетинг", "Сервисы", "План"]}
           searchPlaceholder="Поиск по статье, периоду или описанию"
         />
-        <SimpleTable rows={expenseRows} />
+        <SimpleTable rows={rows} />
       </SectionCard>
     </div>
   );

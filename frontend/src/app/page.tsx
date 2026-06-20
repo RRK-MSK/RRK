@@ -4,6 +4,7 @@ import { MerchDoodle } from "@/components/site/merch-doodle";
 import { PosterCalendar } from "@/components/site/poster-calendar";
 import { RevealOnView } from "@/components/site/reveal-on-view";
 import { VideoHero } from "@/components/site/video-hero";
+import { getSitePosterEvents } from "@/lib/site-store";
 
 const programs = [
   {
@@ -321,23 +322,26 @@ const faqs = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const livePosterEvents = await getSitePosterEvents();
+  const calendarEvents = livePosterEvents.length > 0 ? livePosterEvents : posterEvents;
+
   return (
     <main className="site-page">
       <VideoHero />
 
       <section className="site-runner" aria-label="Бегущая строка">
         <div className="site-runner-track">
-          <span>СИЛЬНОЕ ОКРУЖЕНИЕ</span>
-          <span>СОЦИАЛЬНОЕ ВЛИЯНИЕ</span>
-          <span>ЖИВАЯ РЕЧЬ</span>
-          <span>ХАРИЗМА</span>
-          <span>ЛИДЕРСТВО</span>
-          <span>СМЕЛОСТЬ БЫТЬ ЗАМЕТНЫМ</span>
-          <span>СИЛЬНОЕ ОКРУЖЕНИЕ</span>
-          <span>СОЦИАЛЬНОЕ ВЛИЯНИЕ</span>
-          <span>ЖИВАЯ РЕЧЬ</span>
-          <span>ХАРИЗМА</span>
+          <span>МЫ ВСЕ ДРУГ ДРУГУ УЧИТЕЛЯ И УЧЕНИКИ</span>
+          <span>КРИНЖА НЕ СУЩЕСТВУЕТ</span>
+          <span>СЛЫШАТЬ И СЛУШАТЬ</span>
+          <span>МЫ ВСЕ ДРУГ ДРУГУ УЧИТЕЛЯ И УЧЕНИКИ</span>
+          <span>КРИНЖА НЕ СУЩЕСТВУЕТ</span>
+          <span>СЛЫШАТЬ И СЛУШАТЬ</span>
+          <span>МЫ ВСЕ ДРУГ ДРУГУ УЧИТЕЛЯ И УЧЕНИКИ</span>
+          <span>КРИНЖА НЕ СУЩЕСТВУЕТ</span>
+          <span>СЛЫШАТЬ И СЛУШАТЬ</span>
+          <span>МЫ ВСЕ ДРУГ ДРУГУ УЧИТЕЛЯ И УЧЕНИКИ</span>
         </div>
       </section>
 
@@ -345,46 +349,68 @@ export default function HomePage() {
         <MerchDoodle />
         <div className="section-heading">
           <span>О клубе</span>
-          <h2>Русский Разговорный Клуб повышает качество жизни через сильное окружение</h2>
+          <h2>
+            РУССКИЙ РАЗГОВОРНЫЙ КЛУБ
+            <br />
+            БЕЗОПАСНОЕ ПРОСТРАНСТВО ДЛЯ ТРЕНИРОВКИ НАВЫКОВ ПРОЯВЛЕНИЯ СЕБЯ В МИР
+          </h2>
         </div>
         <div className="about-layout">
           <RevealOnView className="feature-grid">
             <article className="feature-card">
-              <span>01</span>
-              <h3>Сильное окружение</h3>
-              <p>
-                В РРК человек попадает в круг людей, которые растут, говорят яснее, держат
-                слово и усиливают друг друга не шумом, а качеством присутствия.
-              </p>
+              <span>01.</span>
+              <h3>Безопасно ошибаться</h3>
+              <p>У нас кринжа не существует. Поэтому здесь легко начать.</p>
             </article>
             <article className="feature-card accent">
-              <span>02</span>
-              <h3>Социальное влияние</h3>
+              <span>02.</span>
+              <h3>Учимся через практику</h3>
               <p>
-                Мы развиваем навыки речи, статуса, подачи и уверенного контакта, чтобы
-                участники могли влиять на реальность сильно, мягко и естественно.
+                Никакой теории - только живые упражнения и постоянное взаимодействие с
+                людьми.
               </p>
             </article>
             <article className="feature-card">
-              <span>03</span>
-              <h3>Качество жизни</h3>
+              <span>03.</span>
+              <h3>Переносим в реальную жизнь</h3>
               <p>
-                Сильнее диалоги, яснее позиция, лучше отношения, заметнее энергия и больше
-                внутренней опоры для жизни, работы и окружения.
+                Знакомства, свидания, работа, переговоры, выступления, дружба - все
+                становится проще, когда ты перестаешь бояться проявляться.
               </p>
             </article>
           </RevealOnView>
           <aside className="about-manifesto">
-            <span>Манифест РРК</span>
-            <h3>Мы не учим просто красиво говорить.</h3>
-            <p>
-              Мы создаем среду, где человек учится быть услышанным, видеть динамику общения,
-              занимать свое место в группе и строить вокруг себя более сильную жизнь.
-            </p>
-            <p>
-              РРК объединяет практику речи, социальную смелость, влияние и культуру сильного
-              человеческого окружения.
-            </p>
+            <span>Философия РРК</span>
+            <h3>Эти три правила работают в жизни, в Русском Разговорном и на планете Земля.</h3>
+            <div className="about-manifesto-rules">
+              <div className="about-manifesto-rule">
+                <strong>1. Мы все друг другу ученики и учителя</strong>
+                <p>
+                  В РРК неважно, кем ты работаешь и сколько зарабатываешь. Здесь нет
+                  статусов и регалий, каждый приходит учиться и каждый может чему-то
+                  научить другого.
+                </p>
+              </div>
+              <div className="about-manifesto-rule">
+                <strong>2. Кринжа не существует</strong>
+                <p>
+                  Ошибки - это топливо, а не повод для стыда. Самый быстрый способ
+                  вырасти.
+                </p>
+                <p>Чем больше пробуешь, тем быстрее становишься свободнее и увереннее.</p>
+              </div>
+              <div className="about-manifesto-rule">
+                <strong>3. Слышать и слушать</strong>
+                <p>
+                  Большинство людей думают о том, что ответить, еще до того, как
+                  дослушают собеседника.
+                </p>
+                <p>
+                  В РРК мы учимся быть в моменте, замечать партнера и строить общение не
+                  вокруг себя, а вместе с другим человеком.
+                </p>
+              </div>
+            </div>
           </aside>
         </div>
       </section>
@@ -415,63 +441,12 @@ export default function HomePage() {
           <span>Афиша РРК</span>
           <h2>Ближайшие тренировки, коллаборации и большие встречи клуба</h2>
         </div>
-        <PosterCalendar events={posterEvents} />
+        <PosterCalendar events={calendarEvents} />
         <div className="poster-footer">
-          <p>По записи: @rrclubadmin</p>
           <p>На каждую тренировку 10 мест</p>
           <a href="https://t.me/rrclubadmin" className="site-button primary" target="_blank" rel="noreferrer">
-            Написать на запись
+            Записаться
           </a>
-        </div>
-      </section>
-
-      <section id="merch" className="site-section merch-section">
-        <div className="section-heading">
-          <span>Мерч РРК</span>
-          <h2>Кремово-бежевый мерч клуба как продолжение его атмосферы</h2>
-        </div>
-        <div className="merch-layout">
-          <div className="merch-visual">
-            <div className="merch-image-card">
-              <Image
-                src="/merch-photo.jpg"
-                alt="Мерч Русского Разговорного Клуба"
-                width={1200}
-                height={900}
-                className="merch-image"
-              />
-            </div>
-          </div>
-          <div className="merch-copy">
-            <span>Носимая эстетика клуба</span>
-            <h3>Минималистичный мерч в теплой палитре РРК</h3>
-            <p>
-              Мерч РРК продолжает язык клуба: мягкие натуральные оттенки, простая графика,
-              ирония, человечность и спокойная уверенность без визуального шума.
-            </p>
-            <p>
-              Пока на сайте можно заложить механику покупки и заявку на мерч. На следующем
-              этапе сюда добавим реальные карточки товаров, размеры, наличие и оплату.
-            </p>
-            <div className="merch-points">
-              <div className="merch-point">
-                <span>Цвета</span>
-                <strong>Кремовый, бордовый, черный</strong>
-              </div>
-              <div className="merch-point">
-                <span>Формат</span>
-                <strong>Футболки и клубные дропы</strong>
-              </div>
-            </div>
-            <div className="hero-actions">
-              <a href="#visit" className="site-button primary">
-                Оставить заявку на мерч
-              </a>
-              <a href="#faq" className="site-button secondary">
-                Узнать подробнее
-              </a>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -571,7 +546,6 @@ export default function HomePage() {
               <span>Навигация</span>
               <a href="#about">О клубе</a>
               <a href="#formats">Программы</a>
-              <a href="#merch">Мерч</a>
               <a href="#founders">Основатели</a>
               <a href="#faq">FAQ</a>
             </div>

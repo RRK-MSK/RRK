@@ -1,7 +1,9 @@
 import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, SimpleTable } from "@/components/crm/ui";
-import { attentionMetrics, recordMetrics, recordRows } from "@/lib/crm-data";
+import { getRecordsPageData } from "@/lib/crm-store";
 
-export default function RecordsPage() {
+export default async function RecordsPage() {
+  const { funnelMetrics, attentionMetrics, rows } = await getRecordsPageData();
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -16,7 +18,7 @@ export default function RecordsPage() {
         description="Кто ждет оплату, кто подтвержден и какие записи требуют сверки."
         rightLabel="По всем занятиям июня"
       >
-        <MetricGrid items={recordMetrics} />
+        <MetricGrid items={funnelMetrics} />
       </SectionCard>
 
       <SectionCard title="Требует внимания" description="Быстрая подсказка, что администратору стоит проверить прямо сейчас.">
@@ -28,7 +30,7 @@ export default function RecordsPage() {
           filters={["Все", "Ждут оплату", "Подтверждено", "Waitlist", "Отмены"]}
           searchPlaceholder="Поиск по участнику, занятию, источнику или контакту"
         />
-        <SimpleTable rows={recordRows} />
+        <SimpleTable rows={rows} />
       </SectionCard>
     </div>
   );

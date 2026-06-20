@@ -1,9 +1,11 @@
 import Link from "next/link";
 
 import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, StatusBadge } from "@/components/crm/ui";
-import { participantMetrics, participants } from "@/lib/crm-data";
+import { getParticipantsPageData } from "@/lib/crm-store";
 
-export default function ParticipantsPage() {
+export default async function ParticipantsPage() {
+  const { metrics, rows } = await getParticipantsPageData();
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -14,7 +16,7 @@ export default function ParticipantsPage() {
       />
 
       <SectionCard title="База клуба" description="Кто приходит впервые, кто возвращается и сколько денег уже принес клубу.">
-        <MetricGrid items={participantMetrics} />
+        <MetricGrid items={metrics} />
       </SectionCard>
 
       <SectionCard
@@ -42,7 +44,7 @@ export default function ParticipantsPage() {
               </tr>
             </thead>
             <tbody>
-              {participants.map((participant) => (
+              {rows.map((participant) => (
                 <tr key={participant.slug}>
                   <td>
                     <div className="name-cell">

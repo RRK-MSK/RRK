@@ -12,11 +12,16 @@ type PosterEvent = {
   host?: string;
   price: string;
   label?: string;
+  capacity?: number;
+  booked?: number;
+  seatsLeft?: number;
 };
 
 type PosterCalendarProps = {
   events: PosterEvent[];
 };
+
+type DayKind = "standard" | "collab" | "spb" | "big";
 
 const weekDays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const julyOffset = 2;
@@ -26,6 +31,57 @@ const getDayNumber = (date: string) => {
   const [day] = date.split(" ");
   return Number(day);
 };
+
+const splitDateLabel = (date: string) => {
+  const match = date.match(/^(.*?)(\s*\(.*\))$/);
+
+  if (!match) {
+    return { main: date, meta: "" };
+  }
+
+  return { main: match[1].trim(), meta: match[2].trim() };
+};
+
+const getDayKind = (dayEvents: PosterEvent[]): DayKind => {
+  if (dayEvents.some((event) => event.title.includes("ПИТЕРЕ"))) {
+    return "spb";
+  }
+
+  if (dayEvents.some((event) => event.label?.includes("ДК x РРК") || event.title.includes("COFFEE JAM"))) {
+    return "collab";
+  }
+
+  if (dayEvents.some((event) => event.title === "БИГ-ТРЕНИРОВКА")) {
+    return "big";
+  }
+
+  return "standard";
+};
+
+const getEventCapacity = (event: PosterEvent) => event.capacity ?? 10;
+
+const getEventBooked = (event: PosterEvent) => {
+  if (typeof event.booked === "number") {
+    return Math.max(0, event.booked);
+  }
+
+  if (typeof event.seatsLeft === "number") {
+    return Math.max(getEventCapacity(event) - event.seatsLeft, 0);
+  }
+
+  return 0;
+};
+
+const getEventSeatsLeft = (event: PosterEvent) =>
+  typeof event.seatsLeft === "number"
+    ? Math.max(0, event.seatsLeft)
+    : Math.max(getEventCapacity(event) - getEventBooked(event), 0);
+
+const getDaySeatsLeft = (dayEvents: PosterEvent[]) =>
+  dayEvents.reduce((sum, event) => sum + getEventSeatsLeft(event), 0);
+
+const getDayCapacity = (dayEvents: PosterEvent[]) =>
+  dayEvents.reduce((sum, event) => sum + getEventCapacity(event), 0);
 
 export function PosterCalendar({ events }: PosterCalendarProps) {
   const groupedEvents = useMemo(() => {
@@ -50,6 +106,9 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
 
   const selectedEvents = groupedEvents.get(selectedDay) ?? [];
   const selectedDate = selectedEvents[0]?.date ?? `${selectedDay} июля`;
+  const selectedDateParts = splitDateLabel(selectedDate);
+  const selectedDaySeatsLeft = getDaySeatsLeft(selectedEvents);
+  const selectedDayCapacity = getDayCapacity(selectedEvents);
 
   const calendarCells = useMemo(
     () =>
@@ -71,10 +130,16 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
             <span>Июль 2026</span>
             <h3>Календарь афиши РРК</h3>
             <p>Нажми на дату, чтобы увидеть все встречи, тренировки и коллаборации дня.</p>
+            <div className="poster-calendar-legend" aria-label="Типы событий">
+              <span className="poster-calendar-legend-item kind-standard">Стандарт</span>
+              <span className="poster-calendar-legend-item kind-collab">Коллаборация</span>
+              <span className="poster-calendar-legend-item kind-spb">Питер</span>
+              <span className="poster-calendar-legend-item kind-big">Биг-тренировка</span>
+            </div>
           </div>
           <div className="poster-calendar-note">
             <strong>{events.length} событий в июле</strong>
-            <p>На каждую тренировку 10 мест, запись через `@rrclubadmin`.</p>
+            <p>На каждую тренировку 10 мест.</p>
           </div>
         </div>
 
@@ -88,26 +153,33 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
           {calendarCells.map((day, index) =>
             day === null ? (
               <span key={`empty-${index}`} className="poster-calendar-empty" />
-            ) : (
-              <button
-                key={day}
-                type="button"
-                className={[
-                  "poster-calendar-day",
-                  groupedEvents.has(day) ? "has-event" : "",
-                  day === selectedDay ? "is-selected" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onClick={() => setSelectedDay(day)}
-                aria-pressed={day === selectedDay}
-              >
-                <span className="poster-calendar-day-number">{day}</span>
-                {groupedEvents.has(day) ? (
-                  <span className="poster-calendar-day-count">{groupedEvents.get(day)?.length}</span>
-                ) : null}
-              </button>
-            ),
+            ) : (() => {
+              const dayEvents = groupedEvents.get(day) ?? [];
+              const dayKind = dayEvents.length > 0 ? getDayKind(dayEvents) : "";
+              const daySeatsLeft = getDaySeatsLeft(dayEvents);
+
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  className={[
+                    "poster-calendar-day",
+                    dayEvents.length > 0 ? "has-event" : "",
+                    dayKind ? `kind-${dayKind}` : "",
+                    day === selectedDay ? "is-selected" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onClick={() => setSelectedDay(day)}
+                  aria-pressed={day === selectedDay}
+                >
+                  <span className="poster-calendar-day-number">{day}</span>
+                  {dayEvents.length > 0 ? (
+                    <span className="poster-calendar-day-count">{daySeatsLeft}</span>
+                  ) : null}
+                </button>
+              );
+            })(),
           )}
         </div>
       </div>
@@ -115,10 +187,15 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
       <div className="poster-calendar-detail">
         <div className="poster-calendar-detail-head">
           <span>Выбранная дата</span>
-          <h3>{selectedDate}</h3>
+          <h3>
+            <span className="poster-calendar-detail-date-main">{selectedDateParts.main}</span>
+            {selectedDateParts.meta ? (
+              <span className="poster-calendar-detail-date-meta">{selectedDateParts.meta}</span>
+            ) : null}
+          </h3>
           <p>
             {selectedEvents.length > 0
-              ? `${selectedEvents.length} события на этот день`
+              ? `${selectedEvents.length} события · осталось ${selectedDaySeatsLeft} из ${selectedDayCapacity} мест`
               : "На эту дату пока нет открытых событий"}
           </p>
         </div>
@@ -134,6 +211,12 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                   <span>{event.time}</span>
                   <span>{event.price}</span>
                 </div>
+                <div className="poster-event-spots">
+                  <strong>Осталось {getEventSeatsLeft(event)} мест</strong>
+                  <span>
+                    {getEventBooked(event)} из {getEventCapacity(event)} уже записались
+                  </span>
+                </div>
                 {event.label ? <p className="poster-event-label">{event.label}</p> : null}
                 <h4>{event.title}</h4>
                 {event.description ? <p className="poster-event-description">{event.description}</p> : null}
@@ -143,7 +226,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
             ))
           ) : (
             <div className="poster-event-empty">
-              <p>Выбери дату с бордовой точкой, чтобы открыть событие.</p>
+              <p>Выбери дату с цветной меткой, чтобы открыть событие.</p>
             </div>
           )}
         </div>

@@ -10,10 +10,9 @@ const streamUrl = "https://stream.mux.com/tLkHO1qZoaaQOUeVWo8hEBeGQfySP02EPS02Bm
 
 const navItems = [
   { href: "#formats", label: "Форматы" },
-  { href: "#merch", label: "Мерч" },
   { href: "#about", label: "О клубе" },
   { href: "#visit", label: "Как прийти" },
-  { href: "/crm/login", label: "CRM" },
+  { href: "#founders", label: "Основатели" },
 ];
 
 export function VideoHero() {
@@ -102,20 +101,20 @@ export function VideoHero() {
             </div>
 
             <div className="rrk-video-copy">
-              <p className="rrk-video-eyebrow">Еженедельная живая практика</p>
+              <p className="rrk-video-eyebrow">Речь реакция культура</p>
               <h1>
-                ВХОДИ В СРЕДУ,
+                РУССКИЙ РАЗГОВОРНЫЙ
                 <br />
-                ГДЕ ТЕБЯ СЛЫШАТ
+                КЛУБ
                 <span>.</span>
               </h1>
               <p className="rrk-video-description">
-                РРК собирает единомышленников, синтезирующих искусство, внимание и живой
-                контакт. Это встречи, после которых внутри что-то остается.
+                Место, где ты раскрепощаешься, учишься быстро реагировать, находишь сильное
+                окружение и весело проводишь время.
               </p>
               <div className="rrk-video-actions">
                 <Link href="#visit" className="site-button primary rrk-video-cta">
-                  Записаться на посещение
+                  Записаться
                   <ArrowRight size={18} />
                 </Link>
               </div>

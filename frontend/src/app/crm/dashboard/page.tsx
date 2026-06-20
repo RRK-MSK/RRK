@@ -1,7 +1,9 @@
 import { MetricGrid, PageHeader, PrimaryButton, SectionCard, StatusBadge } from "@/components/crm/ui";
-import { dashboardMetrics, upcomingClasses } from "@/lib/crm-data";
+import { getDashboardPageData } from "@/lib/crm-store";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { metrics, classes } = await getDashboardPageData();
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -12,7 +14,7 @@ export default function DashboardPage() {
       />
 
       <SectionCard title="Картина июня" description="Быстрый срез по местам, оплатам и ближайшим занятиям.">
-        <MetricGrid items={dashboardMetrics} />
+        <MetricGrid items={metrics} />
       </SectionCard>
 
       <SectionCard
@@ -21,7 +23,7 @@ export default function DashboardPage() {
         rightLabel="13 занятий"
       >
         <div className="class-list">
-          {upcomingClasses.map((item) => (
+          {classes.map((item) => (
             <article key={item.title} className="class-card">
               <div className="class-card-main">
                 <div className="class-badges">

@@ -1,7 +1,9 @@
 import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, SimpleTable } from "@/components/crm/ui";
-import { reviewMetrics, reviewRows } from "@/lib/crm-data";
+import { getReviewsPageData } from "@/lib/crm-store";
 
-export default function ReviewsPage() {
+export default async function ReviewsPage() {
+  const { metrics, rows } = await getReviewsPageData();
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -12,7 +14,7 @@ export default function ReviewsPage() {
       />
 
       <SectionCard title="Сводка отзывов" description="Что уже пришло, что можно использовать и где нужен следующий запрос.">
-        <MetricGrid items={reviewMetrics} />
+        <MetricGrid items={metrics} />
       </SectionCard>
 
       <SectionCard title="Лента отзывов" description="Текущие отзывы участников с источниками и статусом публикации." rightLabel="12 новых">
@@ -20,7 +22,7 @@ export default function ReviewsPage() {
           filters={["Все", "Новые", "Согласован", "Черновик", "К публикации"]}
           searchPlaceholder="Поиск по автору, источнику или тексту"
         />
-        <SimpleTable rows={reviewRows} />
+        <SimpleTable rows={rows} />
       </SectionCard>
     </div>
   );

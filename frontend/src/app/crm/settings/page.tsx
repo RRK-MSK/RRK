@@ -1,7 +1,9 @@
 import { PageHeader, PrimaryButton } from "@/components/crm/ui";
-import { settingsCards } from "@/lib/crm-data";
+import { getSettingsPageData } from "@/lib/crm-store";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const { cards } = await getSettingsPageData();
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -12,7 +14,7 @@ export default function SettingsPage() {
       />
 
       <div className="settings-grid">
-        {settingsCards.map((card) => (
+        {cards.map((card) => (
           <section key={card.title} className="settings-card">
             <h2>{card.title}</h2>
             <p>{card.text}</p>
