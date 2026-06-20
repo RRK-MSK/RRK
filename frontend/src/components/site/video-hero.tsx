@@ -1,7 +1,7 @@
 "use client";
 
 import Hls from "hls.js";
-import { ArrowLeft, ArrowRight, Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -143,15 +143,23 @@ export function VideoHero() {
       {mobileOpen ? (
         <div className="rrk-mobile-panel">
           <div className="rrk-mobile-panel-inner">
-            <button type="button" className="rrk-mobile-back" onClick={() => setMobileOpen(false)}>
-              <ArrowLeft size={18} />
-              Назад
-            </button>
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
-                {item.label}
-              </Link>
-            ))}
+            <div className="rrk-mobile-panel-top">
+              <span>Русский разговорный клуб</span>
+              <button type="button" className="rrk-mobile-close" onClick={() => setMobileOpen(false)} aria-label="Закрыть меню">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="rrk-mobile-links">
+              {navItems.map((item) => (
+                <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+            <div className="rrk-mobile-panel-footer">
+              <a href="mailto:test@rrk.club">test@rrk.club</a>
+              <strong>РРК</strong>
+            </div>
           </div>
         </div>
       ) : null}
