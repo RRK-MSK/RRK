@@ -6,23 +6,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "hls.js": "^1.6.16",
     "lucide-react": "^1.21.0",
-    "next": "15.3.3",
+    "next": "^16.2.9",
     "react": "19.0.0",
     "react-dom": "19.0.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@types/node": "22.15.30",
     "@types/react": "19.1.6",
     "@types/react-dom": "19.1.5",
     "eslint": "9.28.0",
-    "eslint-config-next": "15.3.3",
+    "eslint-config-next": "^16.2.9",
     "typescript": "5.8.3"
   }
 }
