@@ -443,8 +443,12 @@ export default async function HomePage() {
         </div>
         <PosterCalendar events={calendarEvents} />
         <div className="poster-footer">
-          <p>На каждую тренировку 10 мест</p>
-          <a href="https://t.me/rrclubadmin" className="site-button primary" target="_blank" rel="noreferrer">
+          <a
+            href="https://t.me/rrclubadmin"
+            className="site-button primary"
+            target="_blank"
+            rel="noreferrer"
+          >
             Записаться
           </a>
         </div>
@@ -506,10 +510,6 @@ export default async function HomePage() {
         <div className="visit-copy">
           <span>Как прийти</span>
           <h2>Сейчас можно начать с одного посещения и сразу почувствовать среду клуба</h2>
-          <p>
-            На текущем этапе у РРК открыт вход через разовое посещение. Позже сюда добавим
-            живую афишу, оплату через ЮKassa и полную связку с Telegram Mini App.
-          </p>
         </div>
         <div className="visit-panel">
           <div className="visit-line">
@@ -519,10 +519,6 @@ export default async function HomePage() {
           <div className="visit-line">
             <span>Стоимость</span>
             <strong>4 400 ₽</strong>
-          </div>
-          <div className="visit-line">
-            <span>Запись</span>
-            <strong>Сайт + Telegram + CRM</strong>
           </div>
           <a href="/crm/login" className="site-button primary site-button-visit full">
             Записаться на посещение

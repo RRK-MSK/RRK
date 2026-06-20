@@ -80,9 +80,6 @@ const getEventSeatsLeft = (event: PosterEvent) =>
 const getDaySeatsLeft = (dayEvents: PosterEvent[]) =>
   dayEvents.reduce((sum, event) => sum + getEventSeatsLeft(event), 0);
 
-const getDayCapacity = (dayEvents: PosterEvent[]) =>
-  dayEvents.reduce((sum, event) => sum + getEventCapacity(event), 0);
-
 export function PosterCalendar({ events }: PosterCalendarProps) {
   const groupedEvents = useMemo(() => {
     const map = new Map<number, PosterEvent[]>();
@@ -107,8 +104,9 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
   const selectedEvents = groupedEvents.get(selectedDay) ?? [];
   const selectedDate = selectedEvents[0]?.date ?? `${selectedDay} июля`;
   const selectedDateParts = splitDateLabel(selectedDate);
-  const selectedDaySeatsLeft = getDaySeatsLeft(selectedEvents);
-  const selectedDayCapacity = getDayCapacity(selectedEvents);
+  const selectedDateLabel = selectedDateParts.meta
+    ? `${selectedDateParts.main} ${selectedDateParts.meta}`
+    : selectedDateParts.main;
 
   const calendarCells = useMemo(
     () =>
@@ -128,8 +126,6 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
         <div className="poster-calendar-head">
           <div>
             <span>Июль 2026</span>
-            <h3>Календарь афиши РРК</h3>
-            <p>Нажми на дату, чтобы увидеть все встречи, тренировки и коллаборации дня.</p>
             <div className="poster-calendar-legend" aria-label="Типы событий">
               <span className="poster-calendar-legend-item kind-standard">Стандарт</span>
               <span className="poster-calendar-legend-item kind-collab">Коллаборация</span>
@@ -186,18 +182,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
 
       <div className="poster-calendar-detail">
         <div className="poster-calendar-detail-head">
-          <span>Выбранная дата</span>
-          <h3>
-            <span className="poster-calendar-detail-date-main">{selectedDateParts.main}</span>
-            {selectedDateParts.meta ? (
-              <span className="poster-calendar-detail-date-meta">{selectedDateParts.meta}</span>
-            ) : null}
-          </h3>
-          <p>
-            {selectedEvents.length > 0
-              ? `${selectedEvents.length} события · осталось ${selectedDaySeatsLeft} из ${selectedDayCapacity} мест`
-              : "На эту дату пока нет открытых событий"}
-          </p>
+          <span className="poster-calendar-detail-date-label">{selectedDateLabel}</span>
         </div>
 
         <div className="poster-calendar-events">
