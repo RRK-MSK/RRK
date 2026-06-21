@@ -52,6 +52,14 @@ export function VideoHero() {
 
   return (
     <section className="rrk-video-hero">
+      <nav className="rrk-video-nav" aria-label="Основная навигация">
+        {navItems.map((item) => (
+          <Link key={item.href} href={item.href} className={item.href === "#formats" ? "is-active" : undefined}>
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
       <div className="rrk-video-shell">
         <video ref={videoRef} className="rrk-video-media" muted playsInline autoPlay loop />
         <div className="rrk-video-left-gradient" aria-hidden="true" />
@@ -69,13 +77,6 @@ export function VideoHero() {
 
         <header className="rrk-video-header">
           <div className="rrk-video-logo">РРК</div>
-          <nav className="rrk-video-nav" aria-label="Основная навигация">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href} className={item.href === "#formats" ? "is-active" : undefined}>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
           <button
             type="button"
             className="rrk-video-menu"
