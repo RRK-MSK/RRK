@@ -90,17 +90,6 @@ export function VideoHero() {
 
         <div className="rrk-video-content">
           <div className="rrk-video-main">
-            <div className="rrk-liquid-card">
-              <span>[ 2026 ]</span>
-              <h3>
-                Практики ведут люди из <em>живой</em> среды
-              </h3>
-              <p>
-                Небольшие группы, еженедельные встречи и атмосфера, в которой речь становится
-                увереннее, а контакт глубже.
-              </p>
-            </div>
-
             <div className="rrk-video-copy">
               <p className="rrk-video-eyebrow">Речь реакция культура</p>
               <h1>

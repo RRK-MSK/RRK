@@ -20,7 +20,7 @@ export default function SuccessPage() {
             Оплата прошла!
           </h1>
           <p style={{ color: "var(--muted)", fontSize: "18px", marginBottom: "32px", lineHeight: "1.5" }}>
-            Ждем вас на занятии. Обратите внимание: при отмене брони менее чем за 48 часов оплата не возвращается.
+            Иногда одного вечера достаточно, чтобы начать проявляться по-новому. Ждем вас на занятии. Обратите внимание: при отмене брони менее чем за 48 часов оплата не возвращается.
           </p>
           <Link href="/" className="site-button primary" style={{ display: "inline-flex", justifyContent: "center" }}>
             Вернуться на главную
