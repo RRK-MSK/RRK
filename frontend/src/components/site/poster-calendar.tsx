@@ -28,6 +28,7 @@ const julyOffset = 2;
 const julyDays = 31;
 
 const getDayNumber = (date: string) => {
+  if (date === "Тест оплаты") return 0; // Скрытый день или обрабатывается отдельно
   const [day] = date.split(" ");
   return Number(day);
 };
@@ -85,7 +86,10 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
     const map = new Map<number, PosterEvent[]>();
 
     for (const event of events) {
+      if (event.date === "Тест оплаты") continue; // Пропускаем тестовое событие в визуальном календаре
       const day = getDayNumber(event.date);
+      if (Number.isNaN(day)) continue;
+      
       const current = map.get(day) ?? [];
       current.push(event);
       map.set(day, current);

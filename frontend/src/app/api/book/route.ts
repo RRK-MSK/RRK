@@ -59,7 +59,7 @@ export async function POST(request: Request) {
           participantId = existingParticipants[0].id;
         } else {
           // Создаем нового
-          const { data: newParticipant } = await supabase
+          const { data: newParticipant, error: pError } = await supabase
             .from("participants")
             .insert({
               full_name: `${firstName} ${lastName}`.trim(),
@@ -71,21 +71,23 @@ export async function POST(request: Request) {
             .select("id")
             .single();
             
+          if (pError) console.error("Participant insert error:", pError);
           if (newParticipant) participantId = newParticipant.id;
         }
       }
 
       // 3. Создаем запись (enrollment)
       if (participantId && dbEventId) {
-        await supabase
+        const { error: eError } = await supabase
           .from("enrollments")
           .insert({
             participant_id: participantId,
             event_id: dbEventId,
-            status: "Записан",
-            payment_status: "Ожидает",
+            status: "Активна",
+            payment_status: "Ждет оплату",
             source: "Сайт (Оплата Т-Банк)",
           });
+        if (eError) console.error("Enrollment insert error:", eError);
       }
     } else {
       // Фолбек цены, если нет БД
