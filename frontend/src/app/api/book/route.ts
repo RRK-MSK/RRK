@@ -1,25 +1,101 @@
 import { NextResponse } from "next/server";
 import { tbank } from "@/lib/tbank/client";
-// import { createServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    
-    // В реальном проекте здесь будет логика создания participant и enrollment
-    // const { firstName, lastName, phone, telegram, eventId } = data;
-    // const supabase = await createServerClient();
     console.log("New booking request:", data);
+
+    const { firstName, lastName, phone, telegram, eventId } = data;
     
+    // Пытаемся найти ID события в базе (по title)
+    // eventId с фронта сейчас выглядит как "4 июля (сб) - Ошибки как топливо"
+    // Мы можем найти событие по названию
+    const eventTitleMatch = eventId ? eventId.split(" - ")[1] : null;
+    const eventTitle = eventTitleMatch || eventId;
+    
+    const supabase = getSupabaseAdminClient();
+    
+    let dbEventId = null;
+    let priceRub = 4400;
+    let participantId = null;
+
+    if (supabase) {
+      // 1. Ищем событие в БД
+      if (eventTitle) {
+        const { data: events } = await supabase
+          .from("events")
+          .select("id, price_rub")
+          .ilike("title", `${eventTitle}%`)
+          .limit(1);
+          
+        if (events && events.length > 0) {
+          dbEventId = events[0].id;
+          priceRub = events[0].price_rub || priceRub;
+        }
+      }
+
+      // Если это тестовое событие (1 рубль)
+      if (eventId && eventId.includes("Тестовое")) {
+        priceRub = 1;
+      } else if (eventId && eventId.includes("5000")) {
+        priceRub = 5000;
+      } else if (eventId && eventId.includes("10 000")) {
+        priceRub = 10000;
+      }
+
+      // 2. Ищем или создаем участника
+      const phoneOrTg = phone || telegram;
+      
+      if (phoneOrTg) {
+        const { data: existingParticipants } = await supabase
+          .from("participants")
+          .select("id")
+          .or(`phone.eq.${phone},telegram.eq.${telegram}`)
+          .limit(1);
+          
+        if (existingParticipants && existingParticipants.length > 0) {
+          participantId = existingParticipants[0].id;
+        } else {
+          // Создаем нового
+          const { data: newParticipant } = await supabase
+            .from("participants")
+            .insert({
+              full_name: `${firstName} ${lastName}`.trim(),
+              phone: phone || null,
+              telegram: telegram || null,
+              status: "Новый",
+              source: "Сайт (Оплата Т-Банк)",
+            })
+            .select("id")
+            .single();
+            
+          if (newParticipant) participantId = newParticipant.id;
+        }
+      }
+
+      // 3. Создаем запись (enrollment)
+      if (participantId && dbEventId) {
+        await supabase
+          .from("enrollments")
+          .insert({
+            participant_id: participantId,
+            event_id: dbEventId,
+            status: "Записан",
+            payment_status: "Ожидает",
+            source: "Сайт (Оплата Т-Банк)",
+          });
+      }
+    } else {
+      // Фолбек цены, если нет БД
+      if (eventId && eventId.includes("Тестовое")) priceRub = 1;
+      else if (eventId && eventId.includes("5000")) priceRub = 5000;
+      else if (eventId && eventId.includes("10 000")) priceRub = 10000;
+    }
+
     // Генерируем уникальный OrderId для Т-Банка
     const orderId = `RRK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    
-    // Получаем цену (в реальности нужно брать из БД, а не доверять фронту)
-    // Сейчас для примера ставим 4400 рублей (в копейках это 440000)
-    // В зависимости от события цена может быть 5000 или 10000
-    let priceRub = 4400;
-    if (data.eventId && data.eventId.includes("5000")) priceRub = 5000;
-    if (data.eventId && data.eventId.includes("10 000")) priceRub = 10000;
     
     const amountKopecks = priceRub * 100;
 
@@ -36,6 +112,20 @@ export async function POST(request: Request) {
     });
 
     if (tbankResponse.Success && tbankResponse.PaymentURL) {
+      // 4. Записываем ожидаемый платеж в БД
+      if (supabase && participantId && dbEventId) {
+        await supabase
+          .from("payments")
+          .insert({
+            participant_id: participantId,
+            event_id: dbEventId,
+            amount_rub: priceRub,
+            method: "Т-Банк",
+            status: "Ждет",
+            external_payment_id: String(tbankResponse.PaymentId)
+          });
+      }
+
       return NextResponse.json({ success: true, paymentUrl: tbankResponse.PaymentURL });
     } else {
       console.error("T-Bank init error:", tbankResponse);

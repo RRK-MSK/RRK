@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-// import { createServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
@@ -38,12 +38,40 @@ export async function POST(request: Request) {
       // Платеж успешен
       console.log(`Payment successful for OrderId: ${payload.OrderId}, Amount: ${payload.Amount}`);
       
-      // Здесь мы будем обновлять статус в Supabase (enrollments -> payment_status = 'Оплачен')
-      // const supabase = await createServerClient();
-      // await supabase.from('payments').update({ status: 'Оплачен', paid_at: new Date() }).eq('external_payment_id', payload.PaymentId);
+      const supabase = getSupabaseAdminClient();
+      if (supabase) {
+        // Обновляем статус платежа
+        await supabase
+          .from('payments')
+          .update({ status: 'Оплачен', paid_at: new Date().toISOString() })
+          .eq('external_payment_id', String(payload.PaymentId));
+
+        // Находим к какому участнику и событию относится этот платеж
+        const { data: payments } = await supabase
+          .from('payments')
+          .select('participant_id, event_id')
+          .eq('external_payment_id', String(payload.PaymentId))
+          .single();
+
+        if (payments) {
+          // Обновляем статус в enrollments
+          await supabase
+            .from('enrollments')
+            .update({ payment_status: 'Оплачен' })
+            .eq('participant_id', payments.participant_id)
+            .eq('event_id', payments.event_id);
+        }
+      }
     } else if (payload.Status === "REJECTED" || payload.Status === "CANCELED") {
       // Платеж отклонен
       console.log(`Payment failed for OrderId: ${payload.OrderId}`);
+      const supabase = getSupabaseAdminClient();
+      if (supabase) {
+        await supabase
+          .from('payments')
+          .update({ status: 'Отклонен' })
+          .eq('external_payment_id', String(payload.PaymentId));
+      }
     }
 
     // Обязательно возвращаем OK Т-Банку
