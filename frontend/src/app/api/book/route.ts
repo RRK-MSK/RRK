@@ -10,10 +10,12 @@ export async function POST(request: Request) {
     const { firstName, lastName, phone, telegram, eventId } = data;
     
     // Пытаемся найти ID события в базе (по title)
-    // eventId с фронта сейчас выглядит как "4 июля (сб) - Ошибки как топливо"
+    // eventId с фронта сейчас выглядит как "Тест оплаты - Тестовое событие (1 рубль)"
     // Мы можем найти событие по названию
     const eventTitleMatch = eventId ? eventId.split(" - ")[1] : null;
-    const eventTitle = eventTitleMatch || eventId;
+    const eventTitleRaw = eventTitleMatch || eventId;
+    // Очищаем название от цены в скобках, если она есть
+    const eventTitle = eventTitleRaw ? eventTitleRaw.replace(/\s*\([^)]*\)$/, '').trim() : null;
     
     const supabase = getSupabaseAdminClient();
     
@@ -47,13 +49,16 @@ export async function POST(request: Request) {
 
       // 2. Ищем или создаем участника
       const phoneOrTg = phone || telegram;
-      
-      if (phoneOrTg) {
-        const { data: existingParticipants } = await supabase
-          .from("participants")
-          .select("id")
-          .or(`phone.eq.${phone},telegram.eq.${telegram}`)
-          .limit(1);
+        const orConditions = [];
+        if (phone) orConditions.push(`phone.eq.${phone}`);
+        if (telegram) orConditions.push(`telegram.eq.${telegram}`);
+        
+        if (orConditions.length > 0) {
+          const { data: existingParticipants } = await supabase
+            .from("participants")
+            .select("id")
+            .or(orConditions.join(','))
+            .limit(1);
           
         if (existingParticipants && existingParticipants.length > 0) {
           participantId = existingParticipants[0].id;
