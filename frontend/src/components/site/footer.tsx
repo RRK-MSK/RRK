@@ -45,7 +45,7 @@ export function SiteFooter() {
             </div>
           </div>
         </div>
-        <div aria-hidden="true" style={{ marginTop: '0px', marginBottom: '-20px', width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <div aria-hidden="true" style={{ gridColumn: '1 / -1', marginTop: '40px', width: '100%', display: 'flex', justifyContent: 'center' }}>
           <img src="/Безымянный-1_Монтажная область 1 копия 15.webp" alt="РРК" style={{ width: '100%', maxWidth: '800px', filter: 'brightness(0) invert(1)' }} />
         </div>
       </div>
