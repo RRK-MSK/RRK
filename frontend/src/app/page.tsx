@@ -438,8 +438,8 @@ export default async function HomePage() {
               <div className="founder-copy">
                 <span>{founder.role}</span>
                 <h3>{founder.name}</h3>
-                <details className="founder-details">
-                  <summary>{founder.preview}</summary>
+                <details className="founder-details" open>
+                  <summary style={{ display: 'none' }}>{founder.preview}</summary>
                   <p>{founder.description}</p>
                 </details>
               </div>
