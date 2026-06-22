@@ -41,52 +41,58 @@ export async function POST(request: Request) {
       
       const supabase = getSupabaseAdminClient();
       if (supabase) {
-        // Обновляем статус платежа
-        await supabase
+        // Находим к какому участнику и событию относится этот платеж (и проверяем его текущий статус)
+        const { data: paymentInfo } = await supabase
           .from('payments')
-          .update({ status: 'Оплачен', paid_at: new Date().toISOString() })
-          .eq('external_payment_id', String(payload.PaymentId));
-
-        // Находим к какому участнику и событию относится этот платеж
-        const { data: payments } = await supabase
-          .from('payments')
-          .select('participant_id, event_id')
+          .select('participant_id, event_id, status')
           .eq('external_payment_id', String(payload.PaymentId))
           .single();
 
-        if (payments) {
+        if (paymentInfo) {
+          // Если платеж уже был отмечен как Оплачен, не отправляем уведомление повторно
+          const isAlreadyPaid = paymentInfo.status === 'Оплачен';
+
+          // Обновляем статус платежа
+          await supabase
+            .from('payments')
+            .update({ status: 'Оплачен', paid_at: new Date().toISOString() })
+            .eq('external_payment_id', String(payload.PaymentId));
+
           // Обновляем статус в enrollments
           await supabase
             .from('enrollments')
             .update({ payment_status: 'Оплачен' })
-            .eq('participant_id', payments.participant_id)
-            .eq('event_id', payments.event_id);
+            .eq('participant_id', paymentInfo.participant_id)
+            .eq('event_id', paymentInfo.event_id);
 
-          // Получаем данные для Telegram
-          const { data: participant } = await supabase
-            .from('participants')
-            .select('full_name, phone, telegram')
-            .eq('id', payments.participant_id)
-            .single();
+          // Отправляем уведомление только если это первый раз
+          if (!isAlreadyPaid) {
+            // Получаем данные для Telegram
+            const { data: participant } = await supabase
+              .from('participants')
+              .select('full_name, phone, telegram')
+              .eq('id', paymentInfo.participant_id)
+              .single();
 
-          const { data: event } = await supabase
-            .from('events')
-            .select('title, capacity, booked_count, paid_count')
-            .eq('id', payments.event_id)
-            .single();
+            const { data: event } = await supabase
+              .from('events')
+              .select('title, capacity, booked_count, paid_count')
+              .eq('id', paymentInfo.event_id)
+              .single();
 
-          if (participant && event) {
-            // Рассчитываем оставшиеся места (или просто используем capacity - paid_count, как вам удобнее)
-            const spotsLeft = Math.max((event.capacity || 0) - ((event.booked_count || 0) + 1), 0);
-            
-            await sendTelegramNotification({
-              eventName: event.title,
-              spotsLeft: spotsLeft,
-              name: participant.full_name,
-              phone: participant.phone || '',
-              telegram: participant.telegram || '',
-              orderNumber: String(payload.OrderId || payload.PaymentId)
-            });
+            if (participant && event) {
+              // Рассчитываем оставшиеся места
+              const spotsLeft = Math.max((event.capacity || 0) - ((event.booked_count || 0) + 1), 0);
+              
+              await sendTelegramNotification({
+                eventName: event.title,
+                spotsLeft: spotsLeft,
+                name: participant.full_name,
+                phone: participant.phone || '',
+                telegram: participant.telegram || '',
+                orderNumber: String(payload.OrderId || payload.PaymentId)
+              });
+            }
           }
         }
       }
