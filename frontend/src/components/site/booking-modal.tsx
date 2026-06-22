@@ -16,6 +16,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
     phone: "",
     telegram: "",
     eventId: "",
+    price: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,11 +103,16 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
             <select 
               required 
               value={formData.eventId}
-              onChange={e => setFormData({...formData, eventId: e.target.value})}
+              onChange={e => {
+                const selectedIndex = e.target.selectedIndex;
+                const selectedOption = e.target.options[selectedIndex];
+                const price = selectedOption.getAttribute('data-price') || '';
+                setFormData({...formData, eventId: e.target.value, price});
+              }}
             >
               <option value="" disabled>Выберите событие</option>
               {events.map((ev, i) => (
-                <option key={i} value={`${ev.date} - ${ev.title}`}>
+                <option key={i} value={`${ev.date} - ${ev.title}`} data-price={ev.price}>
                   {ev.date} | {ev.time} | {ev.title} ({ev.price})
                 </option>
               ))}
@@ -114,11 +120,11 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
           </div>
           
           <div className="booking-consent">
-            Нажимая кнопку «Оплатить», вы соглашаетесь с <a href="/offer" target="_blank">Офертой</a>, <a href="/privacy" target="_blank">Политикой конфиденциальности</a> и даете <a href="/consent" target="_blank">согласие на обработку ПД</a>.
+            Нажимая кнопку, вы соглашаетесь с <a href="/offer" target="_blank">Офертой</a>, <a href="/privacy" target="_blank">Политикой конфиденциальности</a> и даете <a href="/consent" target="_blank">согласие на обработку ПД</a>.
           </div>
           
           <button type="submit" className="site-button primary" disabled={isSubmitting} style={{ width: '100%', justifyContent: 'center' }}>
-            {isSubmitting ? "Переход к оплате..." : "Оплатить"}
+            {isSubmitting ? "Обработка..." : (formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация") ? "Зарегистрироваться" : "Оплатить")}
           </button>
         </form>
       </div>

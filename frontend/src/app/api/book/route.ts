@@ -103,6 +103,27 @@ export async function POST(request: Request) {
       else if (eventId && eventId.includes("10 000")) priceRub = 10000;
     }
 
+    const isFree = data.price === "Участие бесплатно, регистрация" || data.price === "Бесплатно" || data.price === "Регистрация";
+
+    // Если это бесплатное событие (например, COFFEE JAM)
+    if (isFree) {
+      if (supabase && participantId && dbEventId) {
+        await supabase
+          .from("payments")
+          .insert({
+            participant_id: participantId,
+            event_id: dbEventId,
+            amount_rub: 0,
+            method: "Без оплаты",
+            status: "Оплачен", // Сразу считаем подтвержденным
+            external_payment_id: `FREE-${Date.now()}`
+          });
+      }
+      
+      // Перекидываем на Телеграм-админа для регистрации
+      return NextResponse.json({ success: true, paymentUrl: "https://t.me/rrclubadmin", note: "Free event, redirect to admin" });
+    }
+
     // Генерируем уникальный OrderId для Т-Банка
     const orderId = `RRK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
@@ -118,7 +139,7 @@ export async function POST(request: Request) {
       Description: `Участие в РРК: ${data.eventId || 'Событие'}`,
       // Эти URL можно настроить на страницы успеха/ошибки
       SuccessURL: `${baseUrl}/success`,
-      FailURL: `${baseUrl}/?payment=fail`,
+      FailURL: `${baseUrl}/fail`,
       // Webhook для получения статуса платежа (всегда продакшен, так как локалхост банк не достанет)
       NotificationURL: "https://rrclub.site/api/payment/webhook",
     });
