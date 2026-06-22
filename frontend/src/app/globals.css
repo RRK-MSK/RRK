@@ -3822,7 +3822,7 @@ th {
   right: 20px;
   background: none;
   border: none;
-  color: var(--text);
+  color: var(--brand);
   font-size: 32px;
   line-height: 1;
   cursor: pointer;
@@ -3839,10 +3839,11 @@ th {
   font-size: 32px;
   margin-bottom: 8px;
   text-transform: uppercase;
+  color: var(--brand);
 }
 
 .booking-modal p {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--muted);
   margin-bottom: 24px;
 }
 
@@ -3861,13 +3862,13 @@ th {
 .booking-field label {
   font-size: 14px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--brand);
 }
 
 .booking-field input,
 .booking-field select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px 16px;
   color: var(--text);
@@ -3883,21 +3884,21 @@ th {
 .booking-field input:focus,
 .booking-field select:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: var(--brand);
 }
 
 .booking-consent {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted);
   line-height: 1.4;
   margin-top: 8px;
 }
 
 .booking-consent a {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--brand);
   text-decoration: underline;
 }
 
 .booking-consent a:hover {
-  color: var(--text);
+  color: var(--brand-strong);
 }
