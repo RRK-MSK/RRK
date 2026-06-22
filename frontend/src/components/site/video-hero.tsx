@@ -76,7 +76,7 @@ export function VideoHero() {
         </div>
 
         <header className="rrk-video-header">
-          <div className="rrk-video-logo" style={{ visibility: 'hidden' }}>РРК</div>
+          <img src="/ррк.webp" alt="РРК" className="rrk-video-logo" style={{ height: '96px', width: 'auto', filter: 'brightness(0) invert(1)' }} />
           <button
             type="button"
             className="rrk-video-menu"
@@ -88,8 +88,8 @@ export function VideoHero() {
           </button>
         </header>
 
-        <div className="rrk-video-content" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', paddingBottom: '40px' }}>
-          <div className="rrk-video-main" style={{ maxWidth: '50%' }}>
+        <div className="rrk-video-content">
+          <div className="rrk-video-main">
             <div className="rrk-video-copy">
               <p className="rrk-video-eyebrow">Речь реакция культура</p>
               <h1>
@@ -111,8 +111,22 @@ export function VideoHero() {
             </div>
           </div>
 
-          <div style={{ alignSelf: 'center', width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <img src="/ррк.webp" alt="РРК" style={{ height: '180px', width: 'auto', filter: 'brightness(0) invert(1)' }} />
+          <div className="rrk-video-photo-card">
+            <div className="rrk-video-photo-media">
+              <video
+                src="/встреча.mp4"
+                className="rrk-video-photo-image"
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{ objectFit: "cover", width: "100%", height: "100%" }}
+              />
+            </div>
+            <div className="rrk-video-photo-copy">
+              <span>Живая атмосфера</span>
+              <p>Круг людей, в котором речь становится свободнее, а контакт сильнее.</p>
+            </div>
           </div>
         </div>
       </div>
