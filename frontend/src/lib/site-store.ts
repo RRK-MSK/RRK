@@ -118,15 +118,11 @@ function getLabel(category: string | null, city: string | null) {
 function formatSiteDate(value: string) {
   const date = new Date(value);
 
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "long",
-    weekday: "short",
-  })
-    .format(date)
-    .replace(",", "")
-    .replace(/\sг\./, "")
-    .replace(/(^\d+\s+\S+)\s+(\S+)/, "$1 ($2)");
+  const day = date.getDate();
+  const month = new Intl.DateTimeFormat("ru-RU", { month: "long" }).format(date);
+  const weekday = new Intl.DateTimeFormat("ru-RU", { weekday: "short" }).format(date);
+
+  return `${day} ${month} (${weekday})`;
 }
 
 function formatTimeRange(startValue: string, endValue: string | null) {

@@ -28,8 +28,8 @@ const julyOffset = 2;
 const julyDays = 31;
 
 const getDayNumber = (date: string) => {
-  const [day] = date.split(" ");
-  return Number(day);
+  const match = date.match(/\d+/);
+  return match ? Number(match[0]) : NaN;
 };
 
 const splitDateLabel = (date: string) => {
