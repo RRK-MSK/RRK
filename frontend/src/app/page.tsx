@@ -32,8 +32,8 @@ const programs = [
 const posterEvents = [
   {
     tone: "highlight",
-    date: "Тест оплаты",
-    time: "Сейчас",
+    date: "1 июля",
+    time: "Любое время",
     title: "Тестовое событие (1 рубль)",
     focus: "Специальное событие для проверки эквайринга Т-Банк.",
     host: "Разработчик",
