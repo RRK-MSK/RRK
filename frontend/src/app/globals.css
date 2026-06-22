@@ -2988,7 +2988,7 @@ th {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
   gap: 32px;
-  padding: 28px 24px 40px;
+  padding: 28px 24px 10px;
 }
 
 .site-footer-topline {
@@ -3672,7 +3672,7 @@ th {
   }
 
   .site-footer-inner {
-    padding: 24px 16px 40px;
+    padding: 24px 16px 10px;
     gap: 22px;
   }
 
