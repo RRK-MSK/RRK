@@ -118,7 +118,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
           </div>
           
           <button type="submit" className="site-button primary" disabled={isSubmitting} style={{ width: '100%', justifyContent: 'center' }}>
-            {isSubmitting ? "Переход к оплате..." : "Оплатить через Т-Банк"}
+            {isSubmitting ? "Переход к оплате..." : "Оплатить"}
           </button>
         </form>
       </div>
