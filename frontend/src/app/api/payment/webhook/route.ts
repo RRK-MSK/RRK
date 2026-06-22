@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     // 1. Проверка подписи (Token)
     const { Token, ...dataWithoutToken } = payload;
     
-    const dataWithPassword = {
+    const dataWithPassword: Record<string, any> = {
       ...dataWithoutToken,
       Password: password,
     };

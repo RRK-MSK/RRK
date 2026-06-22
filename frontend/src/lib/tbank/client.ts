@@ -36,7 +36,7 @@ export class TBankClient {
   }
 
   private generateToken(data: Record<string, string | number | boolean>): string {
-    const dataWithPassword = {
+    const dataWithPassword: Record<string, any> = {
       ...data,
       Password: this.password,
     };
