@@ -56,7 +56,7 @@ export function MerchDoodle() {
       aria-hidden="true"
       style={{ transform: `translate3d(${translateX}, ${translateY}, 0) rotate(${rotate}deg)`, opacity, width: '160px' }}
     >
-      <img src="/человечек.webp" alt="человечек" className="merch-doodle-figure" style={{ width: '100%', height: 'auto', filter: 'invert(16%) sepia(50%) saturate(3015%) hue-rotate(334deg) brightness(91%) contrast(98%)' }} />
+      <img src="/человечек.webp" alt="человечек" className="merch-doodle-figure" style={{ width: '100%', height: 'auto', filter: 'invert(13%) sepia(45%) saturate(3000%) hue-rotate(335deg) brightness(60%) contrast(90%)' }} />
     </div>
   );
 }
