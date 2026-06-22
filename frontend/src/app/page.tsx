@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { SiteFooter } from "@/components/site/footer";
+import { BookingButton } from "@/components/site/booking-button";
 import { MerchDoodle } from "@/components/site/merch-doodle";
 import { PosterCalendar } from "@/components/site/poster-calendar";
 import { RevealOnView } from "@/components/site/reveal-on-view";
@@ -443,14 +445,9 @@ export default async function HomePage() {
         </div>
         <PosterCalendar events={calendarEvents} />
         <div className="poster-footer">
-          <a
-            href="https://t.me/rrclubadmin"
-            className="site-button primary"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <BookingButton events={calendarEvents} className="site-button primary">
             Записаться
-          </a>
+          </BookingButton>
         </div>
       </section>
 
@@ -520,57 +517,13 @@ export default async function HomePage() {
             <span>Стоимость</span>
             <strong>4 400 ₽</strong>
           </div>
-          <a href="/crm/login" className="site-button primary site-button-visit full">
+          <BookingButton events={calendarEvents} className="site-button primary site-button-visit full">
             Записаться на посещение
-          </a>
+          </BookingButton>
         </div>
       </section>
 
-      <footer className="site-footer">
-        <div className="site-footer-noise" aria-hidden="true" />
-        <div className="site-footer-inner">
-          <div className="site-footer-topline">
-            <span>Русский Разговорный Клуб</span>
-            <span>Москва</span>
-            <span>2026</span>
-          </div>
-          <div className="site-footer-brand">
-            <h2>Соберем живую встречу, после которой внутри что-то остается.</h2>
-          </div>
-          <div className="site-footer-columns">
-            <div>
-              <span>Навигация</span>
-              <a href="#about">О клубе</a>
-              <a href="#formats">Программы</a>
-              <a href="#founders">Основатели</a>
-              <a href="#faq">FAQ</a>
-            </div>
-            <div>
-              <span>Контакты</span>
-              <a href="mailto:hello@rrclub.ru">hello@rrclub.ru</a>
-              <a href="mailto:club@rrclub.ru">club@rrclub.ru</a>
-            </div>
-            <div>
-              <span>Соцсети</span>
-              <a href="https://t.me/rrclubb" target="_blank" rel="noreferrer">
-                Telegram
-              </a>
-              <a
-                href="https://www.instagram.com/rrclub.msc?igsh=MTA5bWN1eWl0a3k0Mg%3D%3D&utm_source=qr"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Instagram
-              </a>
-              <p>Основан в 2026</p>
-            </div>
-          </div>
-          <div className="site-footer-wave" aria-hidden="true">
-            <span>РРК</span>
-            <span>РРК</span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

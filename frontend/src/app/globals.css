@@ -3698,3 +3698,186 @@ th {
     font-size: clamp(120px, 34vw, 220px);
   }
 }
+/* Legal Documents */
+.legal-page {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 100px 20px 60px;
+}
+
+.legal-document {
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+}
+
+.legal-document h1 {
+  font-family: var(--font-display);
+  font-size: 48px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.legal-document h2 {
+  font-size: 24px;
+  margin-top: 40px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.legal-document p {
+  margin-bottom: 16px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.legal-document ul, .legal-document ol {
+  margin-bottom: 16px;
+  padding-left: 20px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.legal-document li {
+  margin-bottom: 8px;
+}
+
+.legal-document strong {
+  color: var(--text);
+}
+
+.legal-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: rgba(14, 8, 10, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  z-index: 50;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.legal-header a {
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--text);
+  text-decoration: none;
+}/* Booking Modal */
+.booking-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(14, 8, 10, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.booking-modal {
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 32px;
+  width: 100%;
+  max-width: 500px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.booking-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.booking-modal-close:hover {
+  opacity: 1;
+}
+
+.booking-modal h2 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.booking-modal p {
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 24px;
+}
+
+.booking-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.booking-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.booking-field label {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.booking-field input,
+.booking-field select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.booking-field select {
+  appearance: none;
+}
+
+.booking-field input:focus,
+.booking-field select:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.booking-consent {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.4;
+  margin-top: 8px;
+}
+
+.booking-consent a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: underline;
+}
+
+.booking-consent a:hover {
+  color: var(--text);
+}
