@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { tbank } from "@/lib/tbank/client";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
+import { sendTelegramNotification } from "@/lib/telegram";
 
 export async function POST(request: Request) {
   try {
@@ -107,6 +108,7 @@ export async function POST(request: Request) {
 
     // Если это бесплатное событие (например, COFFEE JAM)
     if (isFree) {
+      const freePaymentId = `FREE-${Date.now()}`;
       if (supabase && participantId && dbEventId) {
         await supabase
           .from("payments")
@@ -116,8 +118,27 @@ export async function POST(request: Request) {
             amount_rub: 0,
             method: "Без оплаты",
             status: "Оплачен", // Сразу считаем подтвержденным
-            external_payment_id: `FREE-${Date.now()}`
+            external_payment_id: freePaymentId
           });
+          
+        // Получаем данные события для Telegram
+        const { data: event } = await supabase
+          .from('events')
+          .select('title, capacity, booked_count')
+          .eq('id', dbEventId)
+          .single();
+
+        if (event) {
+          const spotsLeft = Math.max((event.capacity || 0) - ((event.booked_count || 0) + 1), 0);
+          await sendTelegramNotification({
+            eventName: event.title,
+            spotsLeft: spotsLeft,
+            name: `${firstName} ${lastName}`.trim(),
+            phone: phone || '',
+            telegram: telegram || '',
+            orderNumber: freePaymentId
+          });
+        }
       }
       
       // Перекидываем на Телеграм-админа для регистрации

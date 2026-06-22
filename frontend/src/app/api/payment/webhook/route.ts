@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
+import { sendTelegramNotification } from "@/lib/telegram";
 
 export async function POST(request: Request) {
   try {
@@ -60,6 +61,33 @@ export async function POST(request: Request) {
             .update({ payment_status: 'Оплачен' })
             .eq('participant_id', payments.participant_id)
             .eq('event_id', payments.event_id);
+
+          // Получаем данные для Telegram
+          const { data: participant } = await supabase
+            .from('participants')
+            .select('full_name, phone, telegram')
+            .eq('id', payments.participant_id)
+            .single();
+
+          const { data: event } = await supabase
+            .from('events')
+            .select('title, capacity, booked_count, paid_count')
+            .eq('id', payments.event_id)
+            .single();
+
+          if (participant && event) {
+            // Рассчитываем оставшиеся места (или просто используем capacity - paid_count, как вам удобнее)
+            const spotsLeft = Math.max((event.capacity || 0) - ((event.booked_count || 0) + 1), 0);
+            
+            await sendTelegramNotification({
+              eventName: event.title,
+              spotsLeft: spotsLeft,
+              name: participant.full_name,
+              phone: participant.phone || '',
+              telegram: participant.telegram || '',
+              orderNumber: String(payload.OrderId || payload.PaymentId)
+            });
+          }
         }
       }
     } else if (payload.Status === "REJECTED" || payload.Status === "CANCELED") {
