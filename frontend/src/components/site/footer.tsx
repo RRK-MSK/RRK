@@ -45,9 +45,8 @@ export function SiteFooter() {
             </div>
           </div>
         </div>
-        <div className="site-footer-wave" aria-hidden="true">
-          <span>РРК</span>
-          <span>РРК</span>
+        <div className="site-footer-wave" aria-hidden="true" style={{ marginTop: '-40px' }}>
+          <img src="/Безымянный-1_Монтажная область 1 копия 15.webp" alt="РРК" style={{ width: '100%', maxWidth: '800px', display: 'block', margin: '0 auto' }} />
         </div>
       </div>
     </footer>
