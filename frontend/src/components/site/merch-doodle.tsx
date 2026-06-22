@@ -54,9 +54,9 @@ export function MerchDoodle() {
     <div
       className="merch-doodle"
       aria-hidden="true"
-      style={{ transform: `translate3d(${translateX}, ${translateY}, 0) rotate(${rotate}deg)`, opacity, width: '120px' }}
+      style={{ transform: `translate3d(${translateX}, ${translateY}, 0) rotate(${rotate}deg)`, opacity, width: '160px' }}
     >
-      <img src="/человечек.webp" alt="человечек" className="merch-doodle-figure" style={{ width: '100%', height: 'auto', filter: 'brightness(0) invert(1)' }} />
+      <img src="/человечек.webp" alt="человечек" className="merch-doodle-figure" style={{ width: '100%', height: 'auto', filter: 'invert(16%) sepia(50%) saturate(3015%) hue-rotate(334deg) brightness(91%) contrast(98%)' }} />
     </div>
   );
 }
