@@ -149,7 +149,7 @@ export function VideoHero() {
             </div>
             <div className="rrk-mobile-panel-footer">
               <a href="mailto:test@rrk.club">test@rrk.club</a>
-              <strong>РРК</strong>
+              <img src="/ррк.webp" alt="РРК" style={{ height: '32px', width: 'auto', filter: 'brightness(0) invert(1)' }} />
             </div>
           </div>
         </div>
