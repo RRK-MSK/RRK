@@ -99,15 +99,18 @@ export async function POST(request: Request) {
     
     const amountKopecks = priceRub * 100;
 
+    const url = new URL(request.url);
+    const baseUrl = `${url.protocol}//${url.host}`;
+
     // Инициализируем платеж в Т-Банке
     const tbankResponse = await tbank.initPayment({
       OrderId: orderId,
       Amount: amountKopecks,
       Description: `Участие в РРК: ${data.eventId || 'Событие'}`,
       // Эти URL можно настроить на страницы успеха/ошибки
-      SuccessURL: "https://rrclub.site",
-      FailURL: "https://rrclub.site",
-      // Webhook для получения статуса платежа
+      SuccessURL: `${baseUrl}/success`,
+      FailURL: `${baseUrl}/?payment=fail`,
+      // Webhook для получения статуса платежа (всегда продакшен, так как локалхост банк не достанет)
       NotificationURL: "https://rrclub.site/api/payment/webhook",
     });
 
