@@ -54,28 +54,9 @@ export function MerchDoodle() {
     <div
       className="merch-doodle"
       aria-hidden="true"
-      style={{ transform: `translate3d(${translateX}, ${translateY}, 0) rotate(${rotate}deg)`, opacity }}
+      style={{ transform: `translate3d(${translateX}, ${translateY}, 0) rotate(${rotate}deg)`, opacity, width: '120px' }}
     >
-      <svg viewBox="0 0 35 106" className="merch-doodle-figure" role="presentation">
-        <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14.5 0.75C22.119 0.75 28.25 6.489 28.25 13.5S22.119 26.25 14.5 26.25 0.75 20.511 0.75 13.5 6.881 0.75 14.5 0.75Z" />
-          <path d="M15.5 27 24.5 57" />
-          <path d="M15.5 26.8 34 52.5" />
-          <path d="M15.5 27.2 5.5 65" />
-          <g className="merch-doodle-leg merch-doodle-leg-left">
-            <path d="M10.5 103.5 24.5 55.9" />
-            <path d="M4 103.5h7" />
-          </g>
-          <g className="merch-doodle-leg merch-doodle-leg-right">
-            <path d="M24.5 56 26.5 82" />
-            <path d="M26.5 82 32.5 103.9" />
-            <path d="M32.2 103.4 28.2 105.4" />
-          </g>
-        </g>
-        <circle cx="9" cy="9" r="1" fill="currentColor" />
-        <circle cx="18" cy="9" r="1" fill="currentColor" />
-        <ellipse cx="13.5" cy="15" rx="4.5" ry="1" fill="currentColor" />
-      </svg>
+      <img src="/человечек.webp" alt="человечек" className="merch-doodle-figure" style={{ width: '100%', height: 'auto', filter: 'brightness(0) invert(1)' }} />
     </div>
   );
 }
