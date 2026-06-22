@@ -124,13 +124,14 @@ export function VideoHero() {
 
           <div className="rrk-video-photo-card">
             <div className="rrk-video-photo-media">
-              <Image
-                src="/занятие.jpg"
-                alt="Встреча Русского Разговорного Клуба"
-                width={1200}
-                height={900}
+              <video
+                src="/встреча.mp4"
                 className="rrk-video-photo-image"
-                priority
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{ objectFit: "cover", width: "100%", height: "100%" }}
               />
             </div>
             <div className="rrk-video-photo-copy">
