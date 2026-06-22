@@ -45,8 +45,8 @@ export function SiteFooter() {
             </div>
           </div>
         </div>
-        <div aria-hidden="true" style={{ marginTop: '20px', width: '100%', display: 'flex', justifyContent: 'center' }}>
-          <img src="/Безымянный-1_Монтажная область 1 копия 15.webp" alt="РРК" style={{ width: '100%', maxWidth: '600px', filter: 'brightness(0) invert(1)' }} />
+        <div aria-hidden="true" style={{ marginTop: '30px', width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <img src="/Безымянный-1_Монтажная область 1 копия 15.webp" alt="РРК" style={{ width: '100%', maxWidth: '800px', filter: 'brightness(0) invert(1)' }} />
         </div>
       </div>
     </footer>

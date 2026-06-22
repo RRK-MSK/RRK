@@ -76,7 +76,7 @@ export function VideoHero() {
         </div>
 
         <header className="rrk-video-header">
-          <img src="/ррк.webp" alt="РРК" className="rrk-video-logo" style={{ height: '32px', width: 'auto', filter: 'brightness(0) invert(1)' }} />
+          <img src="/ррк.webp" alt="РРК" className="rrk-video-logo" style={{ height: '48px', width: 'auto', filter: 'brightness(0) invert(1)' }} />
           <button
             type="button"
             className="rrk-video-menu"
