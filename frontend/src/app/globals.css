@@ -2451,12 +2451,18 @@ th {
   top: 120px;
   left: 0;
   z-index: 18;
-  display: block;
+  display: none;
   width: 40px;
   color: #7f4b43;
   pointer-events: none;
   transition: transform 0.12s linear, opacity 0.18s ease;
   will-change: transform, opacity;
+}
+
+@media (max-width: 1024px) {
+  .merch-doodle {
+    display: block;
+  }
 }
 
 .merch-doodle-figure {
