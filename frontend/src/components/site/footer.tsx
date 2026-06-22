@@ -11,7 +11,7 @@ export function SiteFooter() {
           <span>2026</span>
         </div>
         <div className="site-footer-brand">
-          <h2>Соберем живую встречу, после которой внутри что-то остается.</h2>
+          <h2>Иногда одного вечера достаточно, чтобы начать проявляться по-новому.</h2>
         </div>
         <div className="site-footer-columns">
           <div>
