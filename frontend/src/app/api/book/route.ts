@@ -64,17 +64,19 @@ export async function POST(request: Request) {
           participantId = existingParticipants[0].id;
         } else {
           // Создаем нового
-          const { data: newParticipant, error: pError } = await supabase
-            .from("participants")
-            .insert({
-              full_name: `${firstName} ${lastName}`.trim(),
-              phone: phone || null,
-              telegram: telegram || null,
-              status: "Новый",
-              source: "Сайт (Оплата Т-Банк)",
-            })
-            .select("id")
-            .single();
+            const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
+            const { data: newParticipant, error: pError } = await supabase
+              .from("participants")
+              .insert({
+                slug,
+                full_name: `${firstName} ${lastName}`.trim(),
+                phone: phone || null,
+                telegram: telegram || null,
+                status: "Новый",
+                source: "Сайт (Оплата Т-Банк)",
+              })
+              .select("id")
+              .single();
             
           if (pError) console.error("Participant insert error:", pError);
           if (newParticipant) participantId = newParticipant.id;
