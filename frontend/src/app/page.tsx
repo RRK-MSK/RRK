@@ -223,7 +223,7 @@ const posterEvents = [
 
 const founders = [
   {
-    image: "/founder-ramon.jpg",
+    image: "/рмаон.PNG",
     name: "РАМОН РУЗАНОВ",
     role: "МЕДИА И КОММУНИКАЦИИ",
     preview: "Выстраивает медиа РРК и наш голос",
