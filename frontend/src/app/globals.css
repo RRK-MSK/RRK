@@ -877,8 +877,8 @@ th {
 .rrk-video-cta {
   width: fit-content;
   min-width: 220px;
-  justify-content: center;
-  text-align: center;
+  justify-content: center !important;
+  text-align: center !important;
   gap: 10px;
 }
 
