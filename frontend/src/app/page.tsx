@@ -447,8 +447,12 @@ export default async function HomePage() {
             <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0001.jpg)' }} />
             <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0002.jpg)' }} />
             <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0003.jpg)' }} />
-            <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0004.jpg)' }} />
             <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0005.jpg)' }} />
+            <div className="gallery-photo" style={{ backgroundImage: 'url(/IMG_0030.JPG)' }} />
+            <div className="gallery-photo" style={{ backgroundImage: 'url(/IMG_0032.JPG)' }} />
+            <div className="gallery-photo" style={{ backgroundImage: 'url(/IMG_0034.JPG)' }} />
+            <div className="gallery-photo" style={{ backgroundImage: 'url(/IMG_0309.JPG)' }} />
+            <div className="gallery-photo" style={{ backgroundImage: 'url(/IMG_0310.JPG)' }} />
           </div>
         </RevealOnView>
       </section>
