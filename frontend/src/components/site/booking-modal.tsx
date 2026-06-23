@@ -124,7 +124,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
             >
               <option value="" disabled>Выберите событие</option>
               {events.map((ev, i) => (
-                <option key={i} value={`${ev.date} | ${ev.time} - ${ev.title}`} data-price={ev.price}>
+                <option key={i} value={ev.id ? `${ev.id}::${ev.title}` : `${ev.date} | ${ev.time} - ${ev.title}`} data-price={ev.price}>
                   {ev.date} | {ev.time} | {ev.title} ({ev.price})
                 </option>
               ))}

@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/supabase/env";
 
 type SitePosterEvent = {
+  id?: string;
   tone: string;
   date: string;
   time: string;
@@ -17,6 +18,7 @@ type SitePosterEvent = {
   capacity?: number;
   booked?: number;
   seatsLeft?: number;
+  hideCapacity?: boolean;
 };
 
 type EventRow = {
@@ -67,6 +69,7 @@ export async function getSitePosterEvents() {
     const hideCapacity = capacity >= 10000 || event.title?.toLowerCase().includes("coffee jam");
 
     return {
+      id: event.id,
       tone: getTone(event.category, index),
       date: formatSiteDate(event.starts_at),
       time: formatTimeRange(event.starts_at, event.ends_at),

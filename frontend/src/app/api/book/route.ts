@@ -11,22 +11,28 @@ export async function POST(request: Request) {
     const { firstName, lastName, phone, telegram, eventId } = data;
     
     // Пытаемся найти ID события в базе (по title)
-    // eventId с фронта сейчас выглядит как "Тест оплаты - Тестовое событие (1 рубль)"
-    // Мы можем найти событие по названию
-    const eventTitleMatch = eventId ? eventId.split(" - ")[1] : null;
-    const eventTitleRaw = eventTitleMatch || eventId;
-    // Очищаем название от цены в скобках, если она есть
-    const eventTitle = eventTitleRaw ? eventTitleRaw.replace(/\s*\([^)]*\)$/, '').trim() : null;
+    // eventId с фронта сейчас выглядит как "uuid::Название" или "5 июля (вс) | 19:00-22:30 - Название"
+    let dbEventId = null;
+    let eventTitle = null;
+    
+    if (eventId && eventId.includes('::')) {
+      const parts = eventId.split('::');
+      dbEventId = parts[0];
+      eventTitle = parts[1];
+    } else {
+      const eventTitleMatch = eventId ? eventId.split(" - ")[1] : null;
+      const eventTitleRaw = eventTitleMatch || eventId;
+      eventTitle = eventTitleRaw ? eventTitleRaw.replace(/\s*\([^)]*\)$/, '').trim() : null;
+    }
     
     const supabase = getSupabaseAdminClient();
     
-    let dbEventId = null;
     let priceRub = 4400;
     let participantId = null;
 
     if (supabase) {
       // 1. Ищем событие в БД
-      if (eventTitle) {
+      if (!dbEventId && eventTitle) {
         const { data: events } = await supabase
           .from("events")
           .select("id, price_rub")
@@ -36,6 +42,15 @@ export async function POST(request: Request) {
         if (events && events.length > 0) {
           dbEventId = events[0].id;
           priceRub = events[0].price_rub || priceRub;
+        }
+      } else if (dbEventId) {
+        const { data: eventRow } = await supabase
+          .from("events")
+          .select("price_rub")
+          .eq("id", dbEventId)
+          .single();
+        if (eventRow) {
+          priceRub = eventRow.price_rub || priceRub;
         }
       }
 

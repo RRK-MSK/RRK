@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 export type PosterEvent = {
+  id?: string;
   tone: string;
   date: string;
   time: string;
