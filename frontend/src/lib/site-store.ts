@@ -64,6 +64,7 @@ export async function getSitePosterEvents() {
     const capacity = event.capacity ?? 10;
     const booked = Math.max(0, event.booked_count ?? 0);
     const seatsLeft = Math.max(capacity - booked, 0);
+    const hideCapacity = capacity >= 10000 || event.title?.toLowerCase().includes("coffee jam");
 
     return {
       tone: getTone(event.category, index),
@@ -78,6 +79,7 @@ export async function getSitePosterEvents() {
       capacity,
       booked,
       seatsLeft,
+      hideCapacity,
     };
   });
 }

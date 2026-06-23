@@ -173,7 +173,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                   aria-pressed={day === selectedDay}
                 >
                   <span className="poster-calendar-day-number">{day}</span>
-                  {dayEvents.length > 0 ? (
+                  {dayEvents.length > 0 && !dayEvents.some(e => e.hideCapacity || (e.capacity ?? 10) >= 10000) ? (
                     <span className="poster-calendar-day-count">{daySeatsLeft}</span>
                   ) : null}
                 </button>
@@ -199,7 +199,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                   <span>{event.time}</span>
                   <span>{event.price}</span>
                 </div>
-                {event.hideCapacity ? null : (
+                {event.hideCapacity || getEventCapacity(event) >= 10000 ? null : (
                   <div className="poster-event-spots">
                     <strong>Осталось {getEventSeatsLeft(event)} мест</strong>
                     <span>
