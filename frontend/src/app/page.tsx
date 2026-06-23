@@ -443,17 +443,16 @@ export default async function HomePage() {
           <h2>Как проходят встречи РРК</h2>
         </div>
         <RevealOnView className="gallery-grid">
-          {/* Заглушки для фотографий. Сюда нужно будет добавить реальные изображения */}
-          <div className="gallery-item" style={{ backgroundImage: 'url(/gallery-1.jpg)' }}>
+          <div className="gallery-item" style={{ backgroundImage: 'url(/RRK-0001.jpg)' }}>
             <span className="gallery-item-label">Живой контакт</span>
           </div>
-          <div className="gallery-item" style={{ backgroundImage: 'url(/gallery-2.jpg)' }}>
+          <div className="gallery-item" style={{ backgroundImage: 'url(/RRK-0002.jpg)' }}>
             <span className="gallery-item-label">Практика</span>
           </div>
-          <div className="gallery-item" style={{ backgroundImage: 'url(/gallery-3.jpg)' }}>
+          <div className="gallery-item" style={{ backgroundImage: 'url(/RRK-0003.jpg)' }}>
             <span className="gallery-item-label">Окружение</span>
           </div>
-          <div className="gallery-item" style={{ backgroundImage: 'url(/gallery-4.jpg)' }}>
+          <div className="gallery-item" style={{ backgroundImage: 'url(/RRK-0005.jpg)' }}>
             <span className="gallery-item-label">Эмоции</span>
           </div>
         </RevealOnView>
