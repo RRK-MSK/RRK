@@ -32,7 +32,7 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: "РРК",
-  description: "Российский Разговорный Клуб",
+  description: "Русский Разговорный Клуб",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
