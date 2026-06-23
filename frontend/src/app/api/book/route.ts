@@ -149,7 +149,7 @@ export async function POST(request: Request) {
             telegram: telegram || '',
             orderNumber: freePaymentId,
             eventDate: formatDate(event.starts_at),
-            paymentDate: new Date().toLocaleString('ru-RU', {
+            paymentDate: isFree ? undefined : new Date().toLocaleString('ru-RU', {
               timeZone: 'Europe/Moscow',
               day: '2-digit', month: '2-digit', year: 'numeric',
               hour: '2-digit', minute: '2-digit'

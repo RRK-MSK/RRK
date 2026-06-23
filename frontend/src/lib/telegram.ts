@@ -28,7 +28,7 @@ ${data.eventDate ? `<b>Дата события:</b> ${data.eventDate}\n` : ''}<b
 Telegram: ${data.telegram || 'Не указан'}
 
 <b>Заказ:</b> ${data.orderNumber}
-${data.paymentDate ? `<b>Оплачено:</b> ${data.paymentDate}` : ''}
+${data.paymentDate ? `<b>Оплачено:</b> ${data.paymentDate}` : (data.eventName.toLowerCase().includes('coffee jam') ? '<b>Оплата:</b> БЕСПЛАТНО' : '')}
   `.trim();
 
   try {
