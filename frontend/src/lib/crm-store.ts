@@ -63,6 +63,16 @@ type ParticipantDbRow = {
   first_contact_at: string | null;
   note: string | null;
   created_at: string;
+  enrollments?: {
+    status: string | null;
+    events: {
+      title: string | null;
+      starts_at: string | null;
+    } | {
+      title: string | null;
+      starts_at: string | null;
+    }[] | null;
+  }[];
 };
 
 type EnrollmentJoinedRow = {
@@ -134,9 +144,10 @@ export type ParticipantsPageData = {
 };
 
 export type ParticipantProfileData = {
-  profile: typeof participantProfile;
+  profile: typeof participantProfile & { id: string };
   finance: Metric[];
-  history: TableRow[];
+  history: (TableRow & { id: string; event_id?: string })[];
+  availableEvents: { id: string; title: string; starts_at: string; status: string | null }[];
 };
 
 export type TablePageData = {
@@ -280,28 +291,51 @@ export async function getParticipantsPageData(): Promise<ParticipantsPageData> {
       { label: "Общая сумма оплат", value: formatMoney(totalPaid), hint: "По total_paid_rub" },
       { label: "Средний LTV", value: formatMoney(averageLtv), hint: "Оплаты / участники" },
     ],
-    rows: rows.map((row) => ({
-      name: row.full_name,
-      telegram: row.telegram ?? "-",
-      status: row.status ?? "Новый",
-      visits: String(row.visits_count ?? 0),
-      paid: formatMoney(row.total_paid_rub),
-      debt: formatDebt(row.unpaid_rub),
-      nextClass: formatNextEvent(row.next_event_title, row.next_event_at),
-      tags: row.tags ?? [],
-      slug: row.slug,
-    })),
+    rows: rows.map((row) => {
+      let computedNextTitle = row.next_event_title;
+      let computedNextAt = row.next_event_at;
+
+      if (row.enrollments && row.enrollments.length > 0) {
+        const futureEnrollments = row.enrollments
+          .map((e) => {
+            const ev = unwrapRelation(e.events);
+            return ev ? { title: ev.title, starts_at: ev.starts_at, status: e.status } : null;
+          })
+          .filter((ev) => ev && ev.starts_at && isFutureDate(ev.starts_at) && (!ev.status || ev.status === "Активна" || normalize(ev.status).includes("active")))
+          .sort((a, b) => sortByDateAsc(a?.starts_at, b?.starts_at));
+
+        if (futureEnrollments.length > 0) {
+          computedNextTitle = futureEnrollments[0]?.title ?? computedNextTitle;
+          computedNextAt = futureEnrollments[0]?.starts_at ?? computedNextAt;
+        }
+      }
+
+      return {
+        name: row.full_name,
+        telegram: row.telegram ?? "-",
+        status: row.status ?? "Новый",
+        visits: String(row.visits_count ?? 0),
+        paid: formatMoney(row.total_paid_rub),
+        debt: formatDebt(row.unpaid_rub),
+        nextClass: formatNextEvent(computedNextTitle, computedNextAt),
+        tags: row.tags ?? [],
+        slug: row.slug,
+      };
+    }),
   };
 }
 
 export async function getParticipantProfileData(slug: string): Promise<ParticipantProfileData> {
   const participant = await loadParticipantBySlug(slug);
 
+  const availableEvents = (await loadEvents())?.filter(e => isFutureDate(e.starts_at)) || [];
+
   if (!participant) {
     return {
-      profile: participantProfile,
+      profile: { ...participantProfile, id: "0" },
       finance: participantFinance,
-      history: participantHistory,
+      history: participantHistory as any,
+      availableEvents: [],
     };
   }
 
@@ -317,6 +351,7 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
 
   return {
     profile: {
+      id: participant.id,
       name: participant.full_name,
       status: participant.status ?? "Новый",
       tags: participant.tags ?? [],
@@ -346,13 +381,21 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
     history:
       enrollments.length > 0
         ? enrollments.map((row) => ({
+            id: row.id,
+            event_id: row.event?.id,
             date: formatShortDate(row.event?.starts_at),
             className: row.event?.title ?? "Без названия",
             payment: row.payment_status ?? "Не указано",
             status: row.status ?? "Активна",
             note: row.note ?? "-",
           }))
-        : participantHistory,
+        : (participantHistory as any),
+    availableEvents: availableEvents.map(e => ({
+      id: e.id,
+      title: e.title,
+      starts_at: e.starts_at,
+      status: e.status
+    })),
   };
 }
 
@@ -739,7 +782,7 @@ async function loadParticipants() {
   const { data, error } = await supabase
     .from("participants")
     .select(
-      "id, slug, full_name, telegram, phone, email, source, status, tags, visits_count, total_paid_rub, unpaid_rub, next_event_title, next_event_at, first_contact_at, note, created_at",
+      "id, slug, full_name, telegram, phone, email, source, status, tags, visits_count, total_paid_rub, unpaid_rub, next_event_title, next_event_at, first_contact_at, note, created_at, enrollments(status, events(title, starts_at))",
     )
     .order("created_at", { ascending: false });
 
@@ -761,7 +804,7 @@ async function loadParticipantBySlug(slug: string) {
   const { data, error } = await supabase
     .from("participants")
     .select(
-      "id, slug, full_name, telegram, phone, email, source, status, tags, visits_count, total_paid_rub, unpaid_rub, next_event_title, next_event_at, first_contact_at, note, created_at",
+      "id, slug, full_name, telegram, phone, email, source, status, tags, visits_count, total_paid_rub, unpaid_rub, next_event_title, next_event_at, first_contact_at, note, created_at, enrollments(status, events(title, starts_at))",
     )
     .eq("slug", slug)
     .maybeSingle();

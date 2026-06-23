@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, StatusBadge } from "@/components/crm/ui";
+import { FilterRow, MetricGrid, PageHeader, SectionCard, StatusBadge } from "@/components/crm/ui";
+import { AddParticipantModal } from "@/components/crm/add-participant-modal";
 import { getParticipantsPageData } from "@/lib/crm-store";
 
 export default async function ParticipantsPage() {
@@ -12,7 +13,7 @@ export default async function ParticipantsPage() {
         eyebrow="Июнь · Москва, Бауманская"
         title="Участники"
         description="База людей, посещений, оплат и повторных касаний РРК"
-        action={<PrimaryButton>Добавить участника</PrimaryButton>}
+        action={<AddParticipantModal />}
       />
 
       <SectionCard title="База клуба" description="Кто приходит впервые, кто возвращается и сколько денег уже принес клубу.">

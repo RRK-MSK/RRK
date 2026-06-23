@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const data = await request.json();
     console.log("New booking request:", data);
 
-    const { firstName, lastName, phone, telegram, eventId } = data;
+    const { firstName, lastName, phone, telegram, email, eventId } = data;
     
     // Пытаемся найти ID события в базе (по title)
     // eventId с фронта сейчас выглядит как "uuid::Название" или "5 июля (вс) | 19:00-22:30 - Название"
@@ -88,6 +88,7 @@ export async function POST(request: Request) {
                 full_name: `${firstName} ${lastName}`.trim(),
                 phone: phone || null,
                 telegram: telegram || null,
+                email: email || null,
                 status: "Новый",
                 source: "Сайт (Оплата Т-Банк)",
               })
@@ -111,6 +112,23 @@ export async function POST(request: Request) {
             source: "Сайт (Оплата Т-Банк)",
           });
         if (eError) console.error("Enrollment insert error:", eError);
+
+        // Обновляем участнику next_event, чтобы было видно в базе
+        if (eventTitle) {
+          const { data: eventForDate } = await supabase
+            .from("events")
+            .select("starts_at")
+            .eq("id", dbEventId)
+            .single();
+
+          await supabase
+            .from("participants")
+            .update({
+              next_event_title: eventTitle,
+              next_event_at: eventForDate?.starts_at || null
+            })
+            .eq("id", participantId);
+        }
       }
     } else {
       // Фолбек цены, если нет БД
@@ -209,6 +227,26 @@ export async function POST(request: Request) {
       FailURL: `${baseUrl}/fail`,
       // Webhook для получения статуса платежа (всегда продакшен, так как локалхост банк не достанет)
       NotificationURL: "https://rrclub.site/api/payment/webhook",
+      DATA: {
+        Email: email || "",
+        Phone: phone || ""
+      },
+      Receipt: {
+        Email: email || "",
+        Phone: phone || "",
+        Taxation: "usn_income", // УСН Доходы (замените если другая система налогообложения)
+        Items: [
+          {
+            Name: `Участие в РРК: ${eventTitle || 'Событие'}`,
+            Price: amountKopecks,
+            Quantity: 1.00,
+            Amount: amountKopecks,
+            PaymentMethod: "full_prepayment",
+            PaymentObject: "service",
+            Tax: "none"
+          }
+        ]
+      }
     });
 
     if (tbankResponse.Success && tbankResponse.PaymentURL) {

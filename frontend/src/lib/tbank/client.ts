@@ -8,6 +8,8 @@ export type TBankInitRequest = {
   SuccessURL?: string;
   FailURL?: string;
   CustomerKey?: string;
+  DATA?: Record<string, string>;
+  Receipt?: any; // Для чеков (54-ФЗ)
 };
 
 export type TBankInitResponse = {
@@ -35,7 +37,7 @@ export class TBankClient {
     }
   }
 
-  private generateToken(data: Record<string, string | number | boolean>): string {
+  private generateToken(data: Record<string, any>): string {
     const dataWithPassword: Record<string, any> = {
       ...data,
       Password: this.password,

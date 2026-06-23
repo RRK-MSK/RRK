@@ -15,6 +15,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
     lastName: "",
     phone: "",
     telegram: "",
+    email: "",
     eventId: "",
     price: "",
   });
@@ -126,6 +127,17 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
               value={formData.telegram}
               onChange={e => setFormData({...formData, telegram: e.target.value})}
               placeholder="@username"
+            />
+          </div>
+
+          <div className="booking-field">
+            <label>Email (для чека)</label>
+            <input 
+              type="email" 
+              required 
+              value={formData.email}
+              onChange={e => setFormData({...formData, email: e.target.value})}
+              placeholder="hello@example.com"
             />
           </div>
           

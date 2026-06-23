@@ -1,6 +1,8 @@
 import Link from "next/link";
 
-import { MetricGrid, PageHeader, PrimaryButton, SectionCard, SimpleTable, StatusBadge } from "@/components/crm/ui";
+import { MetricGrid, PageHeader, PrimaryButton, SectionCard, StatusBadge } from "@/components/crm/ui";
+import { ParticipantActions } from "@/components/crm/participant-actions";
+import { EnrollmentActions } from "@/components/crm/enrollment-actions";
 import { getParticipantProfileData } from "@/lib/crm-store";
 
 export default async function ParticipantProfilePage({
@@ -9,7 +11,7 @@ export default async function ParticipantProfilePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { profile, finance, history } = await getParticipantProfileData(slug);
+  const { profile, finance, history, availableEvents } = await getParticipantProfileData(slug);
 
   return (
     <div className="page-stack">
@@ -17,7 +19,6 @@ export default async function ParticipantProfilePage({
         eyebrow="Июнь · Москва, Бауманская"
         title="Участники"
         description="База людей, посещений, оплат и повторных касаний РРК"
-        action={<PrimaryButton>Добавить участника</PrimaryButton>}
       />
 
       <div className="inline-actions">
@@ -35,13 +36,7 @@ export default async function ParticipantProfilePage({
             ))}
           </div>
           <h2>{profile.name}</h2>
-          <div className="profile-actions">
-            <PrimaryButton>Записать на занятие</PrimaryButton>
-            <button className="ghost-button">Отметить оплату</button>
-            <button className="ghost-button">Добавить тег</button>
-            <button className="ghost-button">Добавить отзыв</button>
-            <button className="ghost-button">Добавить комментарий</button>
-          </div>
+          <ParticipantActions profile={profile} />
         </div>
         <dl className="profile-meta">
           <div>
@@ -80,7 +75,43 @@ export default async function ParticipantProfilePage({
       </SectionCard>
 
       <SectionCard title="История занятий" description="Какие встречи уже были и что запланировано дальше.">
-        <SimpleTable rows={history} />
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Занятие</th>
+                <th>Оплата</th>
+                <th>Статус</th>
+                <th>Действие</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((row, idx) => (
+                <tr key={row.id || idx}>
+                  <td>{row.date}</td>
+                  <td>{row.className}</td>
+                  <td><StatusBadge value={row.payment} /></td>
+                  <td><StatusBadge value={row.status} /></td>
+                  <td>
+                    {row.status !== "Отменена" && row.id && (
+                      <EnrollmentActions 
+                        enrollmentId={row.id} 
+                        currentEventId={row.event_id} 
+                        availableEvents={availableEvents} 
+                      />
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {history.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center", color: "var(--muted)" }}>Нет записей</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </SectionCard>
     </div>
   );
