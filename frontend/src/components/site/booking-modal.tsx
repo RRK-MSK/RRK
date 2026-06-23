@@ -40,6 +40,25 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
       if (result.paymentUrl && result.paymentUrl !== "https://t.me/rrclubadmin") {
         window.location.href = result.paymentUrl;
       } else if (result.paymentUrl === "https://t.me/rrclubadmin" || formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация")) {
+        // Save free registration to local storage
+        try {
+          const eventIdParts = formData.eventId.split('::');
+          const realEventId = eventIdParts[0];
+          if (realEventId) {
+            const stored = localStorage.getItem("rrk_booked_events");
+            const bookedEvents = stored ? JSON.parse(stored) : [];
+            if (!bookedEvents.includes(realEventId)) {
+              bookedEvents.push(realEventId);
+              localStorage.setItem("rrk_booked_events", JSON.stringify(bookedEvents));
+            }
+            
+            // Dispatch a custom event so the calendar updates immediately
+            window.dispatchEvent(new Event("rrk_booking_updated"));
+          }
+        } catch (e) {
+          console.error(e);
+        }
+        
         setSuccessMessage("Спасибо за регистрацию, всю информацию отправим в тг");
       }
     } catch (err) {

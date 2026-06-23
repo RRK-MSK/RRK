@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 export type PosterEvent = {
   id?: string;
@@ -83,6 +83,23 @@ const getDaySeatsLeft = (dayEvents: PosterEvent[]) =>
   dayEvents.reduce((sum, event) => sum + getEventSeatsLeft(event), 0);
 
 export function PosterCalendar({ events }: PosterCalendarProps) {
+  const [bookedEventIds, setBookedEventIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const updateBookedEvents = () => {
+      try {
+        const stored = localStorage.getItem("rrk_booked_events");
+        if (stored) {
+          setBookedEventIds(JSON.parse(stored));
+        }
+      } catch (e) {}
+    };
+
+    updateBookedEvents();
+    window.addEventListener("rrk_booking_updated", updateBookedEvents);
+    return () => window.removeEventListener("rrk_booking_updated", updateBookedEvents);
+  }, []);
+
   const groupedEvents = useMemo(() => {
     const map = new Map<number, PosterEvent[]>();
 
@@ -196,6 +213,11 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                 key={`${event.date}-${event.time}-${event.title}`}
                 className={`poster-event-card poster-event-${event.tone}`}
               >
+                {event.id && bookedEventIds.includes(event.id) ? (
+                  <div style={{ background: 'var(--brand)', color: '#fff', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', display: 'inline-block', marginBottom: '12px', textTransform: 'uppercase' }}>
+                    Вы записаны
+                  </div>
+                ) : null}
                 <div className="poster-event-top">
                   <span>{event.time}</span>
                   <span>{event.price}</span>

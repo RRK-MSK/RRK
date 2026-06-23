@@ -205,7 +205,7 @@ export async function POST(request: Request) {
       Amount: amountKopecks,
       Description: `Участие в РРК: ${data.eventId || 'Событие'}`,
       // Эти URL можно настроить на страницы успеха/ошибки
-      SuccessURL: `${baseUrl}/success`,
+      SuccessURL: `${baseUrl}/success?event_id=${dbEventId || ''}&event_title=${encodeURIComponent(eventTitle || '')}`,
       FailURL: `${baseUrl}/fail`,
       // Webhook для получения статуса платежа (всегда продакшен, так как локалхост банк не достанет)
       NotificationURL: "https://rrclub.site/api/payment/webhook",
