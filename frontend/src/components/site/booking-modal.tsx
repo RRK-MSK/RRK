@@ -20,12 +20,14 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSuccessMessage("");
     
     try {
       const response = await fetch('/api/book', { 
@@ -35,8 +37,10 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
       });
       
       const result = await response.json();
-      if (result.paymentUrl) {
+      if (result.paymentUrl && result.paymentUrl !== "https://t.me/rrclubadmin") {
         window.location.href = result.paymentUrl;
+      } else if (result.paymentUrl === "https://t.me/rrclubadmin" || formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация")) {
+        setSuccessMessage("Спасибо за регистрацию, всю информацию отправим в тг");
       }
     } catch (err) {
       console.error(err);
@@ -50,10 +54,18 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
     <div className="booking-modal-overlay">
       <div className="booking-modal">
         <button type="button" className="booking-modal-close" onClick={onClose}>&times;</button>
-        <h2>Запись на тренировку</h2>
-        <p>Заполните данные для бронирования места и оплаты.</p>
         
-        <form onSubmit={handleSubmit} className="booking-form">
+        {successMessage ? (
+          <div className="booking-success-message" style={{ textAlign: "center", padding: "40px 20px" }}>
+            <h2>Успешно!</h2>
+            <p style={{ marginTop: "16px", fontSize: "18px", color: "var(--muted)" }}>{successMessage}</p>
+          </div>
+        ) : (
+          <>
+            <h2>Запись на тренировку</h2>
+            <p>Заполните данные для бронирования места и оплаты. Если событие бесплатно по регистрации — мы пришлем всю информацию в Telegram.</p>
+            
+            <form onSubmit={handleSubmit} className="booking-form">
           <div className="booking-field">
             <label>Имя</label>
             <input 
@@ -127,6 +139,8 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
             {isSubmitting ? "Обработка..." : (formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация") ? "Зарегистрироваться" : "Оплатить")}
           </button>
         </form>
+          </>
+        )}
       </div>
     </div>
   );
