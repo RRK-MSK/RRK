@@ -442,18 +442,13 @@ export default async function HomePage() {
           <span>Атмосфера</span>
           <h2>Как проходят встречи РРК</h2>
         </div>
-        <RevealOnView className="gallery-grid">
-          <div className="gallery-item" style={{ backgroundImage: 'url(/RRK-0001.jpg)' }}>
-            <span className="gallery-item-label">Живой контакт</span>
-          </div>
-          <div className="gallery-item" style={{ backgroundImage: 'url(/RRK-0002.jpg)' }}>
-            <span className="gallery-item-label">Практика</span>
-          </div>
-          <div className="gallery-item" style={{ backgroundImage: 'url(/RRK-0003.jpg)' }}>
-            <span className="gallery-item-label">Окружение</span>
-          </div>
-          <div className="gallery-item" style={{ backgroundImage: 'url(/RRK-0005.jpg)' }}>
-            <span className="gallery-item-label">Эмоции</span>
+        <RevealOnView className="gallery-scroll-container">
+          <div className="gallery-scroll-track">
+            <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0001.jpg)' }} />
+            <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0002.jpg)' }} />
+            <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0003.jpg)' }} />
+            <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0004.jpg)' }} />
+            <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0005.jpg)' }} />
           </div>
         </RevealOnView>
       </section>

@@ -3911,3 +3911,52 @@ th {
 .booking-consent a:hover {
   color: var(--brand-strong);
 }
+/* Gallery Section */
+.gallery-section {
+  padding-bottom: 60px;
+  overflow: hidden;
+}
+
+.gallery-scroll-container {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  padding: 0 24px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.gallery-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery-scroll-track {
+  display: flex;
+  gap: 16px;
+  padding-bottom: 20px;
+  width: max-content;
+}
+
+.gallery-photo {
+  flex: 0 0 85vw;
+  max-width: 600px;
+  height: 60vh;
+  min-height: 400px;
+  max-height: 500px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  scroll-snap-align: center;
+}
+
+@media (min-width: 768px) {
+  .gallery-scroll-container {
+    padding: 0 40px;
+  }
+  .gallery-photo {
+    flex: 0 0 40vw;
+    height: 450px;
+  }
+}
