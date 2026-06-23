@@ -27,6 +27,7 @@
     "@types/react-dom": "19.1.5",
     "eslint": "9.28.0",
     "eslint-config-next": "^16.2.9",
+    "ts-node": "^10.9.2",
     "typescript": "5.8.3"
   }
 }

@@ -16,19 +16,32 @@ export async function sendTelegramNotification(data: {
     return;
   }
 
+  const escapeHtml = (text: string) => {
+    if (!text) return '';
+    return text.toString()
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  };
+
+  const safeEventName = escapeHtml(data.eventName || 'Не указано');
+  const safeName = escapeHtml(data.name || 'Не указано');
+  const safePhone = escapeHtml(data.phone || 'Не указан');
+  const safeTg = escapeHtml(data.telegram || 'Не указан');
+
   const message = `
 🎉 <b>Новая запись!</b>
 
-<b>Событие:</b> ${data.eventName}
+<b>Событие:</b> ${safeEventName}
 ${data.eventDate ? `<b>Дата события:</b> ${data.eventDate}\n` : ''}<b>Осталось мест:</b> ${data.spotsLeft}
 
 <b>Участник:</b>
-Имя: ${data.name}
-Телефон: ${data.phone || 'Не указан'}
-Telegram: ${data.telegram || 'Не указан'}
+Имя: ${safeName}
+Телефон: ${safePhone}
+Telegram: ${safeTg}
 
 <b>Заказ:</b> ${data.orderNumber}
-${data.paymentDate ? `<b>Оплачено:</b> ${data.paymentDate}` : (data.eventName.toLowerCase().includes('coffee jam') ? '<b>Оплата:</b> БЕСПЛАТНО' : '')}
+${data.paymentDate ? `<b>Оплачено:</b> ${data.paymentDate}` : ((data.eventName || '').toLowerCase().includes('coffee jam') ? '<b>Оплата:</b> БЕСПЛАТНО' : '')}
   `.trim();
 
   try {
