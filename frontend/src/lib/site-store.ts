@@ -135,6 +135,7 @@ function formatTimeRange(startValue: string, endValue: string | null) {
   const startTime = new Intl.DateTimeFormat("ru-RU", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Moscow"
   }).format(start);
 
   if (!endValue) {
@@ -145,6 +146,7 @@ function formatTimeRange(startValue: string, endValue: string | null) {
   const endTime = new Intl.DateTimeFormat("ru-RU", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Moscow"
   }).format(end);
 
   return `${startTime}-${endTime}`;
