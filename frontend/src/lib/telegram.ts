@@ -5,6 +5,8 @@ export async function sendTelegramNotification(data: {
   phone: string;
   telegram: string;
   orderNumber: string;
+  eventDate?: string;
+  paymentDate?: string;
 }) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = "-1003991978010";
@@ -18,14 +20,15 @@ export async function sendTelegramNotification(data: {
 🎉 <b>Новая запись!</b>
 
 <b>Событие:</b> ${data.eventName}
-<b>Осталось мест:</b> ${data.spotsLeft}
+${data.eventDate ? `<b>Дата события:</b> ${data.eventDate}\n` : ''}<b>Осталось мест:</b> ${data.spotsLeft}
 
 <b>Участник:</b>
 Имя: ${data.name}
 Телефон: ${data.phone || 'Не указан'}
 Telegram: ${data.telegram || 'Не указан'}
 
-<b>Номер заказа:</b> ${data.orderNumber}
+<b>Заказ:</b> ${data.orderNumber}
+${data.paymentDate ? `<b>Оплачено:</b> ${data.paymentDate}` : ''}
   `.trim();
 
   try {

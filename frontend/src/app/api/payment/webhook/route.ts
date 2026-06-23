@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
             const { data: event } = await supabase
               .from('events')
-              .select('title, capacity, booked_count, paid_count')
+              .select('title, capacity, booked_count, paid_count, starts_at')
               .eq('id', paymentInfo.event_id)
               .single();
 
@@ -84,13 +84,28 @@ export async function POST(request: Request) {
               // Рассчитываем оставшиеся места
               const spotsLeft = Math.max((event.capacity || 0) - ((event.booked_count || 0) + 1), 0);
               
+              const formatDate = (dateStr?: string | null) => {
+                if (!dateStr) return '';
+                return new Date(dateStr).toLocaleString('ru-RU', {
+                  timeZone: 'Europe/Moscow',
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit'
+                });
+              };
+
               await sendTelegramNotification({
                 eventName: event.title,
                 spotsLeft: spotsLeft,
                 name: participant.full_name,
                 phone: participant.phone || '',
                 telegram: participant.telegram || '',
-                orderNumber: String(payload.OrderId || payload.PaymentId)
+                orderNumber: String(payload.OrderId || payload.PaymentId),
+                eventDate: formatDate(event.starts_at),
+                paymentDate: new Date().toLocaleString('ru-RU', {
+                  timeZone: 'Europe/Moscow',
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit'
+                })
               });
 
               // Send Email notification

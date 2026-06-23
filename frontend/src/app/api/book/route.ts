@@ -124,19 +124,35 @@ export async function POST(request: Request) {
         // Получаем данные события для Telegram
         const { data: event } = await supabase
           .from('events')
-          .select('title, capacity, booked_count')
+          .select('title, capacity, booked_count, starts_at')
           .eq('id', dbEventId)
           .single();
 
         if (event) {
           const spotsLeft = Math.max((event.capacity || 0) - ((event.booked_count || 0) + 1), 0);
+          
+          const formatDate = (dateStr?: string | null) => {
+            if (!dateStr) return '';
+            return new Date(dateStr).toLocaleString('ru-RU', {
+              timeZone: 'Europe/Moscow',
+              day: '2-digit', month: '2-digit', year: 'numeric',
+              hour: '2-digit', minute: '2-digit'
+            });
+          };
+
           await sendTelegramNotification({
             eventName: event.title,
             spotsLeft: spotsLeft,
             name: `${firstName} ${lastName}`.trim(),
             phone: phone || '',
             telegram: telegram || '',
-            orderNumber: freePaymentId
+            orderNumber: freePaymentId,
+            eventDate: formatDate(event.starts_at),
+            paymentDate: new Date().toLocaleString('ru-RU', {
+              timeZone: 'Europe/Moscow',
+              day: '2-digit', month: '2-digit', year: 'numeric',
+              hour: '2-digit', minute: '2-digit'
+            })
           });
 
           // Send Email notification for free event
