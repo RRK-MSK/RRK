@@ -129,7 +129,8 @@ export async function POST(request: Request) {
           .single();
 
         if (event) {
-          const spotsLeft = Math.max((event.capacity || 0) - ((event.booked_count || 0) + 1), 0);
+          // Рассчитываем оставшиеся места. Не прибавляем 1, так как booked_count уже обновился.
+          const spotsLeft = Math.max((event.capacity || 0) - (event.booked_count || 0), 0);
           
           const formatDate = (dateStr?: string | null) => {
             if (!dateStr) return '';
