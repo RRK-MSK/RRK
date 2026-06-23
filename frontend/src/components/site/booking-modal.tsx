@@ -63,7 +63,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
         ) : (
           <>
             <h2>Запись на тренировку</h2>
-            <p>Заполните данные для бронирования места и оплаты. Если событие бесплатно по регистрации — мы пришлем всю информацию в Telegram.</p>
+            <p>Заполните данные для бронирования места и оплаты. Если событие бесплатно — мы пришлем всю информацию в Telegram.</p>
             
             <form onSubmit={handleSubmit} className="booking-form">
           <div className="booking-field">
