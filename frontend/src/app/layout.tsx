@@ -31,8 +31,8 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "PPK CRM",
-  description: "CRM для Разговорного Клуба",
+  title: "РРК",
+  description: "Российский Разговорный Клуб",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
