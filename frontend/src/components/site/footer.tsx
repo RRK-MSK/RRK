@@ -29,8 +29,7 @@ export function SiteFooter() {
           </div>
           <div>
             <span>Контакты</span>
-            <a href="mailto:hello@rrclub.ru">hello@rrclub.ru</a>
-            <a href="mailto:club@rrclub.ru">club@rrclub.ru</a>
+            <a href="mailto:hello.rrc@proton.me">hello.rrc@proton.me</a>
             <div style={{ marginTop: '12px' }}>
               <a href="https://t.me/rrclubb" target="_blank" rel="noreferrer" style={{ display: 'block', marginBottom: '4px' }}>
                 Telegram

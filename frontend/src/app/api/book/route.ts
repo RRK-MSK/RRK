@@ -138,6 +138,20 @@ export async function POST(request: Request) {
             telegram: telegram || '',
             orderNumber: freePaymentId
           });
+
+          // Send Email notification for free event
+          try {
+            const { sendEmailNotification } = await import('@/lib/email');
+            await sendEmailNotification({
+              eventName: event.title,
+              fullName: `${firstName} ${lastName}`.trim(),
+              phone: phone || '',
+              telegram: telegram || '',
+              orderId: freePaymentId
+            });
+          } catch (e) {
+            console.error("Failed to send email for free event:", e);
+          }
         }
       }
       

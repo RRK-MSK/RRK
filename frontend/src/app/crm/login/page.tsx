@@ -21,7 +21,7 @@ export default async function LoginPage({
         <form action="/api/crm/login" method="post" className="login-form">
           <label>
             Логин
-            <input name="login" placeholder="Введите логин" defaultValue={DEMO_LOGIN} required />
+            <input name="login" placeholder="Введите логин" required />
           </label>
           <label>
             Пароль
@@ -29,7 +29,6 @@ export default async function LoginPage({
               name="password"
               type="password"
               placeholder="Введите пароль"
-              defaultValue={DEMO_PASSWORD}
               required
             />
           </label>
@@ -38,10 +37,6 @@ export default async function LoginPage({
             Войти
           </button>
         </form>
-
-        <div className="login-hint">
-          Демо-доступ: <strong>{DEMO_LOGIN}</strong> / <strong>{DEMO_PASSWORD}</strong>
-        </div>
       </div>
     </div>
   );

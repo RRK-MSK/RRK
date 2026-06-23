@@ -92,6 +92,20 @@ export async function POST(request: Request) {
                 telegram: participant.telegram || '',
                 orderNumber: String(payload.OrderId || payload.PaymentId)
               });
+
+              // Send Email notification
+              try {
+                const { sendEmailNotification } = await import('@/lib/email');
+                await sendEmailNotification({
+                  eventName: event.title,
+                  fullName: participant.full_name,
+                  phone: participant.phone || '',
+                  telegram: participant.telegram || '',
+                  orderId: String(payload.OrderId || payload.PaymentId)
+                });
+              } catch (e) {
+                console.error("Failed to send email:", e);
+              }
             }
           }
         }
