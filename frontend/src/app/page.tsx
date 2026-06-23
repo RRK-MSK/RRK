@@ -2,7 +2,6 @@ import Image from "next/image";
 
 import { SiteFooter } from "@/components/site/footer";
 import { BookingButton } from "@/components/site/booking-button";
-import { MerchDoodle } from "@/components/site/merch-doodle";
 import { PosterCalendar } from "@/components/site/poster-calendar";
 import { RevealOnView } from "@/components/site/reveal-on-view";
 import { VideoHero } from "@/components/site/video-hero";
@@ -306,7 +305,6 @@ export default async function HomePage() {
       </section>
 
       <section id="about" className="site-section site-section-light about-section">
-        <MerchDoodle />
         <div className="section-heading">
           <span>О клубе</span>
           <h2>
