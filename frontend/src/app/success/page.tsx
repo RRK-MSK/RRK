@@ -39,7 +39,8 @@ export default function SuccessPage({
             </div>
           ) : null}
           <p style={{ color: "var(--muted)", fontSize: "18px", marginBottom: "32px", lineHeight: "1.5" }}>
-            Ждем вас на занятии. Обратите внимание: при отмене брони менее чем за 48 часов оплата не возвращается.
+            Ждем вас на занятии. Мы скоро свяжемся с вами в Telegram для подтверждения деталей.<br /><br />
+            <span style={{ fontSize: "14px", opacity: 0.8 }}>Обратите внимание: при отмене брони менее чем за 48 часов оплата не возвращается.</span>
           </p>
           <Link href="/" className="site-button primary" style={{ display: "inline-flex", justifyContent: "center" }}>
             Вернуться на главную
