@@ -7,6 +7,9 @@ import { RevealOnView } from "@/components/site/reveal-on-view";
 import { VideoHero } from "@/components/site/video-hero";
 import { getSitePosterEvents } from "@/lib/site-store";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const programs = [
   {
     type: "Доступно сейчас",

@@ -123,9 +123,9 @@ function getLabel(category: string | null, city: string | null) {
 function formatSiteDate(value: string) {
   const date = new Date(value);
 
-  const day = date.getDate();
-  const month = new Intl.DateTimeFormat("ru-RU", { month: "long" }).format(date);
-  const weekday = new Intl.DateTimeFormat("ru-RU", { weekday: "short" }).format(date);
+  const day = new Intl.DateTimeFormat("ru-RU", { day: "numeric", timeZone: "Europe/Moscow" }).format(date);
+  const month = new Intl.DateTimeFormat("ru-RU", { month: "long", timeZone: "Europe/Moscow" }).format(date);
+  const weekday = new Intl.DateTimeFormat("ru-RU", { weekday: "short", timeZone: "Europe/Moscow" }).format(date);
 
   return `${day} ${month} (${weekday})`;
 }
