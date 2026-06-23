@@ -15,6 +15,7 @@ export type PosterEvent = {
   capacity?: number;
   booked?: number;
   seatsLeft?: number;
+  hideCapacity?: boolean;
 };
 
 type PosterCalendarProps = {
@@ -198,12 +199,14 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                   <span>{event.time}</span>
                   <span>{event.price}</span>
                 </div>
-                <div className="poster-event-spots">
-                  <strong>Осталось {getEventSeatsLeft(event)} мест</strong>
-                  <span>
-                    {getEventBooked(event)} из {getEventCapacity(event)} уже записались
-                  </span>
-                </div>
+                {event.hideCapacity ? null : (
+                  <div className="poster-event-spots">
+                    <strong>Осталось {getEventSeatsLeft(event)} мест</strong>
+                    <span>
+                      {getEventBooked(event)} из {getEventCapacity(event)} уже записались
+                    </span>
+                  </div>
+                )}
                 {event.label ? <p className="poster-event-label">{event.label}</p> : null}
                 <h4>{event.title}</h4>
                 {event.description ? <p className="poster-event-description">{event.description}</p> : null}

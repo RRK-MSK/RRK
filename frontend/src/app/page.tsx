@@ -73,6 +73,7 @@ const posterEvents = [
     title: "COFFEE JAM",
     description: "зарядка для SOFT скиллов",
     price: "Участие бесплатно, регистрация",
+    hideCapacity: true,
   },
   {
     tone: "solid",
@@ -145,6 +146,7 @@ const posterEvents = [
     title: "COFFEE JAM",
     description: "зарядка для SOFT скиллов",
     price: "Участие бесплатно, регистрация",
+    hideCapacity: true,
   },
   {
     tone: "solid",

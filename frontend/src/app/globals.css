@@ -2617,7 +2617,7 @@ th {
 }
 
 .founder-image-wrap {
-  aspect-ratio: 0.84;
+  aspect-ratio: 0.75;
   overflow: hidden;
   background: #e5e2df;
 }
@@ -2627,6 +2627,7 @@ th {
   height: 100%;
   object-fit: cover;
   object-position: center top;
+  transform: scale(1.15);
 }
 
 .founder-copy {
@@ -2757,8 +2758,9 @@ th {
 
 .founder-details p {
   margin: 0;
-  line-height: 1.65;
+  line-height: 1.35;
   color: rgba(18, 10, 12, 0.78);
+  font-size: 12px;
 }
 
 .faq-section {
@@ -3549,8 +3551,8 @@ th {
   }
 
   .founder-details p {
-    font-size: 13px;
-    line-height: 1.55;
+    font-size: 11px;
+    line-height: 1.25;
   }
 
   .faq-item summary {
