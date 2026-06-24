@@ -14,8 +14,8 @@ export async function POST(request: Request) {
   const response = NextResponse.redirect(new URL("/crm/dashboard", request.url), 303);
   response.cookies.set(AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: false, // ВАЖНО: Разрешаем куки без HTTPS (для локалки и Safari)
+    sameSite: "none",
+    secure: true, // ВАЖНО: Разрешаем куки в iframe (Telegram) и Safari
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
