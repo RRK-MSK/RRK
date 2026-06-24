@@ -8,7 +8,7 @@ import { VideoHero } from "@/components/site/video-hero";
 import { getSitePosterEvents } from "@/lib/site-store";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 15; // Кэшируем страницу на 15 секунд для ускорения загрузки
 
 const programs = [
   {
@@ -390,7 +390,7 @@ export default async function HomePage() {
                 <span>{program.type}</span>
                 <span>{program.city}</span>
               </div>
-              <div className="program-status">{program.status}</div>
+              <a href="#schedule" className="program-status" style={{textDecoration: 'none'}}>{program.status}</a>
               <p className="program-date">{program.date}</p>
               <h3>{program.title}</h3>
               <p>{program.description}</p>
