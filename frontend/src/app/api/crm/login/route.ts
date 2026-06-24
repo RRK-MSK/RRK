@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   response.cookies.set(AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: false, // ВАЖНО: Разрешаем куки без HTTPS (для локалки и Safari)
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
