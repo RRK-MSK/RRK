@@ -84,6 +84,7 @@ const getDaySeatsLeft = (dayEvents: PosterEvent[]) =>
 
 export function PosterCalendar({ events }: PosterCalendarProps) {
   const [bookedEventIds, setBookedEventIds] = useState<string[]>([]);
+  const [selectedKind, setSelectedKind] = useState<DayKind | null>(null);
 
   useEffect(() => {
     const updateBookedEvents = () => {
@@ -100,10 +101,15 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
     return () => window.removeEventListener("rrk_booking_updated", updateBookedEvents);
   }, []);
 
+  const filteredEvents = useMemo(() => {
+    if (!selectedKind) return events;
+    return events.filter(e => getDayKind([e]) === selectedKind);
+  }, [events, selectedKind]);
+
   const groupedEvents = useMemo(() => {
     const map = new Map<number, PosterEvent[]>();
 
-    for (const event of events) {
+    for (const event of filteredEvents) {
       const day = getDayNumber(event.date);
       if (Number.isNaN(day)) continue;
       
@@ -113,12 +119,19 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
     }
 
     return map;
-  }, [events]);
+  }, [filteredEvents]);
 
   const activeDays = useMemo(
     () => Array.from(groupedEvents.keys()).sort((left, right) => left - right),
     [groupedEvents],
   );
+
+  // When selectedKind changes, auto-select the first available day for that kind
+  useEffect(() => {
+    if (activeDays.length > 0 && !activeDays.includes(selectedDay)) {
+      setSelectedDay(activeDays[0]);
+    }
+  }, [selectedKind, activeDays]);
 
   const [selectedDay, setSelectedDay] = useState(activeDays[0] ?? 1);
 
@@ -148,14 +161,30 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
           <div>
             <span>Июль 2026</span>
             <div className="poster-calendar-legend" aria-label="Типы событий">
-              <span className="poster-calendar-legend-item kind-standard">Стандарт</span>
-              <span className="poster-calendar-legend-item kind-collab">Коллаборация</span>
-              <span className="poster-calendar-legend-item kind-spb">Питер</span>
-              <span className="poster-calendar-legend-item kind-big">Биг-тренировка</span>
+              <span 
+                className={`poster-calendar-legend-item kind-standard ${selectedKind === 'standard' ? 'is-active' : ''}`}
+                style={{ cursor: 'pointer', opacity: selectedKind && selectedKind !== 'standard' ? 0.5 : 1 }}
+                onClick={() => setSelectedKind(selectedKind === 'standard' ? null : 'standard')}
+              >Стандарт</span>
+              <span 
+                className={`poster-calendar-legend-item kind-collab ${selectedKind === 'collab' ? 'is-active' : ''}`}
+                style={{ cursor: 'pointer', opacity: selectedKind && selectedKind !== 'collab' ? 0.5 : 1 }}
+                onClick={() => setSelectedKind(selectedKind === 'collab' ? null : 'collab')}
+              >Коллаборация</span>
+              <span 
+                className={`poster-calendar-legend-item kind-spb ${selectedKind === 'spb' ? 'is-active' : ''}`}
+                style={{ cursor: 'pointer', opacity: selectedKind && selectedKind !== 'spb' ? 0.5 : 1 }}
+                onClick={() => setSelectedKind(selectedKind === 'spb' ? null : 'spb')}
+              >Питер</span>
+              <span 
+                className={`poster-calendar-legend-item kind-big ${selectedKind === 'big' ? 'is-active' : ''}`}
+                style={{ cursor: 'pointer', opacity: selectedKind && selectedKind !== 'big' ? 0.5 : 1 }}
+                onClick={() => setSelectedKind(selectedKind === 'big' ? null : 'big')}
+              >Биг-тренировка</span>
             </div>
           </div>
           <div className="poster-calendar-note">
-            <strong>{events.length} событий в июле</strong>
+            <strong>{filteredEvents.length} событий в июле</strong>
             <p>На каждую тренировку 10 мест.</p>
           </div>
         </div>
