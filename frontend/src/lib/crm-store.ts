@@ -225,18 +225,24 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
   }
 
   const totalRevenue = payments
-    .filter((payment) => normalize(payment.status).includes("paid"))
+    .filter((payment) => normalize(payment.status).includes("paid") || normalize(payment.status).includes("оплачен"))
     .reduce((sum, payment) => sum + (payment.amount_rub ?? 0), 0);
   const soldSpots = events.reduce((sum, event) => sum + (event.booked_count ?? 0), 0);
   const totalCapacity = events.reduce((sum, event) => sum + (event.capacity ?? 0), 0);
-  const freeSpots = events.reduce(
+  
+  // Для расчета заполняемости исключаем бесплатные события-заглушки (capacity >= 10000)
+  const eventsForFillRate = events.filter(e => (e.capacity ?? 0) < 10000);
+  const fillRateSold = eventsForFillRate.reduce((sum, event) => sum + (event.booked_count ?? 0), 0);
+  const fillRateCapacity = eventsForFillRate.reduce((sum, event) => sum + (event.capacity ?? 0), 0);
+  const fillRate = fillRateCapacity > 0 ? Math.round((fillRateSold / fillRateCapacity) * 100) : 0;
+
+  const freeSpots = eventsForFillRate.reduce(
     (sum, event) => sum + Math.max((event.capacity ?? 0) - (event.booked_count ?? 0), 0),
     0,
   );
   const waitingPayment = enrollments.filter((row) => isPendingPaymentStatus(row.payment_status)).length;
   const repeatParticipants = participantsData.filter((row) => (row.visits_count ?? 0) > 1).length;
   const waitlistCount = events.reduce((sum, event) => sum + (event.waitlist_count ?? 0), 0);
-  const fillRate = totalCapacity > 0 ? Math.round((soldSpots / totalCapacity) * 100) : 0;
 
   return {
     metrics: [

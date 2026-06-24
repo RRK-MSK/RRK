@@ -1,5 +1,6 @@
-import { MetricGrid, PageHeader, PrimaryButton, SectionCard, StatusBadge } from "@/components/crm/ui";
+import { MetricGrid, PageHeader, SectionCard, StatusBadge } from "@/components/crm/ui";
 import { getDashboardPageData } from "@/lib/crm-store";
+import { AddRecordModal } from "@/components/crm/add-record-modal";
 
 export default async function DashboardPage() {
   const { metrics, classes } = await getDashboardPageData();
@@ -10,7 +11,7 @@ export default async function DashboardPage() {
         eyebrow="Июнь · Москва, Бауманская"
         title="PPK CRM"
         description="Система записи, оплат и аналитики клуба"
-        action={<PrimaryButton>Добавить занятие</PrimaryButton>}
+        action={<AddRecordModal />}
       />
 
       <SectionCard title="Картина июня" description="Быстрый срез по местам, оплатам и ближайшим занятиям.">

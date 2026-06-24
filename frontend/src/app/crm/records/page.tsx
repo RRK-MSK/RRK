@@ -1,5 +1,6 @@
-import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, SimpleTable } from "@/components/crm/ui";
+import { FilterRow, MetricGrid, PageHeader, SectionCard, SimpleTable } from "@/components/crm/ui";
 import { getRecordsPageData } from "@/lib/crm-store";
+import { AddRecordModal } from "@/components/crm/add-record-modal";
 
 export default async function RecordsPage() {
   const { funnelMetrics, attentionMetrics, rows } = await getRecordsPageData();
@@ -10,7 +11,7 @@ export default async function RecordsPage() {
         eyebrow="Июнь · Москва, Бауманская"
         title="Записи"
         description="Заявки, оплаты, подтверждения и посещения участников"
-        action={<PrimaryButton>Добавить запись</PrimaryButton>}
+        action={<AddRecordModal />}
       />
 
       <SectionCard
