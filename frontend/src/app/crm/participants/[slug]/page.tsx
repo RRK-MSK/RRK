@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MetricGrid, PageHeader, PrimaryButton, SectionCard, StatusBadge } from "@/components/crm/ui";
 import { ParticipantActions } from "@/components/crm/participant-actions";
 import { EnrollmentActions } from "@/components/crm/enrollment-actions";
+import { EditNoteModal } from "@/components/crm/edit-note-modal";
 import { getParticipantProfileData } from "@/lib/crm-store";
 
 export default async function ParticipantProfilePage({
@@ -65,7 +66,10 @@ export default async function ParticipantProfilePage({
           </div>
           <div className="profile-note">
             <dt>Комментарий администратора</dt>
-            <dd>{profile.note}</dd>
+            <dd>
+              {profile.note}
+              <EditNoteModal participantId={profile.id} currentNote={profile.note} />
+            </dd>
           </div>
         </dl>
       </section>

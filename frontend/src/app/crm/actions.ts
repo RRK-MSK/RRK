@@ -168,3 +168,19 @@ export async function updateEnrollment(enrollmentId: string, updates: { event_id
   revalidatePath(`/crm/participants/[slug]`, "page");
   return { success: true };
 }
+
+export async function updateParticipantNote(id: string, note: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { error } = await supabase
+    .from("participants")
+    .update({ note })
+    .eq("id", id);
+
+  if (error) throw new Error("Failed to update note");
+
+  revalidatePath("/crm/participants");
+  revalidatePath(`/crm/participants/[slug]`, "page");
+  return { success: true };
+}
