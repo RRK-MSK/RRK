@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     // 1. Проверка подписи (Token)
     const { Token, ...dataWithoutToken } = payload;
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dataWithPassword: Record<string, any> = {
       ...dataWithoutToken,
       Password: password,

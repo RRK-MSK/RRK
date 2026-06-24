@@ -30,6 +30,8 @@ export type ParticipantRow = {
   nextClass: string;
   tags: string[];
   slug: string;
+  isRepeat?: boolean;
+  lastVisitDate?: string;
 };
 
 export type TableRow = Record<string, string>;

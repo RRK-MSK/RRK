@@ -126,14 +126,15 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
     [groupedEvents],
   );
 
+  const [selectedDay, setSelectedDay] = useState(activeDays[0] ?? 1);
+
   // When selectedKind changes, auto-select the first available day for that kind
   useEffect(() => {
     if (activeDays.length > 0 && !activeDays.includes(selectedDay)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedDay(activeDays[0]);
     }
-  }, [selectedKind, activeDays]);
-
-  const [selectedDay, setSelectedDay] = useState(activeDays[0] ?? 1);
+  }, [selectedKind, activeDays, selectedDay]);
 
   const selectedEvents = groupedEvents.get(selectedDay) ?? [];
   const selectedDate = selectedEvents[0]?.date ?? `${selectedDay} июля`;

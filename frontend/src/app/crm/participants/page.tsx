@@ -51,6 +51,13 @@ export default async function ParticipantsPage() {
                     <div className="name-cell">
                       <strong>{participant.name}</strong>
                       <span>Профиль участника</span>
+                      {participant.isRepeat && (
+                        <div style={{ fontSize: '11px', color: 'var(--primary)', marginTop: '4px' }}>
+                          🔄 Повторный визит
+                          <br />
+                          <span style={{ color: 'var(--muted)' }}>Был: {participant.lastVisitDate || 'Ранее'}</span>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td>{participant.telegram}</td>

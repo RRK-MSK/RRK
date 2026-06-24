@@ -136,6 +136,7 @@ type SettingsCard = {
 export type DashboardPageData = {
   metrics: Metric[];
   classes: ClassCard[];
+  unpaidRecords: TableRow[];
 };
 
 export type ParticipantsPageData = {
@@ -167,6 +168,8 @@ export type ClassLoadSummary = {
   paid: number;
   pending: number;
   free: number;
+  waitlist: number;
+  canceled: number;
   revenue: string;
 };
 
@@ -207,6 +210,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
     return {
       metrics: dashboardMetrics,
       classes: upcomingClasses,
+      unpaidRecords: [],
     };
   }
 
@@ -221,6 +225,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
     return {
       metrics: dashboardMetrics,
       classes: upcomingClasses,
+      unpaidRecords: [],
     };
   }
 
@@ -228,7 +233,6 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
     .filter((payment) => normalize(payment.status).includes("paid") || normalize(payment.status).includes("оплачен"))
     .reduce((sum, payment) => sum + (payment.amount_rub ?? 0), 0);
   const soldSpots = events.reduce((sum, event) => sum + (event.booked_count ?? 0), 0);
-  const totalCapacity = events.reduce((sum, event) => sum + (event.capacity ?? 0), 0);
   
   // Для расчета заполняемости исключаем бесплатные события-заглушки (capacity >= 10000)
   const eventsForFillRate = events.filter(e => (e.capacity ?? 0) < 10000);
@@ -243,6 +247,19 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
   const waitingPayment = enrollments.filter((row) => isPendingPaymentStatus(row.payment_status)).length;
   const repeatParticipants = participantsData.filter((row) => (row.visits_count ?? 0) > 1).length;
   const waitlistCount = events.reduce((sum, event) => sum + (event.waitlist_count ?? 0), 0);
+
+  const unpaidRecords = enrollments
+    .filter((row) => isPendingPaymentStatus(row.payment_status))
+    .map((row) => ({
+      participant: row.participant?.full_name ?? "-",
+      className: row.event?.title ?? "-",
+      payment: row.payment_status ?? "Ждет оплату",
+      confirmation: row.confirmation_status ?? "Ожидает",
+      contact: row.participant?.telegram ?? row.participant?.phone ?? row.participant?.email ?? "-",
+      source: row.source ?? "-",
+      status: row.status ?? "Активна",
+      action: "Открыть",
+    }));
 
   return {
     metrics: [
@@ -268,6 +285,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
         host: event.host ?? "Команда РРК",
         price: formatMoney(event.price_rub),
       })),
+    unpaidRecords,
   };
 }
 
@@ -300,6 +318,7 @@ export async function getParticipantsPageData(): Promise<ParticipantsPageData> {
     rows: rows.map((row) => {
       let computedNextTitle = row.next_event_title;
       let computedNextAt = row.next_event_at;
+      let lastVisitDate = "";
 
       if (row.enrollments && row.enrollments.length > 0) {
         const futureEnrollments = row.enrollments
@@ -314,7 +333,21 @@ export async function getParticipantsPageData(): Promise<ParticipantsPageData> {
           computedNextTitle = futureEnrollments[0]?.title ?? computedNextTitle;
           computedNextAt = futureEnrollments[0]?.starts_at ?? computedNextAt;
         }
+
+        const pastEnrollments = row.enrollments
+          .map((e) => {
+            const ev = unwrapRelation(e.events);
+            return ev ? { starts_at: ev.starts_at, status: e.status } : null;
+          })
+          .filter((ev) => ev && ev.starts_at && !isFutureDate(ev.starts_at) && normalize(ev.status).includes("visited"))
+          .sort((a, b) => sortByDateDesc(a?.starts_at, b?.starts_at));
+          
+        if (pastEnrollments.length > 0) {
+          lastVisitDate = formatShortDate(pastEnrollments[0]?.starts_at);
+        }
       }
+
+      const isRepeat = (row.visits_count ?? 0) > 0 && !!computedNextTitle;
 
       return {
         name: row.full_name,
@@ -326,6 +359,8 @@ export async function getParticipantsPageData(): Promise<ParticipantsPageData> {
         nextClass: formatNextEvent(computedNextTitle, computedNextAt),
         tags: row.tags ?? [],
         slug: row.slug,
+        isRepeat,
+        lastVisitDate,
       };
     }),
   };
@@ -340,6 +375,7 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
     return {
       profile: { ...participantProfile, id: "0" },
       finance: participantFinance,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       history: participantHistory as any,
       availableEvents: [],
     };
@@ -395,6 +431,7 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
             status: row.status ?? "Активна",
             note: row.note ?? "-",
           }))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         : (participantHistory as any),
     availableEvents: availableEvents.map(e => ({
       id: e.id,
@@ -487,6 +524,8 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         paid,
         pending,
         free,
+        waitlist: row.waitlist_count ?? 0,
+        canceled: 0, // This needs proper data structure if we track canceled per event, assuming 0 for now
         revenue: formatMoney(paid * (row.price_rub ?? 0)),
       };
     }),
@@ -1025,6 +1064,8 @@ function createFallbackClassSummary(row: TableRow): ClassLoadSummary {
     paid,
     pending,
     free,
+    waitlist: 0,
+    canceled: 0,
     revenue: row.revenue,
   };
 }

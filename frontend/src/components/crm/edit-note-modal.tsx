@@ -40,7 +40,7 @@ export function EditNoteModal({ participantId, currentNote }: { participantId: s
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
       }}>
         <div style={{
-          background: 'var(--surface-elevated)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px'
+          background: 'var(--surface-strong)', color: 'var(--text)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px'
         }}>
           <h2 style={{ marginBottom: '16px' }}>Комментарий</h2>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -48,7 +48,7 @@ export function EditNoteModal({ participantId, currentNote }: { participantId: s
               <textarea 
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'inherit', minHeight: '100px' }} 
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit', minHeight: '100px' }} 
                 placeholder="Напишите всё, что важно помнить об этом участнике..."
               />
             </div>

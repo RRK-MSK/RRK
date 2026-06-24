@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateParticipantStatus, updateParticipantTags } from "@/app/crm/actions";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ParticipantActions({ profile }: { profile: any }) {
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -40,7 +41,7 @@ export function ParticipantActions({ profile }: { profile: any }) {
             onChange={e => setNewTag(e.target.value)} 
             onKeyDown={e => e.key === 'Enter' && handleAddTag()}
             placeholder="Новый тег"
-            style={{ padding: '4px 8px', border: '1px solid var(--border)', borderRadius: '4px', background: 'transparent', color: 'inherit' }}
+            style={{ padding: '4px 8px', border: '1px solid var(--line)', borderRadius: '4px', background: 'transparent', color: 'inherit' }}
           />
           <button className="ghost-button" onClick={handleAddTag}>Ок</button>
           <button className="ghost-button" onClick={() => setIsAddingTag(false)}>Отмена</button>

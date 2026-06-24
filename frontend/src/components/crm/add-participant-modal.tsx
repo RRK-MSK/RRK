@@ -41,25 +41,25 @@ export function AddParticipantModal() {
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
       }}>
         <div style={{
-          background: 'var(--surface-elevated)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px'
+          background: 'var(--surface-strong)', color: 'var(--text)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px'
         }}>
           <h2 style={{ marginBottom: '16px' }}>Новый участник</h2>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--muted)' }}>Имя и Фамилия *</label>
-              <input name="fullName" required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'inherit' }} />
+              <input name="fullName" required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--muted)' }}>Telegram</label>
-              <input name="telegram" placeholder="@username" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'inherit' }} />
+              <input name="telegram" placeholder="@username" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--muted)' }}>Телефон</label>
-              <input name="phone" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'inherit' }} />
+              <input name="phone" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--muted)' }}>Email</label>
-              <input name="email" type="email" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'inherit' }} />
+              <input name="email" type="email" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
             </div>
             <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
               <button type="button" className="ghost-button" style={{ flex: 1 }} onClick={() => setIsOpen(false)}>Отмена</button>

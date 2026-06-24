@@ -8,15 +8,20 @@ export function BottomNav() {
 
   useEffect(() => {
     // Check if we are inside Telegram Mini App
-    if (typeof window !== "undefined" && (window as any).Telegram && (window as any).Telegram.WebApp) {
+    if (typeof window !== "undefined") {
       // Telegram.WebApp.initData is only present when opened inside Telegram
-      if ((window as any).Telegram.WebApp.initData) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((window as any).Telegram?.WebApp?.initData) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsTelegram(true);
         // Expand the web app to full height
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).Telegram.WebApp.expand();
         // Optional: set header/bg colors
-        (window as any).Telegram.WebApp.setHeaderColor("var(--background)");
-        (window as any).Telegram.WebApp.setBackgroundColor("var(--background)");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).Telegram.WebApp.setHeaderColor("secondary_bg_color");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).Telegram.WebApp.setBackgroundColor("secondary_bg_color");
       }
     }
   }, []);

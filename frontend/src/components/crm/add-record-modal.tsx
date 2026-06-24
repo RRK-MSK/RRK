@@ -12,6 +12,7 @@ const supabase = createClient(
 export function AddRecordModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [events, setEvents] = useState<any[]>([]);
 
   useEffect(() => {
@@ -55,13 +56,13 @@ export function AddRecordModal() {
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
       }}>
         <div style={{
-          background: 'var(--surface-elevated)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px'
+          background: 'var(--surface-strong)', color: 'var(--text)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px'
         }}>
           <h2 style={{ marginBottom: '16px' }}>Новая запись</h2>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--muted)' }}>Событие *</label>
-              <select name="eventId" required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'inherit' }}>
+              <select name="eventId" required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }}>
                 <option value="" style={{ color: 'black' }}>Выберите занятие...</option>
                 {events.map(ev => (
                   <option key={ev.id} value={ev.id} style={{ color: 'black' }}>
@@ -72,15 +73,15 @@ export function AddRecordModal() {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--muted)' }}>Имя и Фамилия *</label>
-              <input name="fullName" required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'inherit' }} />
+              <input name="fullName" required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--muted)' }}>Telegram</label>
-              <input name="telegram" placeholder="@username" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'inherit' }} />
+              <input name="telegram" placeholder="@username" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--muted)' }}>Телефон</label>
-              <input name="phone" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'inherit' }} />
+              <input name="phone" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input type="checkbox" name="isPaid" id="isPaid" defaultChecked />

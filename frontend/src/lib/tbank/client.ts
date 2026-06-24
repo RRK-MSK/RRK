@@ -9,6 +9,7 @@ export type TBankInitRequest = {
   FailURL?: string;
   CustomerKey?: string;
   DATA?: Record<string, string>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Receipt?: any; // Для чеков (54-ФЗ)
 };
 
@@ -37,7 +38,9 @@ export class TBankClient {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private generateToken(data: Record<string, any>): string {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dataWithPassword: Record<string, any> = {
       ...data,
       Password: this.password,

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateEnrollment } from "@/app/crm/actions";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function EnrollmentActions({ enrollmentId, currentEventId, availableEvents }: { enrollmentId: string, currentEventId?: string, availableEvents: any[] }) {
   const [isTransferring, setIsTransferring] = useState(false);
 
@@ -25,7 +26,7 @@ export function EnrollmentActions({ enrollmentId, currentEventId, availableEvent
           <select 
             onChange={e => handleTransfer(e.target.value)}
             defaultValue=""
-            style={{ padding: '4px', borderRadius: '4px', background: 'var(--surface-sunken)', color: 'inherit', border: '1px solid var(--border)' }}
+            style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit', fontSize: '12px', maxWidth: '150px' }}
           >
             <option value="" disabled>Выберите занятие</option>
             {availableEvents.filter(e => e.id !== currentEventId).map(e => (

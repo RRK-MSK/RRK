@@ -8,7 +8,7 @@ import { VideoHero } from "@/components/site/video-hero";
 import { getSitePosterEvents } from "@/lib/site-store";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 15; // Кэшируем страницу на 15 секунд для ускорения загрузки
+export const revalidate = 10; // Кэшируем страницу на 10 секунд для ускорения загрузки
 
 const programs = [
   {

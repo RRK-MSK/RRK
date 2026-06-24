@@ -1,9 +1,9 @@
-import { MetricGrid, PageHeader, SectionCard, StatusBadge } from "@/components/crm/ui";
+import { MetricGrid, PageHeader, SectionCard, StatusBadge, SimpleTable } from "@/components/crm/ui";
 import { getDashboardPageData } from "@/lib/crm-store";
 import { AddRecordModal } from "@/components/crm/add-record-modal";
 
 export default async function DashboardPage() {
-  const { metrics, classes } = await getDashboardPageData();
+  const { metrics, classes, unpaidRecords } = await getDashboardPageData();
 
   return (
     <div className="page-stack">
@@ -17,6 +17,12 @@ export default async function DashboardPage() {
       <SectionCard title="Картина июня" description="Быстрый срез по местам, оплатам и ближайшим занятиям.">
         <MetricGrid items={metrics} />
       </SectionCard>
+
+      {unpaidRecords.length > 0 && (
+        <SectionCard title="Неоплаченные заявки" description="Клиенты, которые записались, но не завершили оплату.">
+          <SimpleTable rows={unpaidRecords} />
+        </SectionCard>
+      )}
 
       <SectionCard
         title="Ближайшие занятия"

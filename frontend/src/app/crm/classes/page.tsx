@@ -54,6 +54,10 @@ export default async function ClassesPage() {
                   <span>Свободно</span>
                   <strong>{item.free}</strong>
                 </div>
+                <div>
+                  <span>Вейтлист</span>
+                  <strong>{item.waitlist}</strong>
+                </div>
               </div>
               <div className="crm-class-load-progress" aria-hidden="true">
                 <span style={{ width: `${item.capacity > 0 ? Math.min((item.booked / item.capacity) * 100, 100) : 0}%` }} />
