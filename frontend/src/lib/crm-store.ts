@@ -157,6 +157,7 @@ export type TablePageData = {
 };
 
 export type ClassLoadSummary = {
+  id: string;
   title: string;
   date: string;
   time: string;
@@ -276,6 +277,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
       .filter((event) => isFutureDate(event.starts_at))
       .slice(0, 3)
       .map((event) => ({
+        id: event.id,
         title: event.title,
         subtitle: event.subtitle ?? "Занятие из текущей базы Supabase.",
         status: event.status ?? deriveEventStatus(event),
@@ -483,7 +485,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     return {
       metrics: classesMetrics,
       rows: classRows,
-      summaries: classRows.map((row) => createFallbackClassSummary(row)),
+      summaries: classRows.map((row, idx) => createFallbackClassSummary(row, idx)),
     };
   }
 
@@ -513,6 +515,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
       const free = Math.max(capacity - booked, 0);
 
       return {
+        id: row.id,
         title: row.title,
         date: formatShortDate(row.starts_at),
         time: formatTimeRange(row.starts_at, row.ends_at),
@@ -1045,7 +1048,7 @@ function normalize(value: string | null | undefined) {
   return (value ?? "").trim().toLowerCase();
 }
 
-function createFallbackClassSummary(row: TableRow): ClassLoadSummary {
+function createFallbackClassSummary(row: TableRow, idx: number): ClassLoadSummary {
   const booked = extractFirstNumber(row.spots);
   const capacity = extractSecondNumber(row.spots, 10);
   const free = extractLastNumber(row.spots, Math.max(capacity - booked, 0));
@@ -1053,6 +1056,7 @@ function createFallbackClassSummary(row: TableRow): ClassLoadSummary {
   const pending = extractLastNumber(row.payments, 0);
 
   return {
+    id: `fallback-${idx}`,
     title: row.title,
     date: row.date,
     time: row.time,

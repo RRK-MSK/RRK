@@ -1,6 +1,7 @@
-import { MetricGrid, PageHeader, SectionCard, StatusBadge, SimpleTable } from "@/components/crm/ui";
+import { MetricGrid, PageHeader, SectionCard, SimpleTable } from "@/components/crm/ui";
 import { getDashboardPageData } from "@/lib/crm-store";
 import { AddRecordModal } from "@/components/crm/add-record-modal";
+import { ClassCard } from "@/components/crm/class-card";
 
 export default async function DashboardPage() {
   const { metrics, classes, unpaidRecords } = await getDashboardPageData();
@@ -31,34 +32,7 @@ export default async function DashboardPage() {
       >
         <div className="class-list">
           {classes.map((item, idx) => (
-            <article key={`${item.title}-${idx}`} className="class-card">
-              <div className="class-card-main">
-                <div className="class-badges">
-                  <StatusBadge value={item.status} />
-                  <StatusBadge value={item.format} />
-                </div>
-                <h3>{item.title}</h3>
-                <p>{item.subtitle}</p>
-              </div>
-              <dl className="class-meta">
-                <div>
-                  <dt>Дата</dt>
-                  <dd>{item.date}</dd>
-                </div>
-                <div>
-                  <dt>Время</dt>
-                  <dd>{item.time}</dd>
-                </div>
-                <div>
-                  <dt>Ведущий</dt>
-                  <dd>{item.host}</dd>
-                </div>
-                <div>
-                  <dt>Цена</dt>
-                  <dd>{item.price}</dd>
-                </div>
-              </dl>
-            </article>
+            <ClassCard key={`${item.title}-${idx}`} item={item} variant="dashboard" />
           ))}
         </div>
       </SectionCard>

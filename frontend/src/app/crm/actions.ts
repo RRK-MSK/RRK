@@ -184,3 +184,31 @@ export async function updateParticipantNote(id: string, note: string) {
   revalidatePath(`/crm/participants/[slug]`, "page");
   return { success: true };
 }
+
+export async function getEventParticipants(eventId: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select(`
+      id,
+      status,
+      payment_status,
+      participant:participants (
+        id,
+        full_name,
+        telegram,
+        slug
+      )
+    `)
+    .eq("event_id", eventId);
+
+  if (error) {
+    console.error("Error fetching event participants:", error);
+    return [];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return data as any[];
+}

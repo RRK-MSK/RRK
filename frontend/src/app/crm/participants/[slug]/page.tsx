@@ -28,95 +28,99 @@ export default async function ParticipantProfilePage({
         </Link>
       </div>
 
-      <section className="profile-card">
-        <div className="profile-main">
-          <div className="tag-row">
-            <StatusBadge value={profile.status} />
-            {profile.tags.map((tag) => (
-              <StatusBadge key={tag} value={tag} />
-            ))}
-          </div>
-          <h2>{profile.name}</h2>
-          <ParticipantActions profile={profile} />
+      <div className="crm-profile-layout">
+        <div className="crm-profile-sidebar">
+          <section className="profile-card">
+            <div className="profile-main">
+              <div className="tag-row">
+                <StatusBadge value={profile.status} />
+                {profile.tags.map((tag) => (
+                  <StatusBadge key={tag} value={tag} />
+                ))}
+              </div>
+              <h2>{profile.name}</h2>
+              <ParticipantActions profile={profile} />
+            </div>
+            <dl className="profile-meta" style={{ gridTemplateColumns: '1fr' }}>
+              <div>
+                <dt>Telegram</dt>
+                <dd>{profile.telegram}</dd>
+              </div>
+              <div>
+                <dt>Телефон</dt>
+                <dd>{profile.phone}</dd>
+              </div>
+              <div>
+                <dt>Email</dt>
+                <dd>{profile.email}</dd>
+              </div>
+              <div>
+                <dt>Источник</dt>
+                <dd>{profile.source}</dd>
+              </div>
+              <div>
+                <dt>Дата первого контакта</dt>
+                <dd>{profile.firstContact}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <SectionCard title="Финансы участника" description="Сводка оплат и долгов.">
+            <MetricGrid items={finance} />
+          </SectionCard>
         </div>
-        <dl className="profile-meta">
-          <div>
-            <dt>Telegram</dt>
-            <dd>{profile.telegram}</dd>
-          </div>
-          <div>
-            <dt>Телефон</dt>
-            <dd>{profile.phone}</dd>
-          </div>
-          <div>
-            <dt>Email</dt>
-            <dd>{profile.email}</dd>
-          </div>
-          <div>
-            <dt>Источник</dt>
-            <dd>{profile.source}</dd>
-          </div>
-          <div>
-            <dt>Дата первого контакта</dt>
-            <dd>{profile.firstContact}</dd>
-          </div>
-          <div>
-            <dt>Статус</dt>
-            <dd>{profile.status}</dd>
-          </div>
-          <div className="profile-note">
-            <dt>Комментарий администратора</dt>
-            <dd>
-              {profile.note}
+
+        <div className="crm-profile-feed">
+          <SectionCard title="Заметки и комментарии" description="Здесь можно оставлять важные отметки о клиенте.">
+            <div style={{ background: 'var(--surface-sunken)', padding: '16px', borderRadius: '12px', border: '1px solid var(--line)' }}>
+              <div style={{ marginBottom: '12px', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                {profile.note}
+              </div>
               <EditNoteModal participantId={profile.id} currentNote={profile.note} />
-            </dd>
-          </div>
-        </dl>
-      </section>
+            </div>
+          </SectionCard>
 
-      <SectionCard title="Финансы участника" description="Оплаты, посещения, средний чек и текущие долги по записям.">
-        <MetricGrid items={finance} />
-      </SectionCard>
-
-      <SectionCard title="История занятий" description="Какие встречи уже были и что запланировано дальше.">
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Дата</th>
-                <th>Занятие</th>
-                <th>Оплата</th>
-                <th>Статус</th>
-                <th>Действие</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((row, idx) => (
-                <tr key={row.id || idx}>
-                  <td>{row.date}</td>
-                  <td>{row.className}</td>
-                  <td><StatusBadge value={row.payment} /></td>
-                  <td><StatusBadge value={row.status} /></td>
-                  <td>
-                    {row.status !== "Отменена" && row.id && (
-                      <EnrollmentActions 
-                        enrollmentId={row.id} 
-                        currentEventId={row.event_id} 
-                        availableEvents={availableEvents} 
-                      />
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {history.length === 0 && (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: "center", color: "var(--muted)" }}>Нет записей</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <SectionCard title="История занятий" description="Куда записывался и что посещал.">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Дата</th>
+                    <th>Занятие</th>
+                    <th>Оплата</th>
+                    <th>Статус</th>
+                    <th>Действие</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((row, idx) => (
+                    <tr key={row.id || idx}>
+                      <td>{row.date}</td>
+                      <td>{row.className}</td>
+                      <td><StatusBadge value={row.payment} /></td>
+                      <td><StatusBadge value={row.status} /></td>
+                      <td>
+                        {row.status !== "Отменена" && row.id && (
+                          <EnrollmentActions 
+                            enrollmentId={row.id} 
+                            currentEventId={row.event_id} 
+                            availableEvents={availableEvents} 
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {history.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: "center", color: "var(--muted)" }}>Нет записей</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </SectionCard>
         </div>
-      </SectionCard>
+      </div>
     </div>
   );
 }

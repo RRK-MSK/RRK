@@ -250,6 +250,12 @@ button {
   padding: 22px;
 }
 
+.crm-class-load-card:hover,
+.class-card:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s;
+}
+
 .class-card h3,
 .insight-card h3,
 .settings-card h2,
@@ -419,9 +425,30 @@ th {
   gap: 12px;
 }
 
+.crm-profile-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.crm-profile-sidebar {
+  display: grid;
+  gap: 24px;
+}
+
+.crm-profile-sidebar .metric-grid {
+  grid-template-columns: 1fr;
+}
+
+.crm-profile-feed {
+  display: grid;
+  gap: 24px;
+}
+
 .profile-card {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: 1fr;
   gap: 24px;
   padding: 22px;
 }

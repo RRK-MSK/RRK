@@ -10,6 +10,7 @@ export type Metric = {
 };
 
 export type ClassCard = {
+  id?: string;
   title: string;
   subtitle: string;
   status: string;
