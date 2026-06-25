@@ -30,8 +30,8 @@ export default async function DashboardPage() {
         rightLabel="13 занятий"
       >
         <div className="class-list">
-          {classes.map((item) => (
-            <article key={item.title} className="class-card">
+          {classes.map((item, idx) => (
+            <article key={`${item.title}-${idx}`} className="class-card">
               <div className="class-card-main">
                 <div className="class-badges">
                   <StatusBadge value={item.status} />
