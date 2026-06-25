@@ -4,6 +4,7 @@ import { MetricGrid, PageHeader, PrimaryButton, SectionCard, StatusBadge } from 
 import { ParticipantActions } from "@/components/crm/participant-actions";
 import { EnrollmentActions } from "@/components/crm/enrollment-actions";
 import { EditNoteModal } from "@/components/crm/edit-note-modal";
+import { AddParticipantRecordModal } from "@/components/crm/add-participant-record-modal";
 import { getParticipantProfileData } from "@/lib/crm-store";
 
 export default async function ParticipantProfilePage({
@@ -81,6 +82,9 @@ export default async function ParticipantProfilePage({
           </SectionCard>
 
           <SectionCard title="История занятий" description="Куда записывался и что посещал.">
+            <div style={{ marginBottom: "16px" }}>
+              <AddParticipantRecordModal participantId={profile.id} events={availableEvents} />
+            </div>
             <div className="table-wrap">
               <table>
                 <thead>

@@ -185,6 +185,51 @@ export async function updateParticipantNote(id: string, note: string) {
   return { success: true };
 }
 
+export async function addParticipantEnrollment(formData: FormData) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const participantId = formData.get("participantId") as string;
+  const eventId = formData.get("eventId") as string;
+  const isPaid = formData.get("isPaid") === "on";
+
+  if (!participantId || !eventId) throw new Error("Participant and Event are required");
+
+  const { data: event } = await supabase.from("events").select("price_rub, title, starts_at").eq("id", eventId).single();
+
+  const { error: eError } = await supabase
+    .from("enrollments")
+    .insert({
+      participant_id: participantId,
+      event_id: eventId,
+      source: "CRM (Вручную)",
+      status: "Активна",
+      payment_status: isPaid ? "Оплачен" : "Ожидает",
+      confirmation_status: "Подтверждено",
+    });
+
+  if (eError) throw new Error("Failed to add enrollment");
+
+  await supabase.from("payments").insert({
+    participant_id: participantId,
+    event_id: eventId,
+    amount_rub: event?.price_rub || 0,
+    method: isPaid ? "Наличные / Перевод" : "Ожидает",
+    status: isPaid ? "Оплачен" : "Ожидает",
+    external_payment_id: `MANUAL-${Date.now()}`,
+  });
+
+  if (event) {
+    await supabase.from("participants").update({
+      next_event_title: event.title,
+      next_event_at: event.starts_at,
+    }).eq("id", participantId);
+  }
+
+  revalidatePath("/crm/participants");
+  revalidatePath(`/crm/participants/[slug]`, "page");
+  return { success: true };
+}
 export async function getEventParticipants(eventId: string) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) return [];

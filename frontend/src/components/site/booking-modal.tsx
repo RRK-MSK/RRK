@@ -18,6 +18,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
     email: "",
     eventId: "",
     price: "",
+    paymentMethod: "card",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -161,6 +162,36 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
               ))}
             </select>
           </div>
+
+          {!(formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация")) && (
+            <div className="booking-field">
+              <label>Способ оплаты</label>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'normal', cursor: 'pointer' }}>
+                  <input 
+                    type="radio" 
+                    name="paymentMethod" 
+                    value="card" 
+                    checked={formData.paymentMethod === "card"} 
+                    onChange={e => setFormData({...formData, paymentMethod: e.target.value})} 
+                    style={{ width: 'auto' }}
+                  />
+                  Картой
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'normal', cursor: 'pointer' }}>
+                  <input 
+                    type="radio" 
+                    name="paymentMethod" 
+                    value="sbp" 
+                    checked={formData.paymentMethod === "sbp"} 
+                    onChange={e => setFormData({...formData, paymentMethod: e.target.value})} 
+                    style={{ width: 'auto' }}
+                  />
+                  СБП (Без комиссии)
+                </label>
+              </div>
+            </div>
+          )}
           
           <div className="booking-consent">
             Нажимая кнопку, вы соглашаетесь с <a href="/offer" target="_blank">Офертой</a>, <a href="/privacy" target="_blank">Политикой конфиденциальности</a> и даете <a href="/consent" target="_blank">согласие на обработку ПД</a>.

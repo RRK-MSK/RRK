@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const data = await request.json();
     console.log("New booking request:", data);
 
-    const { firstName, lastName, phone, telegram, email, eventId } = data;
+    const { firstName, lastName, phone, telegram, email, eventId, paymentMethod } = data;
     
     // Пытаемся найти ID события в базе (по title)
     // eventId с фронта сейчас выглядит как "uuid::Название" или "5 июля (вс) | 19:00-22:30 - Название"
@@ -227,6 +227,7 @@ export async function POST(request: Request) {
       FailURL: `${baseUrl}/fail`,
       // Webhook для получения статуса платежа (всегда продакшен, так как локалхост банк не достанет)
       NotificationURL: "https://rrclub.site/api/payment/webhook",
+      PayType: paymentMethod === "sbp" ? "O" : undefined,
       DATA: {
         Email: email || "",
         Phone: phone || ""

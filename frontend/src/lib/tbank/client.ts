@@ -8,6 +8,7 @@ export type TBankInitRequest = {
   SuccessURL?: string;
   FailURL?: string;
   CustomerKey?: string;
+  PayType?: string;
   DATA?: Record<string, string>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Receipt?: any; // Для чеков (54-ФЗ)

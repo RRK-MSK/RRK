@@ -3996,14 +3996,17 @@ th {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60px;
-  background: var(--surface-strong);
-  border-top: 1px solid var(--line);
+  height: 64px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-around;
   z-index: 1000;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.04);
 }
 
 .tma-nav-item {
@@ -4011,10 +4014,11 @@ th {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--muted);
+  color: #8e8e93;
   gap: 4px;
   flex: 1;
   text-decoration: none;
+  transition: color 0.2s, transform 0.1s;
 }
 
 .tma-nav-item span {
@@ -4024,9 +4028,24 @@ th {
   letter-spacing: 0.05em;
 }
 
-.tma-nav-item:active,
-.tma-nav-item:hover {
+.tma-nav-item:active {
+  transform: scale(0.92);
+}
+
+.tma-nav-item.active {
   color: var(--brand);
+}
+
+.tma-nav-item svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2px;
+  opacity: 0.8;
+}
+
+.tma-nav-item.active svg {
+  opacity: 1;
+  stroke-width: 2.5px;
 }
 
 /* Push site footer up if TMA */
