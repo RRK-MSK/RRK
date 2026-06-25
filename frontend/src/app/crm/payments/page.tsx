@@ -1,5 +1,6 @@
-import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, SimpleTable } from "@/components/crm/ui";
+import { MetricGrid, PageHeader, PrimaryButton, SectionCard } from "@/components/crm/ui";
 import { getPaymentsPageData } from "@/lib/crm-store";
+import { PaymentsTable } from "@/components/crm/payments-table";
 
 export default async function PaymentsPage() {
   const { metrics, rows } = await getPaymentsPageData();
@@ -17,13 +18,7 @@ export default async function PaymentsPage() {
         <MetricGrid items={metrics} />
       </SectionCard>
 
-      <SectionCard title="Реестр оплат" description="Основная таблица для учета платежей и сверки чеков." rightLabel="71 подтверждено">
-        <FilterRow
-          filters={["Все", "Оплачено", "Ждут", "ЮKassa", "Перевод"]}
-          searchPlaceholder="Поиск по участнику, назначению, сумме или статусу"
-        />
-        <SimpleTable rows={rows} />
-      </SectionCard>
+      <PaymentsTable initialRows={rows} />
     </div>
   );
 }

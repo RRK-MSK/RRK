@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useState, useMemo } from "react";
 
 import type { Metric, TableRow } from "@/lib/crm-data";
 
@@ -87,20 +90,37 @@ export function StatusBadge({ value }: { value: string }) {
 export function FilterRow({
   filters,
   searchPlaceholder,
+  activeFilter,
+  onFilterChange,
+  searchQuery,
+  onSearchChange,
 }: {
   filters: string[];
   searchPlaceholder: string;
+  activeFilter?: string;
+  onFilterChange?: (filter: string) => void;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }) {
   return (
     <div className="toolbar-row">
       <div className="chip-row">
-        {filters.map((filter, index) => (
-          <button key={filter} className={index === 0 ? "chip active" : "chip"}>
+        {filters.map((filter) => (
+          <button 
+            key={filter} 
+            className={activeFilter === filter || (!activeFilter && filter === "Все") ? "chip active" : "chip"}
+            onClick={() => onFilterChange?.(filter)}
+          >
             {filter}
           </button>
         ))}
       </div>
-      <input className="search-input" placeholder={searchPlaceholder} />
+      <input 
+        className="search-input" 
+        placeholder={searchPlaceholder} 
+        value={searchQuery || ""}
+        onChange={(e) => onSearchChange?.(e.target.value)}
+      />
     </div>
   );
 }
@@ -162,7 +182,6 @@ function getTone(value: string) {
 
   if (
     normalized.includes("sold") ||
-    normalized.includes("оплач") ||
     normalized.includes("постоян") ||
     normalized.includes("подтверж")
   ) {
@@ -178,6 +197,7 @@ function getTone(value: string) {
   }
 
   if (
+    normalized.includes("оплач") ||
     normalized.includes("нов") ||
     normalized.includes("откры") ||
     normalized.includes("актив") ||
