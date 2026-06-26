@@ -32,10 +32,18 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
     setSuccessMessage("");
     
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isTelegramApp = typeof window !== "undefined" && !!(window as any).Telegram?.WebApp?.initData;
+      
+      const payload = {
+        ...formData,
+        source: isTelegramApp ? "Telegram Mini App" : "Сайт"
+      };
+
       const response = await fetch('/api/book', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData) 
+        body: JSON.stringify(payload) 
       });
       
       const result = await response.json();

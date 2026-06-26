@@ -23,6 +23,10 @@ export function PaymentsTable({ initialRows }: { initialRows: TableRow[] }) {
       result = result.filter(r => r.method?.toString().toLowerCase().includes("перевод") || r.method?.toString().toLowerCase().includes("налич"));
     } else if (activeFilter === "Т-Банк") {
       result = result.filter(r => r.method?.toString().toLowerCase().includes("т-банк") || r.method?.toString().toLowerCase().includes("t-bank") || r.method?.toString().toLowerCase().includes("tbank"));
+    } else if (activeFilter === "Mini App") {
+      result = result.filter(r => r.source?.toString().toLowerCase().includes("mini app") || r.source?.toString().toLowerCase().includes("telegram"));
+    } else if (activeFilter === "Сайт") {
+      result = result.filter(r => r.source?.toString().toLowerCase() === "сайт" || r.source?.toString().toLowerCase().includes("сайт ("));
     }
 
     if (searchQuery.trim()) {
@@ -47,7 +51,7 @@ export function PaymentsTable({ initialRows }: { initialRows: TableRow[] }) {
   return (
     <SectionCard title="Реестр оплат" description="Основная таблица для учета платежей и сверки чеков." rightLabel={`${filteredRows.length} записей`}>
       <FilterRow
-        filters={["Все", "Оплачено", "Ждут", "4400 ₽", "Бесплатные", "Перевод", "Т-Банк"]}
+        filters={["Все", "Оплачено", "Ждут", "4400 ₽", "Бесплатные", "Перевод", "Т-Банк", "Mini App", "Сайт"]}
         searchPlaceholder="Поиск по участнику, назначению, сумме или статусу"
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}

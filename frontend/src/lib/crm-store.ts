@@ -101,6 +101,7 @@ type PaymentJoinedRow = {
   method: string | null;
   status: string | null;
   paid_at: string | null;
+  source?: string | null;
   participant: {
     full_name: string | null;
   } | null;
@@ -445,13 +446,25 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
 }
 
 export async function getPaymentsPageData(): Promise<TablePageData> {
-  const rows = await loadPayments();
+  const [rows, enrollments] = await Promise.all([loadPayments(), loadEnrollments()]);
 
   if (!rows) {
     return {
       metrics: paymentsMetrics,
       rows: paymentRows,
     };
+  }
+
+  // Create a mapping from participant_id + event_id -> source to attach source to payments
+  const sourceMap = new Map<string, string>();
+  if (enrollments) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    enrollments.forEach((enrollment: any) => {
+      if (enrollment.participant && enrollment.event) {
+        const key = `${enrollment.participant.full_name}-${enrollment.event.title}`;
+        sourceMap.set(key, enrollment.source || "Сайт");
+      }
+    });
   }
 
   const paidRows = rows.filter((row) => normalize(row.status).includes("paid"));
@@ -466,15 +479,21 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
       { label: "Выручка", value: formatMoney(totalRevenue), hint: "По проведенным оплатам" },
       { label: "Средний чек", value: formatMoney(averageCheck), hint: "По подтвержденным платежам" },
     ],
-    rows: rows.map((row) => ({
-      date: formatShortDate(row.paid_at),
-      participant: row.participant?.full_name ?? "-",
-      purpose: row.event?.title ?? "-",
-      method: row.method ?? "Не указан",
-      amount: formatMoney(row.amount_rub),
-      status: row.status ?? "Ждет",
-      action: "Открыть",
-    })),
+    rows: rows.map((row) => {
+      const key = `${row.participant?.full_name}-${row.event?.title}`;
+      const source = sourceMap.get(key) || "Сайт";
+      
+      return {
+        date: formatShortDate(row.paid_at),
+        participant: row.participant?.full_name ?? "-",
+        purpose: row.event?.title ?? "-",
+        method: row.method ?? "Не указан",
+        amount: formatMoney(row.amount_rub),
+        source: source,
+        status: row.status ?? "Ждет",
+        action: "Открыть",
+      };
+    }),
   };
 }
 

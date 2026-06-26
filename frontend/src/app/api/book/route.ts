@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const data = await request.json();
     console.log("New booking request:", data);
 
-    const { firstName, lastName, phone, telegram, email, eventId, paymentMethod } = data;
+    const { firstName, lastName, phone, telegram, email, eventId, paymentMethod, source } = data;
     
     // Пытаемся найти ID события в базе (по title)
     // eventId с фронта сейчас выглядит как "uuid::Название" или "5 июля (вс) | 19:00-22:30 - Название"
@@ -80,20 +80,22 @@ export async function POST(request: Request) {
           participantId = existingParticipants[0].id;
         } else {
           // Создаем нового
-            const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
-            const { data: newParticipant, error: pError } = await supabase
-              .from("participants")
-              .insert({
-                slug,
-                full_name: `${firstName} ${lastName}`.trim(),
-                phone: phone || null,
-                telegram: telegram || null,
-                email: email || null,
-                status: "Новый",
-                source: "Сайт (Оплата Т-Банк)",
-              })
-              .select("id")
-              .single();
+          const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
+          const actualSource = source === "Telegram Mini App" ? "Telegram Mini App" : "Сайт (Оплата Т-Банк)";
+          
+          const { data: newParticipant, error: pError } = await supabase
+            .from("participants")
+            .insert({
+              slug,
+              full_name: `${firstName} ${lastName}`.trim(),
+              phone: phone || null,
+              telegram: telegram || null,
+              email: email || null,
+              status: "Новый",
+              source: actualSource,
+            })
+            .select("id")
+            .single();
             
           if (pError) console.error("Participant insert error:", pError);
           if (newParticipant) participantId = newParticipant.id;
@@ -102,6 +104,7 @@ export async function POST(request: Request) {
 
       // 3. Создаем запись (enrollment)
       if (participantId && dbEventId) {
+        const actualSource = source === "Telegram Mini App" ? "Telegram Mini App" : "Сайт (Оплата Т-Банк)";
         const { error: eError } = await supabase
           .from("enrollments")
           .insert({
@@ -109,7 +112,7 @@ export async function POST(request: Request) {
             event_id: dbEventId,
             status: "Активна",
             payment_status: "Ждет оплату",
-            source: "Сайт (Оплата Т-Банк)",
+            source: actualSource,
           });
         if (eError) console.error("Enrollment insert error:", eError);
 
