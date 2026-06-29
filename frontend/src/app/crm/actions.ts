@@ -153,7 +153,7 @@ export async function addRecord(formData: FormData) {
   return { success: true };
 }
 
-export async function updateEnrollment(enrollmentId: string, updates: { event_id?: string, status?: string }) {
+export async function updateEnrollment(enrollmentId: string, updates: { event_id?: string, status?: string, payment_status?: string }) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -163,6 +163,39 @@ export async function updateEnrollment(enrollmentId: string, updates: { event_id
     .eq("id", enrollmentId);
 
   if (error) throw new Error("Failed to update enrollment");
+
+  // If payment_status is being updated, we should also try to update or insert a payment record
+  if (updates.payment_status) {
+    const { data: enrollment } = await supabase.from("enrollments").select("participant_id, event_id, events(price_rub)").eq("id", enrollmentId).single();
+    if (enrollment) {
+      const isPaid = updates.payment_status === "Оплачен";
+      
+      if (isPaid) {
+        // Upsert payment
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const price = (enrollment.events as any)?.price_rub || 0;
+        const { data: existingPayment } = await supabase.from("payments")
+          .select("id").eq("participant_id", enrollment.participant_id).eq("event_id", enrollment.event_id).limit(1).maybeSingle();
+          
+        if (existingPayment) {
+          await supabase.from("payments").update({ status: "Оплачен", amount_rub: price }).eq("id", existingPayment.id);
+        } else {
+          await supabase.from("payments").insert({
+            participant_id: enrollment.participant_id,
+            event_id: enrollment.event_id,
+            amount_rub: price,
+            method: "Наличные / Перевод",
+            status: "Оплачен",
+            external_payment_id: `MANUAL-${Date.now()}`,
+          });
+        }
+      } else {
+        // Mark payment as waiting or delete it? We'll just mark it as pending
+        await supabase.from("payments").update({ status: "Ожидает" })
+          .eq("participant_id", enrollment.participant_id).eq("event_id", enrollment.event_id);
+      }
+    }
+  }
 
   revalidatePath("/crm/participants");
   revalidatePath(`/crm/participants/[slug]`, "page");

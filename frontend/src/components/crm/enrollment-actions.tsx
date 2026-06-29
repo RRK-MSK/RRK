@@ -4,12 +4,20 @@ import { useState } from "react";
 import { updateEnrollment } from "@/app/crm/actions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function EnrollmentActions({ enrollmentId, currentEventId, availableEvents }: { enrollmentId: string, currentEventId?: string, availableEvents: any[] }) {
+export function EnrollmentActions({ enrollmentId, currentEventId, availableEvents, paymentStatus }: { enrollmentId: string, currentEventId?: string, availableEvents: any[], paymentStatus?: string }) {
   const [isTransferring, setIsTransferring] = useState(false);
 
   const handleCancel = async () => {
     if (confirm("Точно отменить запись?")) {
       await updateEnrollment(enrollmentId, { status: "Отменена" });
+    }
+  };
+
+  const handleTogglePayment = async () => {
+    const isPaid = paymentStatus?.toLowerCase().includes('paid') || paymentStatus?.toLowerCase().includes('оплач');
+    const newStatus = isPaid ? "Ожидает" : "Оплачен";
+    if (confirm(`Изменить статус оплаты на "${newStatus}"?`)) {
+      await updateEnrollment(enrollmentId, { payment_status: newStatus });
     }
   };
 
@@ -39,6 +47,9 @@ export function EnrollmentActions({ enrollmentId, currentEventId, availableEvent
         </div>
       ) : (
         <>
+          <button className="ghost-button link-button" onClick={handleTogglePayment}>
+            {paymentStatus?.toLowerCase().includes('paid') || paymentStatus?.toLowerCase().includes('оплач') ? 'Отменить оплату' : 'Отметить оплату'}
+          </button>
           <button className="ghost-button link-button" onClick={() => setIsTransferring(true)}>Перенести</button>
           <button className="ghost-button link-button" style={{ color: "var(--muted)" }} onClick={handleCancel}>Отменить</button>
         </>

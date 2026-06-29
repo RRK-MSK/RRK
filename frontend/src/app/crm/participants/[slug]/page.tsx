@@ -109,7 +109,8 @@ export default async function ParticipantProfilePage({
                           <EnrollmentActions 
                             enrollmentId={row.id} 
                             currentEventId={row.event_id} 
-                            availableEvents={availableEvents} 
+                            availableEvents={availableEvents}
+                            paymentStatus={row.payment}
                           />
                         )}
                       </td>

@@ -7,6 +7,8 @@ export async function GET(request: Request) {
   response.cookies.set(AUTH_COOKIE_NAME, "", {
     expires: new Date(0),
     path: "/",
+    sameSite: "none",
+    secure: true,
   });
 
   return response;

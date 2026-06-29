@@ -73,6 +73,10 @@ type ParticipantDbRow = {
       starts_at: string | null;
     }[] | null;
   }[];
+  payments?: {
+    amount_rub: number | null;
+    status: string | null;
+  }[];
 };
 
 type EnrollmentJoinedRow = {
@@ -104,6 +108,7 @@ type PaymentJoinedRow = {
   source?: string | null;
   participant: {
     full_name: string | null;
+    slug?: string | null;
   } | null;
   event: {
     title: string | null;
@@ -492,6 +497,8 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
         source: source,
         status: row.status ?? "Ждет",
         action: "Открыть",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        slug: (row as any).participant?.slug ?? "",
       };
     }),
   };
@@ -849,7 +856,7 @@ async function loadParticipants() {
   const { data, error } = await supabase
     .from("participants")
     .select(
-      "id, slug, full_name, telegram, phone, email, source, status, tags, visits_count, total_paid_rub, unpaid_rub, next_event_title, next_event_at, first_contact_at, note, created_at, enrollments(status, events(title, starts_at))",
+      "id, slug, full_name, telegram, phone, email, source, status, tags, visits_count, total_paid_rub, unpaid_rub, next_event_title, next_event_at, first_contact_at, note, created_at, enrollments(status, events(title, starts_at)), payments(amount_rub, status)",
     )
     .order("created_at", { ascending: false });
 
@@ -858,7 +865,10 @@ async function loadParticipants() {
     return null;
   }
 
-  return (data ?? []) as ParticipantDbRow[];
+  return ((data ?? []) as ParticipantDbRow[]).map(row => {
+    const dynamicPaid = row.payments?.filter(p => normalize(p.status).includes("paid") || normalize(p.status).includes("оплач")).reduce((sum, p) => sum + (p.amount_rub || 0), 0) || 0;
+    return { ...row, total_paid_rub: dynamicPaid };
+  });
 }
 
 async function loadParticipantBySlug(slug: string) {
@@ -871,7 +881,7 @@ async function loadParticipantBySlug(slug: string) {
   const { data, error } = await supabase
     .from("participants")
     .select(
-      "id, slug, full_name, telegram, phone, email, source, status, tags, visits_count, total_paid_rub, unpaid_rub, next_event_title, next_event_at, first_contact_at, note, created_at, enrollments(status, events(title, starts_at))",
+      "id, slug, full_name, telegram, phone, email, source, status, tags, visits_count, total_paid_rub, unpaid_rub, next_event_title, next_event_at, first_contact_at, note, created_at, enrollments(status, events(title, starts_at)), payments(amount_rub, status)",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -881,7 +891,12 @@ async function loadParticipantBySlug(slug: string) {
     return null;
   }
 
-  return (data ?? null) as ParticipantDbRow | null;
+  const row = data as ParticipantDbRow | null;
+  if (row) {
+    const dynamicPaid = row.payments?.filter(p => normalize(p.status).includes("paid") || normalize(p.status).includes("оплач")).reduce((sum, p) => sum + (p.amount_rub || 0), 0) || 0;
+    row.total_paid_rub = dynamicPaid;
+  }
+  return row;
 }
 
 async function loadEnrollments() {
@@ -938,7 +953,7 @@ async function loadPayments() {
 
   const { data, error } = await supabase
     .from("payments")
-    .select("id, amount_rub, method, status, paid_at, participant:participants(full_name), event:events(title)")
+    .select("id, amount_rub, method, status, paid_at, participant:participants(full_name, slug), event:events(title)")
     .order("paid_at", { ascending: false });
 
   if (error) {
@@ -1238,9 +1253,11 @@ function normalizePaymentRow(raw: unknown): PaymentJoinedRow {
     participant:
       | {
           full_name: string | null;
+          slug: string | null;
         }
       | {
           full_name: string | null;
+          slug: string | null;
         }[]
       | null;
     event:

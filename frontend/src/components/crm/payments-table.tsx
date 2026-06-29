@@ -43,7 +43,7 @@ export function PaymentsTable({ initialRows }: { initialRows: TableRow[] }) {
     return result;
   }, [initialRows, activeFilter, searchQuery]);
 
-  const headers = initialRows.length > 0 ? Object.keys(initialRows[0] ?? {}) : [];
+  const headers = initialRows.length > 0 ? Object.keys(initialRows[0] ?? {}).filter(k => k !== "slug") : [];
 
   function formatHeader(value: string) {
     return value
@@ -88,7 +88,13 @@ export function PaymentsTable({ initialRows }: { initialRows: TableRow[] }) {
                       {isStatus ? (
                         <StatusBadge value={value?.toString() || ""} />
                       ) : isAction ? (
-                        <button className="ghost-button">{value?.toString()}</button>
+                        row.slug ? (
+                          <a href={`/crm/participants/${row.slug}`} className="ghost-button link-button">
+                            {value?.toString() || "Открыть"}
+                          </a>
+                        ) : (
+                          <button className="ghost-button">{value?.toString() || "Открыть"}</button>
+                        )
                       ) : (
                         value?.toString()
                       )}
