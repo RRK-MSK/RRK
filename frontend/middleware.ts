@@ -15,6 +15,10 @@ export function middleware(request: NextRequest) {
   const hasSession = request.cookies.get(AUTH_COOKIE_NAME)?.value === AUTH_COOKIE_VALUE;
 
   if (!hasSession && !isLoginRoute) {
+    // Разрешаем доступ без сессии в режиме разработки (npm run dev)
+    if (process.env.NODE_ENV === "development") {
+      return NextResponse.next();
+    }
     return NextResponse.redirect(new URL("/crm/login", request.url));
   }
 

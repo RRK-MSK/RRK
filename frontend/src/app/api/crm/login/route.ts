@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   response.cookies.set(AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE, {
     httpOnly: true,
     sameSite: "none",
-    secure: true, // ВАЖНО: Разрешаем куки в iframe (Telegram) и Safari
+    secure: true,
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
