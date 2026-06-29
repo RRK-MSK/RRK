@@ -7,6 +7,7 @@ export async function sendTelegramNotification(data: {
   orderNumber: string;
   eventDate?: string;
   paymentDate?: string;
+  source?: string;
 }) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = "-1003991978010";
@@ -28,9 +29,10 @@ export async function sendTelegramNotification(data: {
   const safeName = escapeHtml(data.name || 'Не указано');
   const safePhone = escapeHtml(data.phone || 'Не указан');
   const safeTg = escapeHtml(data.telegram || 'Не указан');
+  const isMiniApp = data.source?.includes("Mini App");
 
   const message = `
-🎉 <b>Новая запись!</b>
+🎉 <b>Новая запись!${isMiniApp ? ' (из МИНИ АПП 📱)' : ''}</b>
 
 <b>Событие:</b> ${safeEventName}
 ${data.eventDate ? `<b>Дата события:</b> ${data.eventDate}\n` : ''}<b>Осталось мест:</b> ${data.spotsLeft}

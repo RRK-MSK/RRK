@@ -71,7 +71,7 @@ export async function POST(request: Request) {
             // Получаем данные для Telegram
             const { data: participant } = await supabase
               .from('participants')
-              .select('full_name, phone, telegram')
+              .select('full_name, phone, telegram, source')
               .eq('id', paymentInfo.participant_id)
               .single();
 
@@ -102,6 +102,7 @@ export async function POST(request: Request) {
                 telegram: participant.telegram || '',
                 orderNumber: String(payload.OrderId || payload.PaymentId),
                 eventDate: formatDate(event.starts_at),
+                source: payload.Data?.Source || participant.source,
                 paymentDate: new Date().toLocaleString('ru-RU', {
                   timeZone: 'Europe/Moscow',
                   day: '2-digit', month: '2-digit', year: 'numeric',

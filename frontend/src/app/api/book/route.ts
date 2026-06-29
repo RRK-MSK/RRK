@@ -185,6 +185,7 @@ export async function POST(request: Request) {
             telegram: telegram || '',
             orderNumber: freePaymentId,
             eventDate: formatDate(event.starts_at),
+            source: data.source,
             paymentDate: isFree ? undefined : new Date().toLocaleString('ru-RU', {
               timeZone: 'Europe/Moscow',
               day: '2-digit', month: '2-digit', year: 'numeric',
@@ -233,7 +234,8 @@ export async function POST(request: Request) {
       PayType: paymentMethod === "sbp" ? "O" : undefined,
       DATA: {
         Email: email || "",
-        Phone: phone || ""
+        Phone: phone || "",
+        Source: data.source || "Сайт"
       },
       Receipt: {
         Email: email || "",
