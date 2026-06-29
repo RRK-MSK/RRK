@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  return NextResponse.json({ status: "Telegram webhook is running" });
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return NextResponse.json({ status: "No token" });
+  
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
+    const data = await res.json();
+    return NextResponse.json({ status: "Telegram webhook is running", webhookInfo: data });
+  } catch (e) {
+    return NextResponse.json({ status: "Telegram webhook is running", error: String(e) });
+  }
 }
 
 export async function POST(request: Request) {
