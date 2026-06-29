@@ -16,7 +16,11 @@ export function PaymentsTable({ initialRows }: { initialRows: TableRow[] }) {
     } else if (activeFilter === "Ждут") {
       result = result.filter(r => r.status?.toString().toLowerCase().includes("ожида") || r.status?.toString().toLowerCase().includes("wait"));
     } else if (activeFilter === "4400 ₽") {
-      result = result.filter(r => r.amount?.toString().includes("4400"));
+      result = result.filter(r => {
+        const amt = r.amount?.toString() || "";
+        // Убираем все пробелы (обычные и неразрывные) перед проверкой
+        return amt.replace(/\s/g, "").includes("4400");
+      });
     } else if (activeFilter === "Бесплатные") {
       result = result.filter(r => r.amount?.toString().includes("0 ₽") || r.amount?.toString().toLowerCase().includes("бесплат") || !r.amount);
     } else if (activeFilter === "Перевод") {

@@ -467,8 +467,8 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
     });
   }
 
-  const paidRows = rows.filter((row) => normalize(row.status).includes("paid"));
-  const waitingRows = rows.filter((row) => isPendingPaymentStatus(row.status));
+  const paidRows = rows.filter((row) => normalize(row.status).includes("paid") || normalize(row.status).includes("оплач"));
+  const waitingRows = rows.filter((row) => isPendingPaymentStatus(row.status) || normalize(row.status).includes("ожид") || normalize(row.status).includes("ждет"));
   const totalRevenue = paidRows.reduce((sum, row) => sum + (row.amount_rub ?? 0), 0);
   const averageCheck = paidRows.length > 0 ? Math.round(totalRevenue / paidRows.length) : 0;
 
