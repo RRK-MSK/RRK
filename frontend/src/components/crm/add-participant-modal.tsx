@@ -7,16 +7,18 @@ import { PrimaryButton } from "./ui";
 export function AddParticipantModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setErrorMsg(null);
     try {
       const formData = new FormData(e.currentTarget);
       await addParticipant(formData);
       setIsOpen(false);
-    } catch (err) {
-      alert("Ошибка при добавлении участника");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Ошибка при добавлении участника");
     } finally {
       setIsSubmitting(false);
     }
@@ -44,6 +46,11 @@ export function AddParticipantModal() {
           background: 'var(--surface-strong)', color: 'var(--text)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px'
         }}>
           <h2 style={{ marginBottom: '16px' }}>Новый участник</h2>
+          {errorMsg && (
+            <div style={{ color: 'var(--brand)', marginBottom: '16px', padding: '12px', background: 'rgba(255,0,0,0.1)', borderRadius: '6px' }}>
+              {errorMsg}
+            </div>
+          )}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--muted)' }}>Имя и Фамилия *</label>

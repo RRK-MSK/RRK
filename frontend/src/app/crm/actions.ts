@@ -28,7 +28,7 @@ export async function addParticipant(formData: FormData) {
 
   if (error) {
     console.error("Error adding participant:", error);
-    throw new Error("Failed to add participant");
+    throw new Error(error.message || "Failed to add participant");
   }
 
   revalidatePath("/crm/participants");
