@@ -31,14 +31,15 @@ export async function POST(request: Request) {
 
         const message = `Добро пожаловать в РРК.\n\nМесто, где:\n— все друг другу ученики и учителя;\n— кринжа не существует;\n— тебя слышат и слушают.\n\n👇 Открой приложение там тебя ждут ближайшие занятия, запись и всё, что нужно для старта!`;
 
-        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             chat_id: chatId,
-            text: message,
+            photo: "https://rrclub.site/welcome-doodle.png",
+            caption: message,
             reply_markup: {
               inline_keyboard: [
                 [
