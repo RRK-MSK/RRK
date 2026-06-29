@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { MetricGrid, PageHeader, SectionCard } from "@/components/crm/ui";
 import { AddParticipantModal } from "@/components/crm/add-participant-modal";
 import { getParticipantsPageData } from "@/lib/crm-store";

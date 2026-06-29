@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { PageHeader, PrimaryButton } from "@/components/crm/ui";
 import { getSettingsPageData } from "@/lib/crm-store";
 

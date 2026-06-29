@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { MetricGrid, PageHeader, PrimaryButton, SectionCard, StatusBadge } from "@/components/crm/ui";
 import { getAnalyticsPageData } from "@/lib/crm-store";
 

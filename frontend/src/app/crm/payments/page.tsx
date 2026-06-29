@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { MetricGrid, PageHeader, PrimaryButton, SectionCard } from "@/components/crm/ui";
 import { getPaymentsPageData } from "@/lib/crm-store";
 import { PaymentsTable } from "@/components/crm/payments-table";

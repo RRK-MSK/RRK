@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { MetricGrid, PageHeader, SectionCard, SimpleTable } from "@/components/crm/ui";
 import { getDashboardPageData } from "@/lib/crm-store";
 import { AddRecordModal } from "@/components/crm/add-record-modal";

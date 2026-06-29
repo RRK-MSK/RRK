@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { DEMO_LOGIN, DEMO_PASSWORD } from "@/lib/auth";
 
 export default async function LoginPage({

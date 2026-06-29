@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, SimpleTable } from "@/components/crm/ui";
 import { getReviewsPageData } from "@/lib/crm-store";
 

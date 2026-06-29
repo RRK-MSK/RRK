@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, SimpleTable } from "@/components/crm/ui";
 import { getClassesPageData } from "@/lib/crm-store";
 import { ClassCard } from "@/components/crm/class-card";
