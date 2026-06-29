@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Обработка статуса
-    if (payload.Status === "CONFIRMED" || payload.Status === "AUTHORIZED") {
+    if (payload.Status === "CONFIRMED") {
       // Платеж успешен
       console.log(`Payment successful for OrderId: ${payload.OrderId}, Amount: ${payload.Amount}`);
       
