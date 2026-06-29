@@ -103,11 +103,13 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
 
       {isOpen && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+          backdropFilter: 'blur(4px)'
         }} onClick={() => setIsOpen(false)}>
           <div style={{
-            background: 'var(--surface-strong)', color: 'var(--text)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto'
+            background: 'var(--surface-strong)', color: 'var(--text)', padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto',
+            border: '1px solid var(--line)', boxShadow: 'var(--modal-shadow)'
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{ margin: 0 }}>Записались на {item.title}</h2>
@@ -136,7 +138,7 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
                 ))}
               </div>
             ) : (
-              <p style={{ color: 'var(--muted)' }}>Пока никто не записался</p>
+              <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '20px 0' }}>Пока никто не записался</p>
             )}
           </div>
         </div>
