@@ -2,11 +2,11 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
+const token = process.env.TELEGRAM_BOT;
 const webhookUrl = 'https://rrclub.site/api/telegram/webhook';
 
 if (!token) {
-  console.error('Ошибка: TELEGRAM_BOT_TOKEN не найден в .env.local');
+  console.error('Ошибка: TELEGRAM_BOT не найден в .env.local');
   process.exit(1);
 }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const token = process.env.TELEGRAM_BOT;
   if (!token) return NextResponse.json({ status: "No token" });
   
   try {
@@ -22,10 +22,10 @@ export async function POST(request: Request) {
       const text = update.message.text;
 
       if (text.startsWith('/start')) {
-        const token = process.env.TELEGRAM_BOT_TOKEN;
+        const token = process.env.TELEGRAM_BOT;
         
         if (!token) {
-          console.error("TELEGRAM_BOT_TOKEN is not set");
+          console.error("TELEGRAM_BOT is not set");
           return NextResponse.json({ error: "No token" }, { status: 500 });
         }
 
