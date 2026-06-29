@@ -409,8 +409,8 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
     },
     finance: [
       { label: "Всего оплатил", value: formatMoney(participant.total_paid_rub), hint: "Из профиля участника" },
-      { label: "Количество посещений", value: String(participant.visits_count ?? 0), hint: "Из профиля участника" },
-      { label: "Средний чек", value: formatMoney(averageCheck), hint: "total_paid_rub / visits_count" },
+      { label: "Количество посещений", value: String(completedVisits), hint: "По статусу visited" },
+      { label: "Средний чек", value: formatMoney(averageCheck), hint: "total_paid_rub / посещения" },
       {
         label: "Последнее посещение",
         value: lastVisit?.event?.starts_at ? formatShortDate(lastVisit.event.starts_at) : "-",
