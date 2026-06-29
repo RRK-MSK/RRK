@@ -232,7 +232,7 @@ export async function addParticipantEnrollment(formData: FormData) {
 }
 export async function getEventParticipants(eventId: string) {
   const supabase = getSupabaseAdminClient();
-  if (!supabase) return [];
+  if (!supabase) return { error: "Supabase client not configured", data: [] };
 
   const { data, error } = await supabase
     .from("enrollments")
@@ -251,9 +251,8 @@ export async function getEventParticipants(eventId: string) {
 
   if (error) {
     console.error("Error fetching event participants:", error);
-    return [];
+    return { error: error.message, data: [] };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return data as any[];
+  return { error: null, data: data as any[] };
 }

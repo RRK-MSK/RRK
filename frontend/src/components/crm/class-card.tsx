@@ -12,16 +12,23 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [participants, setParticipants] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleOpen = async () => {
     setIsOpen(true);
+    setErrorMsg(null);
     if (!item.id || item.id.startsWith("fallback")) return;
     setIsLoading(true);
     try {
-      const data = await getEventParticipants(item.id);
-      setParticipants(data);
-    } catch (e) {
+      const res = await getEventParticipants(item.id);
+      if (res.error) {
+        setErrorMsg(res.error);
+      } else {
+        setParticipants(res.data || []);
+      }
+    } catch (e: any) {
       console.error(e);
+      setErrorMsg(e.message || "Unknown error");
     } finally {
       setIsLoading(false);
     }
@@ -118,27 +125,38 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
             
             {isLoading ? (
               <p style={{ color: 'var(--muted)' }}>Загрузка...</p>
+            ) : errorMsg ? (
+              <div style={{ color: 'var(--brand)', padding: '16px', background: 'var(--surface)', borderRadius: '8px', border: '1px solid var(--line)' }}>
+                <strong>Ошибка загрузки:</strong> {errorMsg}
+                <br /><br />
+                <small style={{ color: 'var(--muted)' }}>Debug ID: {item.id}</small>
+              </div>
             ) : participants.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {participants.map(p => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--surface)', borderRadius: '8px', border: '1px solid var(--line)' }}>
                     <div>
-                      <strong style={{ display: 'block' }}>{p.participant?.full_name}</strong>
-                      <span style={{ fontSize: '13px', color: 'var(--muted)' }}>{p.participant?.telegram}</span>
+                      <strong style={{ display: 'block' }}>{p.participant?.full_name || 'Без имени'}</strong>
+                      <span style={{ fontSize: '13px', color: 'var(--muted)' }}>{p.participant?.telegram || p.participant?.slug || 'Нет контакта'}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <span className={`status-badge ${p.payment_status?.toLowerCase().includes('paid') || p.payment_status?.toLowerCase().includes('оплач') ? 'tone-green' : 'tone-sand'}`} style={{ fontSize: '11px', minHeight: '24px', padding: '0 8px' }}>
-                        {p.payment_status}
+                        {p.payment_status || 'Не указан'}
                       </span>
-                      <Link href={`/crm/participants/${p.participant?.slug}`} className="ghost-button link-button" style={{ fontSize: '12px', padding: '4px 8px', minHeight: 'auto' }}>
-                        Открыть
-                      </Link>
+                      {p.participant?.slug && (
+                        <Link href={`/crm/participants/${p.participant.slug}`} className="ghost-button link-button" style={{ fontSize: '12px', padding: '4px 8px', minHeight: 'auto' }}>
+                          Открыть
+                        </Link>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '20px 0' }}>Пока никто не записался</p>
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <p style={{ color: 'var(--muted)', marginBottom: '8px' }}>Пока никто не записался</p>
+                <small style={{ color: 'var(--muted)', opacity: 0.5 }}>ID: {item.id || 'отсутствует'}</small>
+              </div>
             )}
           </div>
         </div>
