@@ -11,11 +11,13 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL("/crm/login?error=1", request.url), 303);
   }
 
+  const isHttps = request.url.startsWith("https://");
+
   const response = NextResponse.redirect(new URL("/crm/dashboard", request.url), 303);
   response.cookies.set(AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE, {
     httpOnly: true,
-    sameSite: "none",
-    secure: true,
+    sameSite: isHttps ? "none" : "lax",
+    secure: isHttps,
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });

@@ -10,6 +10,17 @@ type BookingModalProps = {
 };
 
 export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
+  const getEventCapacity = (event: PosterEvent) => event.capacity ?? 10;
+  const getEventBooked = (event: PosterEvent) => {
+    if (typeof event.booked === "number") return Math.max(0, event.booked);
+    if (typeof event.seatsLeft === "number") return Math.max(getEventCapacity(event) - event.seatsLeft, 0);
+    return 0;
+  };
+  const getEventSeatsLeft = (event: PosterEvent) =>
+    typeof event.seatsLeft === "number"
+      ? Math.max(0, event.seatsLeft)
+      : Math.max(getEventCapacity(event) - getEventBooked(event), 0);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -163,11 +174,14 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
               }}
             >
               <option value="" disabled>Выберите событие</option>
-              {events.map((ev, i) => (
-                <option key={i} value={ev.id ? `${ev.id}::${ev.title}` : `${ev.date} | ${ev.time} - ${ev.title}`} data-price={ev.price}>
-                  {ev.date} | {ev.time} | {ev.title} ({ev.price})
-                </option>
-              ))}
+              {events.map((ev, i) => {
+                const isSoldOut = !ev.hideCapacity && (ev.capacity ?? 10) < 10000 && getEventSeatsLeft(ev) <= 0;
+                return (
+                  <option key={i} value={ev.id ? `${ev.id}::${ev.title}` : `${ev.date} | ${ev.time} - ${ev.title}`} data-price={ev.price} disabled={isSoldOut}>
+                    {ev.date} | {ev.time} | {ev.title} {isSoldOut ? '(Мест нет)' : `(${ev.price})`}
+                  </option>
+                );
+              })}
             </select>
           </div>
 

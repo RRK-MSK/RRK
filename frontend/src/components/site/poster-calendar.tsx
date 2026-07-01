@@ -254,7 +254,11 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                 </div>
                 {event.hideCapacity || getEventCapacity(event) >= 10000 ? null : (
                   <div className="poster-event-spots">
-                    <strong>Осталось {getEventSeatsLeft(event)} мест</strong>
+                    {getEventSeatsLeft(event) <= 0 ? (
+                      <strong style={{ color: 'var(--brand)' }}>Мест нет</strong>
+                    ) : (
+                      <strong>Осталось {getEventSeatsLeft(event)} мест</strong>
+                    )}
                     <span>
                       {getEventBooked(event)} из {getEventCapacity(event)} уже записались
                     </span>
