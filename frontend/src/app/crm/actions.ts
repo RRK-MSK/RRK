@@ -48,6 +48,7 @@ export async function updateParticipantStatus(id: string, status: string) {
 
   revalidatePath("/crm/participants");
   revalidatePath(`/crm/participants/[slug]`, "page");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -64,6 +65,7 @@ export async function updateParticipantTags(id: string, tags: string[]) {
 
   revalidatePath("/crm/participants");
   revalidatePath(`/crm/participants/[slug]`, "page");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -150,6 +152,7 @@ export async function addRecord(formData: FormData) {
   revalidatePath("/crm/records");
   revalidatePath("/crm/dashboard");
   revalidatePath("/crm/participants");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -199,6 +202,7 @@ export async function updateEnrollment(enrollmentId: string, updates: { event_id
 
   revalidatePath("/crm/participants");
   revalidatePath(`/crm/participants/[slug]`, "page");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -215,6 +219,7 @@ export async function updateParticipantNote(id: string, note: string) {
 
   revalidatePath("/crm/participants");
   revalidatePath(`/crm/participants/[slug]`, "page");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -261,6 +266,7 @@ export async function addParticipantEnrollment(formData: FormData) {
 
   revalidatePath("/crm/participants");
   revalidatePath(`/crm/participants/[slug]`, "page");
+  revalidatePath("/");
   return { success: true };
 }
 export async function getEventParticipants(eventId: string) {
