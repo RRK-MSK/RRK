@@ -14,6 +14,16 @@ export function middleware(request: NextRequest) {
   const isLoginRoute = pathname === "/crm/login";
   const hasSession = request.cookies.get(AUTH_COOKIE_NAME)?.value === AUTH_COOKIE_VALUE;
 
+  // Если это мобильное устройство (Telegram Mini App), временно пропускаем без авторизации
+  // Это радикальное решение проблемы с куки в Safari/iOS Telegram
+  const userAgent = request.headers.get("user-agent") || "";
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
+  const isTelegram = /Telegram/i.test(userAgent);
+
+  if ((isMobile || isTelegram) && !isLoginRoute) {
+    return NextResponse.next();
+  }
+
   if (!hasSession && !isLoginRoute) {
     // Разрешаем доступ без сессии в режиме разработки (npm run dev)
     if (process.env.NODE_ENV === "development") {
