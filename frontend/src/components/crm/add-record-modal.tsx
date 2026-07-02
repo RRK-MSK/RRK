@@ -84,7 +84,7 @@ export function AddRecordModal() {
               <input name="phone" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input type="checkbox" name="isPaid" id="isPaid" defaultChecked />
+              <input type="checkbox" name="isPaid" id="isPaid" />
               <label htmlFor="isPaid" style={{ fontSize: '14px' }}>Уже оплачено (наличные/перевод)</label>
             </div>
             <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>

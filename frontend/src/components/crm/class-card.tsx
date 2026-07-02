@@ -163,7 +163,7 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
                     <input name="fullName" placeholder="Имя и Фамилия *" required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
                     <input name="telegram" placeholder="Telegram (@username)" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input type="checkbox" name="isPaid" id={`isPaid-${item.id}`} defaultChecked />
+                      <input type="checkbox" name="isPaid" id={`isPaid-${item.id}`} />
                       <label htmlFor={`isPaid-${item.id}`} style={{ fontSize: '13px' }}>Уже оплачено</label>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
