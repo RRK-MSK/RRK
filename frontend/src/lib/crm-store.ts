@@ -1113,16 +1113,16 @@ function isPendingPaymentStatus(value: string | null | undefined) {
 }
 
 function deriveEventStatus(event: Pick<EventRow, "status" | "capacity" | "booked_count">) {
-  if (event.status) {
-    return event.status;
-  }
-
   const capacity = event.capacity ?? 0;
   const bookedCount = event.booked_count ?? 0;
   const freeSpots = Math.max(capacity - bookedCount, 0);
 
-  if (capacity > 0 && freeSpots === 0) {
+  if (capacity > 0 && bookedCount >= capacity) {
     return "SOLD OUT";
+  }
+
+  if (event.status) {
+    return event.status;
   }
 
   if (freeSpots <= 2) {
