@@ -49,6 +49,10 @@ button {
   grid-template-columns: 240px 1fr;
 }
 
+.crm-mobile-header {
+  display: none;
+}
+
 .sidebar {
   background: linear-gradient(180deg, #751127 0%, #68101f 100%);
   color: #fff7f7;
@@ -112,6 +116,8 @@ button {
 
 .content-area {
   padding: 28px 32px 48px;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .page-stack {
@@ -551,12 +557,71 @@ th {
 @media (max-width: 980px) {
   .crm-shell {
     grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .crm-mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(180deg, #751127 0%, #68101f 100%);
+    color: #fff;
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .brand-block-mini {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brand-block-mini span {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    opacity: 0.8;
+  }
+
+  .brand-block-mini strong {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .crm-mobile-menu-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
   }
 
   .sidebar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    position: fixed;
+    top: 68px;
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 68px);
+    z-index: 40;
+    transform: translateY(-100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    padding: 24px 20px;
+    overflow-y: auto;
+  }
+
+  .sidebar.is-open {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .desktop-only {
+    display: none !important;
   }
 
   .class-card,

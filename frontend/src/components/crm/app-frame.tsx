@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { crmNavItems } from "@/lib/crm-data";
 
 export function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isCrmRoute = pathname === "/crm" || pathname.startsWith("/crm/");
 
@@ -17,9 +18,22 @@ export function AppFrame({ children }: { children: ReactNode }) {
 
   return (
     <div className="crm-shell">
-      <aside className="sidebar">
+      <div className="crm-mobile-header">
+        <div className="brand-block-mini">
+          <span>РРК</span>
+          <strong>CRM</strong>
+        </div>
+        <button 
+          className="crm-mobile-menu-btn" 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? "Закрыть" : "Меню"}
+        </button>
+      </div>
+
+      <aside className={`sidebar ${isMobileMenuOpen ? "is-open" : ""}`}>
         <div>
-          <div className="brand-block">
+          <div className="brand-block desktop-only">
             <span>русский</span>
             <strong>Разговорный Клуб</strong>
           </div>
@@ -28,7 +42,12 @@ export function AppFrame({ children }: { children: ReactNode }) {
               const isActive = pathname.startsWith(item.href);
 
               return (
-                <Link key={item.href} href={item.href} className={isActive ? "nav-link active" : "nav-link"}>
+                <Link 
+                  key={item.href} 
+                  href={item.href} 
+                  className={isActive ? "nav-link active" : "nav-link"}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
                   {item.label}
                 </Link>
               );
@@ -37,7 +56,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
         </div>
 
         <div className="sidebar-footer">
-          <p>Внутренняя панель для записей, оплат и афиши РРК.</p>
+          <p className="desktop-only">Внутренняя панель для записей, оплат и афиши РРК.</p>
           <Link href="/crm/logout" className="logout-link">
             Выйти
           </Link>
