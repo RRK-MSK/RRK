@@ -11,13 +11,14 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL("/crm/login?error=1", request.url), 303);
   }
 
-  const isHttps = request.url.startsWith("https://");
-
+  // Для Telegram Mini App и мобильных браузеров, которые блокируют cross-site cookies,
+  // нам нужно обеспечить максимально лояльную политику cookie.
+  // Vercel иногда проксирует запросы, поэтому лучше жестко установить lax для надежности.
   const response = NextResponse.redirect(new URL("/crm/dashboard", request.url), 303);
   response.cookies.set(AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE, {
     httpOnly: true,
-    sameSite: isHttps ? "none" : "lax",
-    secure: isHttps,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
