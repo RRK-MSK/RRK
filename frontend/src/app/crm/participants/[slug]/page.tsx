@@ -36,13 +36,25 @@ export default async function ParticipantProfilePage({
             <div className="profile-main">
               <div className="tag-row">
                 <StatusBadge value={profile.status} />
-                {profile.tags.map((tag) => (
-                  <StatusBadge key={tag} value={tag} />
-                ))}
               </div>
               <h2>{profile.name}</h2>
-              <ParticipantActions profile={profile} />
+              {profile.tags && profile.tags.length > 0 && (
+                <div className="profile-tags">
+                  {profile.tags.map((tag: string) => (
+                    <span key={tag} className="tag">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
+
+            <div style={{ marginBottom: "24px" }}>
+              <AddParticipantRecordModal participantId={profile.id} events={availableEvents} />
+            </div>
+
+            <ParticipantActions profile={profile} />
+
             <dl className="profile-meta" style={{ gridTemplateColumns: '1fr' }}>
               <div>
                 <dt>Telegram</dt>
@@ -83,9 +95,6 @@ export default async function ParticipantProfilePage({
           </SectionCard>
 
           <SectionCard title="История занятий" description="Куда записывался и что посещал.">
-            <div style={{ marginBottom: "16px" }}>
-              <AddParticipantRecordModal participantId={profile.id} events={availableEvents} />
-            </div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -101,7 +110,12 @@ export default async function ParticipantProfilePage({
                   {history.map((row, idx) => (
                     <tr key={row.id || idx}>
                       <td>{row.date}</td>
-                      <td>{row.className}</td>
+                      <td>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                          <span>{row.className}</span>
+                          {row.time && <span style={{ fontSize: "12px", color: "var(--muted)" }}>{row.time}</span>}
+                        </div>
+                      </td>
                       <td><StatusBadge value={row.payment} /></td>
                       <td><StatusBadge value={row.status} /></td>
                       <td>

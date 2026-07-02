@@ -434,6 +434,7 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
             id: row.id,
             event_id: row.event?.id,
             date: formatShortDate(row.event?.starts_at),
+            time: row.event?.starts_at ? new Date(row.event.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : null,
             className: row.event?.title ?? "Без названия",
             payment: row.payment_status ?? "Не указано",
             status: row.status ?? "Активна",
