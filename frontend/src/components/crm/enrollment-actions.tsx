@@ -4,12 +4,13 @@ import { useState } from "react";
 import { updateEnrollment } from "@/app/crm/actions";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function EnrollmentActions({ enrollmentId, currentEventId, availableEvents, paymentStatus }: { enrollmentId: string, currentEventId?: string, availableEvents: any[], paymentStatus?: string }) {
+export function EnrollmentActions({ enrollmentId, currentEventId, availableEvents, paymentStatus, onUpdate }: { enrollmentId: string, currentEventId?: string, availableEvents: any[], paymentStatus?: string, onUpdate?: () => void }) {
   const [isTransferring, setIsTransferring] = useState(false);
 
   const handleCancel = async () => {
     if (confirm("Точно отменить запись?")) {
       await updateEnrollment(enrollmentId, { status: "Отменена" });
+      onUpdate?.();
     }
   };
 
@@ -18,6 +19,7 @@ export function EnrollmentActions({ enrollmentId, currentEventId, availableEvent
     const newStatus = isPaid ? "Ожидает" : "Оплачен";
     if (confirm(`Изменить статус оплаты на "${newStatus}"?`)) {
       await updateEnrollment(enrollmentId, { payment_status: newStatus });
+      onUpdate?.();
     }
   };
 
@@ -25,6 +27,7 @@ export function EnrollmentActions({ enrollmentId, currentEventId, availableEvent
     if (!newEventId) return;
     await updateEnrollment(enrollmentId, { event_id: newEventId });
     setIsTransferring(false);
+    onUpdate?.();
   };
 
   return (

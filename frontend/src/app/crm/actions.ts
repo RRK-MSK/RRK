@@ -295,3 +295,17 @@ export async function getEventParticipants(eventId: string) {
 
   return { error: null, data: data as any[] };
 }
+
+export async function getAvailableEventsForTransfer() {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) return { error: "Supabase not configured", data: [] };
+
+  const { data, error } = await supabase
+    .from("events")
+    .select("id, title, starts_at, status")
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true });
+
+  if (error) return { error: error.message, data: [] };
+  return { error: null, data: data as any[] };
+}
