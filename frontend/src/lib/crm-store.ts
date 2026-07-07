@@ -356,19 +356,31 @@ export async function getParticipantsPageData(): Promise<ParticipantsPageData> {
       }
 
       const isRepeat = (row.visits_count ?? 0) > 0 && !!computedNextTitle;
+      const p = row;
+      const enrollments = p.enrollments || [];
+      
+      // Sort enrollments by date
+      const sortedEnrollments = [...enrollments].sort((a, b) => {
+        const aEvent = unwrapRelation(a.events);
+        const bEvent = unwrapRelation(b.events);
+        return new Date(bEvent?.starts_at || 0).getTime() - new Date(aEvent?.starts_at || 0).getTime();
+      });
+
+      const latestEnrollment = sortedEnrollments[0];
+      const latestEvent = unwrapRelation(latestEnrollment?.events);
 
       return {
-        name: row.full_name,
-        telegram: row.telegram ?? "-",
-        status: row.status ?? "Новый",
-        visits: String(row.visits_count ?? 0),
-        paid: formatMoney(row.total_paid_rub),
-        debt: formatDebt(row.unpaid_rub),
-        nextClass: formatNextEvent(computedNextTitle, computedNextAt),
-        tags: row.tags ?? [],
-        slug: row.slug,
-        isRepeat,
-        lastVisitDate,
+        name: p.full_name,
+        telegram: p.telegram ?? "-",
+        status: p.status ?? "Новый",
+        visits: String(enrollments.filter(e => e.status === 'Посетил').length || p.visits_count || 0),
+        paid: formatMoney(p.payments?.filter(pm => pm.status === 'Оплачен').reduce((acc, curr) => acc + (curr.amount_rub || 0), 0) || p.total_paid_rub || 0),
+        debt: String(p.payments?.filter(pm => pm.status !== 'Оплачен').length || p.unpaid_rub || 0),
+        nextClass: latestEvent ? `${formatShortDate(latestEvent.starts_at)} (${latestEvent.title})` : formatNextEvent(computedNextTitle, computedNextAt),
+        tags: p.tags ?? [],
+        slug: p.slug,
+        isRepeat: enrollments.length > 1 || isRepeat,
+        lastVisitDate: sortedEnrollments.length > 1 && unwrapRelation(sortedEnrollments[1].events) ? formatShortDate(unwrapRelation(sortedEnrollments[1].events)?.starts_at) : lastVisitDate,
       };
     }),
   };
@@ -430,7 +442,7 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
     ],
     history:
       enrollments.length > 0
-        ? enrollments.map((row) => ({
+        ? [...enrollments].sort((a, b) => new Date(b.event?.starts_at || 0).getTime() - new Date(a.event?.starts_at || 0).getTime()).map((row) => ({
             id: row.id,
             event_id: row.event?.id,
             date: formatShortDate(row.event?.starts_at),

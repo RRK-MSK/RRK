@@ -56,15 +56,49 @@ export async function deleteEvent(eventId: string) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  // Supabase RLS and cascading deletes should handle related records (enrollments, payments)
-  // or we need to delete them manually if cascade is not configured.
-  // We'll try to delete the event directly.
   const { error } = await supabase
     .from("events")
     .delete()
     .eq("id", eventId);
 
   if (error) throw new Error("Failed to delete event: " + error.message);
+
+  revalidatePath("/crm/classes");
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function addEvent(formData: FormData) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const title = formData.get("title") as string;
+  const category = formData.get("category") as string;
+  const startsAt = formData.get("startsAt") as string;
+  const endsAt = formData.get("endsAt") as string;
+  const capacity = parseInt(formData.get("capacity") as string) || 10;
+  const price = parseInt(formData.get("price") as string) || 4400;
+
+  if (!title || !startsAt || !endsAt) throw new Error("Missing required fields");
+
+  // Create event with Moscow timezone by forcing ISO string if datetime-local doesn't include TZ
+  const startsAtDate = new Date(startsAt);
+  const endsAtDate = new Date(endsAt);
+
+  const { error } = await supabase
+    .from("events")
+    .insert({
+      title,
+      category,
+      starts_at: startsAtDate.toISOString(),
+      ends_at: endsAtDate.toISOString(),
+      capacity,
+      price_rub: price,
+      is_published: true,
+    });
+
+  if (error) throw new Error("Failed to add event: " + error.message);
 
   revalidatePath("/crm/classes");
   revalidatePath("/crm/dashboard");
@@ -190,6 +224,58 @@ export async function addRecord(formData: FormData) {
   revalidatePath("/crm/dashboard");
   revalidatePath("/crm/participants");
   revalidatePath("/");
+  return { success: true };
+}
+
+export async function markEnrollmentPaid(enrollmentId: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { error } = await supabase
+    .from("enrollments")
+    .update({ payment_status: "Оплачен" })
+    .eq("id", enrollmentId);
+
+  if (error) throw new Error("Failed to mark paid: " + error.message);
+
+  revalidatePath("/crm/classes");
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/participants");
+  revalidatePath("/crm/records");
+  return { success: true };
+}
+
+export async function transferParticipant(enrollmentId: string, newEventId: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { error } = await supabase
+    .from("enrollments")
+    .update({ event_id: newEventId })
+    .eq("id", enrollmentId);
+
+  if (error) throw new Error("Failed to transfer: " + error.message);
+
+  revalidatePath("/crm/classes");
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/participants");
+  return { success: true };
+}
+
+export async function updateEnrollmentStatus(enrollmentId: string, status: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { error } = await supabase
+    .from("enrollments")
+    .update({ status })
+    .eq("id", enrollmentId);
+
+  if (error) throw new Error("Failed to update status: " + error.message);
+
+  revalidatePath("/crm/classes");
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/participants");
   return { success: true };
 }
 

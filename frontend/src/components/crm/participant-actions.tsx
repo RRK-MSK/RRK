@@ -29,8 +29,10 @@ export function ParticipantActions({ profile }: { profile: any }) {
 
   return (
     <div className="profile-actions" style={{ position: 'relative' }}>
-      <button className="primary-button">Записать на занятие</button>
-      <button className="ghost-button">Отметить оплату</button>
+      {/* 
+        Removed the duplicate "Записать на занятие" and non-functional "Отметить оплату" 
+        buttons here because they are handled elsewhere or redundant.
+      */}
 
       {/* Add Tag */}
       {isAddingTag ? (

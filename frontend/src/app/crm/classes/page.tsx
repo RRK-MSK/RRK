@@ -3,6 +3,7 @@ import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, SimpleTa
 import { getClassesPageData } from "@/lib/crm-store";
 import { ClassCard } from "@/components/crm/class-card";
 import { ClassesTable } from "@/components/crm/classes-table";
+import { AddClassModal } from "@/components/crm/add-class-modal";
 
 export default async function ClassesPage() {
   const { metrics, rows, summaries } = await getClassesPageData();
@@ -13,7 +14,7 @@ export default async function ClassesPage() {
         eyebrow="Июнь · Москва, Бауманская"
         title="Занятия"
         description="Афиша, загрузка, оплаты и статусы всех тренировок РРК"
-        action={<PrimaryButton>Добавить занятие</PrimaryButton>}
+        action={<AddClassModal />}
       />
 
       <SectionCard title="Операционная сводка" description="Сколько занятий открыто, где sold out и сколько денег в потенциале.">
