@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { FilterRow, MetricGrid, PageHeader, SectionCard, SimpleTable } from "@/components/crm/ui";
 import { getRecordsPageData } from "@/lib/crm-store";
 import { AddRecordModal } from "@/components/crm/add-record-modal";
+import { RecordsTable } from "@/components/crm/records-table";
 
 export default async function RecordsPage() {
   const { funnelMetrics, attentionMetrics, rows } = await getRecordsPageData();
@@ -27,13 +28,7 @@ export default async function RecordsPage() {
         <MetricGrid items={attentionMetrics} />
       </SectionCard>
 
-      <SectionCard title="Все записи" description="Операционная таблица заявок, оплат, посещений и переносов." rightLabel="89 записей">
-        <FilterRow
-          filters={["Все", "Ждут оплату", "Подтверждено", "Waitlist", "Отмены"]}
-          searchPlaceholder="Поиск по участнику, занятию, источнику или контакту"
-        />
-        <SimpleTable rows={rows} />
-      </SectionCard>
+      <RecordsTable initialRows={rows} />
     </div>
   );
 }

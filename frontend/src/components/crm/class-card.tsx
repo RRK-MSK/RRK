@@ -80,7 +80,7 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
             <div>
               <span>Записалось</span>
               <strong>
-                {item.booked}/{item.capacity}
+                {item.booked >= item.capacity ? "Мест нет" : `${item.booked}/${item.capacity}`}
               </strong>
             </div>
             <div>

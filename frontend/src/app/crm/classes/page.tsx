@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { FilterRow, MetricGrid, PageHeader, PrimaryButton, SectionCard, SimpleTable } from "@/components/crm/ui";
 import { getClassesPageData } from "@/lib/crm-store";
 import { ClassCard } from "@/components/crm/class-card";
+import { ClassesTable } from "@/components/crm/classes-table";
 
 export default async function ClassesPage() {
   const { metrics, rows, summaries } = await getClassesPageData();
@@ -31,17 +32,7 @@ export default async function ClassesPage() {
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Таблица занятий"
-        description="Для быстрой сверки чисел по каждому занятию в одном месте."
-        rightLabel={`${rows.length} строк`}
-      >
-        <FilterRow
-          filters={["Все", "Открыто", "Почти заполнено", "SOLD OUT", "Прошло"]}
-          searchPlaceholder="Поиск по названию, ведущему, формату или дате"
-        />
-        <SimpleTable rows={rows} />
-      </SectionCard>
+      <ClassesTable initialRows={rows} />
     </div>
   );
 }

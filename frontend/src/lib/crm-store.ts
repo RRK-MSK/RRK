@@ -434,7 +434,7 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
             id: row.id,
             event_id: row.event?.id,
             date: formatShortDate(row.event?.starts_at),
-            time: row.event?.starts_at ? new Date(row.event.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : null,
+            time: row.event?.starts_at ? new Date(row.event.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) : null,
             className: row.event?.title ?? "Без названия",
             payment: row.payment_status ?? "Не указано",
             status: row.status ?? "Активна",
@@ -560,18 +560,18 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
       };
     }),
     rows: rows.map((row) => ({
+      id: row.id,
       date: formatShortDate(row.starts_at),
       time: formatTimeRange(row.starts_at, row.ends_at),
       title: row.title,
       format: row.category ?? "Практика",
       host: row.host ?? "Команда РРК",
-      enrolled: `${row.booked_count ?? 0} из ${row.capacity ?? 0}`,
+      enrolled: (row.booked_count ?? 0) >= (row.capacity ?? 0) ? "Мест нет" : `${row.booked_count ?? 0} из ${row.capacity ?? 0}`,
       paid: String(row.paid_count ?? 0),
       pending: String(row.pending_count ?? 0),
       free: String(Math.max((row.capacity ?? 0) - (row.booked_count ?? 0), 0)),
       revenue: formatMoney((row.paid_count ?? 0) * (row.price_rub ?? 0)),
       status: row.status ?? deriveEventStatus(row),
-      action: "Открыть",
     })),
   };
 }
@@ -1032,8 +1032,10 @@ function formatShortDate(value: string | null | undefined) {
   }
 
   return new Intl.DateTimeFormat("ru-RU", {
+    weekday: "short",
     day: "numeric",
     month: "long",
+    timeZone: "Europe/Moscow",
   }).format(date);
 }
 
@@ -1051,6 +1053,7 @@ function formatTimeRange(startValue: string | null | undefined, endValue: string
   const startTime = new Intl.DateTimeFormat("ru-RU", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Moscow",
   }).format(start);
 
   if (!endValue) {
@@ -1066,6 +1069,7 @@ function formatTimeRange(startValue: string | null | undefined, endValue: string
   const endTime = new Intl.DateTimeFormat("ru-RU", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Moscow",
   }).format(end);
 
   return `${startTime}-${endTime}`;

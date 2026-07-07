@@ -42,7 +42,7 @@ export function EnrollmentActions({ enrollmentId, currentEventId, availableEvent
             <option value="" disabled>Выберите занятие</option>
             {availableEvents.filter(e => e.id !== currentEventId).map(e => (
               <option key={e.id} value={e.id}>
-                {new Date(e.starts_at).toLocaleDateString('ru-RU')} | {e.title}
+                {new Date(e.starts_at).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })} {new Date(e.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })} | {e.title}
               </option>
             ))}
           </select>

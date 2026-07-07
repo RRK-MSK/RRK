@@ -221,7 +221,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                   aria-pressed={day === selectedDay}
                 >
                   <span className="poster-calendar-day-number">{day}</span>
-                  {dayEvents.length > 0 && !dayEvents.some(e => e.hideCapacity || (e.capacity ?? 10) >= 10000) ? (
+                  {dayEvents.length > 0 && !dayEvents.some(e => e.hideCapacity || (e.capacity ?? 10) >= 10000) && (daySeatsLeft < 10) && (daySeatsLeft > 0) ? (
                     <span className="poster-calendar-day-count">{daySeatsLeft}</span>
                   ) : null}
                 </button>
@@ -256,14 +256,9 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                   <div className="poster-event-spots">
                     {getEventSeatsLeft(event) <= 0 ? (
                       <strong style={{ color: 'var(--brand)' }}>Мест нет</strong>
-                    ) : (
-                      <>
-                        <strong>Осталось {getEventSeatsLeft(event)} мест</strong>
-                        <span>
-                          {getEventBooked(event)} из {getEventCapacity(event)} уже записались
-                        </span>
-                      </>
-                    )}
+                    ) : getEventSeatsLeft(event) < 10 ? (
+                      <strong>Осталось {getEventSeatsLeft(event)} мест</strong>
+                    ) : null}
                   </div>
                 )}
                 {event.label ? <p className="poster-event-label">{event.label}</p> : null}

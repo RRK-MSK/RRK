@@ -12,26 +12,63 @@ export async function addParticipant(formData: FormData) {
   const phone = formData.get("phone") as string;
   const email = formData.get("email") as string;
 
-  if (!fullName) throw new Error("Name is required");
+  if (!fullName) throw new Error("Full name is required");
 
   const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
 
-  const { error } = await supabase.from("participants").insert({
-    slug,
-    full_name: fullName,
-    telegram: telegram || null,
-    phone: phone || null,
-    email: email || null,
-    status: "Новый",
-    source: "Добавлен вручную из CRM",
-  });
+  const { error } = await supabase
+    .from("participants")
+    .insert({
+      slug,
+      full_name: fullName,
+      telegram: telegram || null,
+      phone: phone || null,
+      email: email || null,
+      source: "CRM (Вручную)",
+      status: "Новый",
+    });
 
-  if (error) {
-    console.error("Error adding participant:", error);
-    throw new Error(error.message || "Failed to add participant");
-  }
+  if (error) throw new Error("Failed to add participant");
 
   revalidatePath("/crm/participants");
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function toggleEventVisibility(eventId: string, isPublished: boolean) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { error } = await supabase
+    .from("events")
+    .update({ is_published: isPublished })
+    .eq("id", eventId);
+
+  if (error) throw new Error("Failed to update event visibility");
+
+  revalidatePath("/crm/classes");
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function deleteEvent(eventId: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  // Supabase RLS and cascading deletes should handle related records (enrollments, payments)
+  // or we need to delete them manually if cascade is not configured.
+  // We'll try to delete the event directly.
+  const { error } = await supabase
+    .from("events")
+    .delete()
+    .eq("id", eventId);
+
+  if (error) throw new Error("Failed to delete event: " + error.message);
+
+  revalidatePath("/crm/classes");
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/");
   return { success: true };
 }
 

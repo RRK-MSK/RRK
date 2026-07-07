@@ -66,7 +66,7 @@ export function AddRecordModal() {
                 <option value="" style={{ color: 'black' }}>Выберите занятие...</option>
                 {events.map(ev => (
                   <option key={ev.id} value={ev.id} style={{ color: 'black' }}>
-                    {ev.title} ({new Date(ev.starts_at).toLocaleDateString('ru-RU')})
+                    {ev.title} ({new Date(ev.starts_at).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })} {new Date(ev.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })})
                   </option>
                 ))}
               </select>

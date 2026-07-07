@@ -71,7 +71,7 @@ export function ProfileFeed() {
         <article key={enrollment.id} style={{ padding: "20px", background: "var(--surface-strong)", borderRadius: "16px", border: "1px solid var(--line)", boxShadow: "var(--shadow)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
             <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--brand)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              {new Date(enrollment.event.starts_at).toLocaleDateString('ru-RU')}
+              {new Date(enrollment.event.starts_at).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' })}
             </span>
             <span className={`status-badge ${enrollment.payment_status?.toLowerCase().includes('paid') || enrollment.payment_status?.toLowerCase().includes('оплач') ? 'tone-green' : 'tone-sand'}`} style={{ fontSize: "11px", minHeight: "24px" }}>
               {enrollment.payment_status}
@@ -79,7 +79,7 @@ export function ProfileFeed() {
           </div>
           <h3 style={{ margin: "0 0 8px", fontSize: "18px" }}>{enrollment.event.title}</h3>
           <p style={{ margin: "0", color: "var(--muted)", fontSize: "14px" }}>
-            {new Date(enrollment.event.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+            {new Date(enrollment.event.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}
           </p>
         </article>
       ))}
