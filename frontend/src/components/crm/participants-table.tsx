@@ -89,7 +89,7 @@ export function ParticipantsTable({ initialRows }: { initialRows: any[] }) {
                 <td>{participant.visits}</td>
                 <td>{participant.paid}</td>
                 <td>{participant.debt}</td>
-                <td>{participant.nextClass}</td>
+                <td style={{ whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>{participant.nextClass}</td>
                 <td>
                   <div className="tag-row">
                     {participant.tags.map((tag: string) => (

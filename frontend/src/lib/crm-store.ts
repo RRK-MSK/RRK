@@ -376,7 +376,7 @@ export async function getParticipantsPageData(): Promise<ParticipantsPageData> {
         visits: String(enrollments.filter(e => e.status === 'Посетил').length || p.visits_count || 0),
         paid: formatMoney(p.payments?.filter(pm => pm.status === 'Оплачен').reduce((acc, curr) => acc + (curr.amount_rub || 0), 0) || p.total_paid_rub || 0),
         debt: String(p.payments?.filter(pm => pm.status !== 'Оплачен').length || p.unpaid_rub || 0),
-        nextClass: latestEvent ? `${formatShortDate(latestEvent.starts_at)} (${latestEvent.title})` : formatNextEvent(computedNextTitle, computedNextAt),
+        nextClass: latestEvent ? `${formatShortDate(latestEvent.starts_at)} ${new Date(latestEvent.starts_at || 0).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}\n(${latestEvent.title})` : formatNextEvent(computedNextTitle, computedNextAt),
         tags: p.tags ?? [],
         slug: p.slug,
         isRepeat: enrollments.length > 1 || isRepeat,
