@@ -251,8 +251,8 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
                   Применить
                 </button>
               </div>
-              {promoError && <div style={{ color: 'var(--brand)', fontSize: '12px', marginTop: '4px' }}>{promoError}</div>}
-              {promoSuccess && <div style={{ color: 'var(--green)', fontSize: '12px', marginTop: '4px' }}>{promoSuccess}</div>}
+              {promoError && <div style={{ color: '#d32f2f', fontSize: '13px', marginTop: '6px', fontWeight: '500' }}>{promoError}</div>}
+              {promoSuccess && <div style={{ color: '#2e7d32', fontSize: '13px', marginTop: '6px', fontWeight: '500' }}>{promoSuccess}</div>}
             </div>
           )}
 
