@@ -233,7 +233,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
           {!(formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация")) && (
             <div className="booking-field">
               <label>Промокод (необязательно)</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <input 
                   type="text" 
                   value={formData.promoCode}
@@ -245,9 +245,9 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
                     setDiscountedPrice(0);
                   }}
                   placeholder="Введите промокод"
-                  style={{ flex: 1 }}
+                  style={{ width: '100%' }}
                 />
-                <button type="button" onClick={handleValidatePromo} className="site-button" style={{ padding: '0 16px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--line)' }}>
+                <button type="button" onClick={handleValidatePromo} className="site-button" style={{ padding: '10px 16px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--line)', width: '100%', justifyContent: 'center' }}>
                   Применить
                 </button>
               </div>
