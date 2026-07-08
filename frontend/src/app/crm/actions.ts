@@ -14,6 +14,24 @@ export async function addParticipant(formData: FormData) {
 
   if (!fullName) throw new Error("Full name is required");
 
+  // Убедимся что участника еще нет
+  const orConditions = [];
+  if (phone) orConditions.push(`phone.eq.${phone}`);
+  if (telegram) orConditions.push(`telegram.eq.${telegram}`);
+  if (email) orConditions.push(`email.eq.${email}`);
+
+  if (orConditions.length > 0) {
+    const { data: existingParticipants } = await supabase
+      .from("participants")
+      .select("id")
+      .or(orConditions.join(','))
+      .limit(1);
+    
+    if (existingParticipants && existingParticipants.length > 0) {
+      throw new Error("Участник с таким телефоном, Telegram или Email уже существует");
+    }
+  }
+
   const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
 
   const { error } = await supabase
@@ -171,16 +189,39 @@ export async function addRecord(formData: FormData) {
   if (!fullName) throw new Error("Name is required");
   if (!eventId) throw new Error("Event is required");
 
-  const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
-
   // 1. Убедимся что участник есть
-  const { data: existing } = await supabase
-    .from("participants")
-    .select("id")
-    .eq("slug", slug)
-    .single();
+  let participantId = null;
+  const orConditions = [];
+  if (phone) orConditions.push(`phone.eq.${phone}`);
+  if (telegram) orConditions.push(`telegram.eq.${telegram}`);
+  if (email) orConditions.push(`email.eq.${email}`);
 
-  let participantId = existing?.id;
+  if (orConditions.length > 0) {
+    const { data: existingParticipants } = await supabase
+      .from("participants")
+      .select("id")
+      .or(orConditions.join(','))
+      .limit(1);
+    
+    if (existingParticipants && existingParticipants.length > 0) {
+      participantId = existingParticipants[0].id;
+    }
+  }
+
+  // Fallback to name if no contact info was provided or matched, to prevent duplicates
+  if (!participantId) {
+    const { data: existingByName } = await supabase
+      .from("participants")
+      .select("id")
+      .ilike("full_name", fullName)
+      .limit(1);
+      
+    if (existingByName && existingByName.length > 0) {
+      participantId = existingByName[0].id;
+    }
+  }
+
+  const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
 
   if (!participantId) {
     const { data: newParticipant, error: pError } = await supabase
