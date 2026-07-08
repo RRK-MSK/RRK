@@ -37,6 +37,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
   const [promoError, setPromoError] = useState("");
   const [promoSuccess, setPromoSuccess] = useState("");
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountedPrice, setDiscountedPrice] = useState(0);
   const [successMessage, setSuccessMessage] = useState("");
 
   if (!isOpen) return null;
@@ -61,6 +62,14 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
       if (data.success) {
         setPromoSuccess(`Скидка ${data.discount_percent}% применена!`);
         setDiscountPercent(data.discount_percent);
+        
+        // Calculate new price
+        const currentPriceMatch = formData.price.replace(/\s/g, '').match(/(\d+)/);
+        if (currentPriceMatch) {
+          const originalPrice = parseInt(currentPriceMatch[0], 10);
+          const newPrice = Math.max(0, originalPrice - Math.round(originalPrice * (data.discount_percent / 100)));
+          setDiscountedPrice(newPrice);
+        }
       } else {
         setPromoError(data.error || "Промокод недействителен");
       }
@@ -203,6 +212,10 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
                 const selectedOption = e.target.options[selectedIndex];
                 const price = selectedOption.getAttribute('data-price') || '';
                 setFormData({...formData, eventId: e.target.value, price});
+                setPromoError("");
+                setPromoSuccess("");
+                setDiscountPercent(0);
+                setDiscountedPrice(0);
               }}
             >
               <option value="" disabled>Выберите событие</option>
@@ -229,6 +242,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
                     setPromoError("");
                     setPromoSuccess("");
                     setDiscountPercent(0);
+                    setDiscountedPrice(0);
                   }}
                   placeholder="Введите промокод"
                   style={{ flex: 1 }}
@@ -281,7 +295,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
               formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация") 
                 ? "Зарегистрироваться" 
                 : (discountPercent > 0 
-                    ? `Оплатить со скидкой ${discountPercent}%` 
+                    ? `Оплатить ${discountedPrice} ₽ (Скидка ${discountPercent}%)` 
                     : "Оплатить")
             )}
           </button>
