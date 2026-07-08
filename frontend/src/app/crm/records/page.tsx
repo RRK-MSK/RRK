@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { FilterRow, MetricGrid, PageHeader, SectionCard, SimpleTable } from "@/components/crm/ui";
+import { FilterRow, MetricGrid, PageHeader, SectionCard } from "@/components/crm/ui";
 import { getRecordsPageData } from "@/lib/crm-store";
 import { AddRecordModal } from "@/components/crm/add-record-modal";
 import { RecordsTable } from "@/components/crm/records-table";

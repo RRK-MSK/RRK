@@ -159,7 +159,13 @@ export function SimpleTable({ rows }: { rows: TableRow[] }) {
                     {isStatus ? (
                       <StatusBadge value={value} />
                     ) : isAction ? (
-                      <button className="ghost-button">{value}</button>
+                      row.slug ? (
+                        <Link href={`/crm/participants/${row.slug}`} className="ghost-button link-button">
+                          {value}
+                        </Link>
+                      ) : (
+                        <button className="ghost-button">{value}</button>
+                      )
                     ) : (
                       value
                     )}

@@ -31,6 +31,8 @@ export function RecordsTable({ initialRows }: { initialRows: TableRow[] }) {
     return result;
   }, [initialRows, activeFilter, searchQuery]);
 
+  const headers = initialRows.length > 0 ? Object.keys(initialRows[0] ?? {}).filter(k => k !== "slug") : [];
+
   return (
     <SectionCard title="Все записи" description="Операционная таблица заявок, оплат, посещений и переносов." rightLabel={`${filteredRows.length} записей`}>
       <FilterRow
@@ -41,7 +43,50 @@ export function RecordsTable({ initialRows }: { initialRows: TableRow[] }) {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
-      <SimpleTable rows={filteredRows} />
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              {headers.map((header) => (
+                <th key={header}>{header === 'className' ? 'Занятие' : header === 'participant' ? 'Участник' : header === 'payment' ? 'Оплата' : header === 'confirmation' ? 'Подтверждение' : header === 'contact' ? 'Контакт' : header === 'source' ? 'Источник' : header === 'status' ? 'Статус' : header === 'action' ? 'Действие' : header}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.map((row, index) => (
+              <tr key={index}>
+                {headers.map((header) => {
+                  const value = row[header];
+                  const normalizedHeader = header.toLowerCase();
+                  const isStatus =
+                    normalizedHeader === "status" ||
+                    normalizedHeader === "payment" ||
+                    normalizedHeader === "confirmation";
+                  const isAction = header === "action";
+
+                  return (
+                    <td key={header}>
+                      {isStatus ? (
+                        <span className={`status-badge ${value?.toString().includes("Оплачен") || value?.toString().includes("Подтвержд") ? 'tone-green' : value?.toString().includes("Ждет") || value?.toString().includes("Ожида") ? 'tone-sand' : 'tone-gray'}`}>{value}</span>
+                      ) : isAction ? (
+                        row.slug ? (
+                          <a href={`/crm/participants/${row.slug}`} className="ghost-button link-button">
+                            {value}
+                          </a>
+                        ) : (
+                          <button className="ghost-button">{value}</button>
+                        )
+                      ) : (
+                        value
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </SectionCard>
   );
 }

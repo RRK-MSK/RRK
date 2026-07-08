@@ -632,7 +632,9 @@ export async function getRecordsPageData(): Promise<RecordsPageData> {
     ],
     rows: enrollments.map((row) => ({
       participant: row.participant?.full_name ?? "-",
-      className: row.event?.title ?? "-",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      slug: (row.participant as any)?.slug ?? null,
+      className: row.event ? `${row.event.title} (${formatShortDate(row.event.starts_at)} ${row.event.starts_at ? new Date(row.event.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) : ''})` : "-",
       payment: row.payment_status ?? "Ждет оплату",
       confirmation: row.confirmation_status ?? "Ожидает",
       contact: row.participant?.telegram ?? row.participant?.phone ?? row.participant?.email ?? "-",
