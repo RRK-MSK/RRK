@@ -27,11 +27,11 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
     let result = initialRows;
 
     if (activeFilter === "Открыто") {
-      result = result.filter(r => r.status?.toString().toLowerCase().includes("открыт"));
+      result = result.filter(r => r.status?.toString().toLowerCase().includes("открыт") || r.status?.toString().toLowerCase().includes("open"));
     } else if (activeFilter === "Почти заполнено") {
       result = result.filter(r => r.status?.toString().toLowerCase().includes("почти"));
     } else if (activeFilter === "SOLD OUT") {
-      result = result.filter(r => r.status?.toString().toLowerCase().includes("sold"));
+      result = result.filter(r => r.status?.toString().toLowerCase().includes("sold") || r.status?.toString().toLowerCase().includes("нет мест"));
     } else if (activeFilter === "Прошло") {
       result = result.filter(r => r.status?.toString().toLowerCase().includes("прошл"));
     }
@@ -79,9 +79,9 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
                   const value = row[header];
                   const normalizedHeader = header.toLowerCase();
                   const isStatus =
-                    normalizedHeader.includes("status") ||
-                    normalizedHeader.includes("payment") ||
-                    normalizedHeader.includes("confirmation");
+                    normalizedHeader === "status" ||
+                    normalizedHeader === "payment" ||
+                    normalizedHeader === "confirmation";
                   const isAction = header === "action";
 
                   if (isAction) return null;

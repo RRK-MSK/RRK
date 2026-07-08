@@ -108,8 +108,12 @@ export function FilterRow({
         {filters.map((filter) => (
           <button 
             key={filter} 
-            className={activeFilter === filter || (!activeFilter && filter === "Все") ? "chip active" : "chip"}
-            onClick={() => onFilterChange?.(filter)}
+            className={`chip ${activeFilter === filter || (!activeFilter && filter === "Все") ? "active" : ""}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onFilterChange?.(filter);
+            }}
+            type="button"
           >
             {filter}
           </button>
