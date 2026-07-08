@@ -30,12 +30,44 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
     eventId: "",
     price: "",
     paymentMethod: "card",
+    promoCode: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [promoError, setPromoError] = useState("");
+  const [promoSuccess, setPromoSuccess] = useState("");
+  const [discountPercent, setDiscountPercent] = useState(0);
   const [successMessage, setSuccessMessage] = useState("");
 
   if (!isOpen) return null;
+
+  const handleValidatePromo = async () => {
+    if (!formData.promoCode) return;
+    setPromoError("");
+    setPromoSuccess("");
+    setDiscountPercent(0);
+
+    try {
+      const response = await fetch('/api/promo/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          code: formData.promoCode, 
+          phone: formData.phone, 
+          telegram: formData.telegram 
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setPromoSuccess(`Скидка ${data.discount_percent}% применена!`);
+        setDiscountPercent(data.discount_percent);
+      } else {
+        setPromoError(data.error || "Промокод недействителен");
+      }
+    } catch (e) {
+      setPromoError("Ошибка при проверке промокода");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,6 +219,31 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
 
           {!(formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация")) && (
             <div className="booking-field">
+              <label>Промокод (необязательно)</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  value={formData.promoCode}
+                  onChange={e => {
+                    setFormData({...formData, promoCode: e.target.value});
+                    setPromoError("");
+                    setPromoSuccess("");
+                    setDiscountPercent(0);
+                  }}
+                  placeholder="Введите промокод"
+                  style={{ flex: 1 }}
+                />
+                <button type="button" onClick={handleValidatePromo} className="site-button" style={{ padding: '0 16px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--line)' }}>
+                  Применить
+                </button>
+              </div>
+              {promoError && <div style={{ color: 'var(--brand)', fontSize: '12px', marginTop: '4px' }}>{promoError}</div>}
+              {promoSuccess && <div style={{ color: 'var(--green)', fontSize: '12px', marginTop: '4px' }}>{promoSuccess}</div>}
+            </div>
+          )}
+
+          {!(formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация")) && (
+            <div className="booking-field">
               <label>Способ оплаты</label>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'normal', cursor: 'pointer' }}>
@@ -220,7 +277,13 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
           </div>
           
           <button type="submit" className="site-button primary" disabled={isSubmitting} style={{ width: '100%', justifyContent: 'center' }}>
-            {isSubmitting ? "Обработка..." : (formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация") ? "Зарегистрироваться" : "Оплатить")}
+            {isSubmitting ? "Обработка..." : (
+              formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация") 
+                ? "Зарегистрироваться" 
+                : (discountPercent > 0 
+                    ? `Оплатить со скидкой ${discountPercent}%` 
+                    : "Оплатить")
+            )}
           </button>
         </form>
           </>

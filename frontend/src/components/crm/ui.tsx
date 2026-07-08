@@ -65,7 +65,7 @@ export function SectionCard({
 }: {
   title: string;
   description: string;
-  rightLabel?: string;
+  rightLabel?: ReactNode;
   children: ReactNode;
 }) {
   return (

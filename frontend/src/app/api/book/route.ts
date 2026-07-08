@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const data = await request.json();
     console.log("New booking request:", data);
 
-    const { firstName, lastName, phone, telegram, email, eventId, paymentMethod, source } = data;
+    const { firstName, lastName, phone, telegram, email, eventId, paymentMethod, source, promoCode } = data;
     
     // Пытаемся найти ID события в базе (по title)
     // eventId с фронта сейчас выглядит как "uuid::Название" или "5 июля (вс) | 19:00-22:30 - Название"
@@ -142,8 +142,43 @@ export async function POST(request: Request) {
 
     const isFree = data.price === "Участие бесплатно, регистрация" || data.price === "Бесплатно" || data.price === "Регистрация";
 
-    // Если это бесплатное событие (например, COFFEE JAM)
-    if (isFree) {
+    let promoCodeId = null;
+    let discountAmountRub = 0;
+
+    // 4. Применяем промокод, если есть
+    if (promoCode && !isFree && supabase && participantId) {
+      const { data: promoData } = await supabase
+        .from("promo_codes")
+        .select("*")
+        .eq("code", promoCode.toUpperCase())
+        .single();
+        
+      if (promoData && promoData.is_active) {
+        let canUse = true;
+        if (promoData.is_single_use) {
+          const { data: usage } = await supabase
+            .from("promo_code_usages")
+            .select("id")
+            .eq("promo_code_id", promoData.id)
+            .eq("participant_id", participantId)
+            .single();
+          if (usage) canUse = false;
+        }
+        
+        if (canUse) {
+          promoCodeId = promoData.id;
+          discountAmountRub = Math.round(priceRub * (promoData.discount_percent / 100));
+          priceRub = priceRub - discountAmountRub;
+          if (priceRub < 0) priceRub = 0;
+        }
+      }
+    }
+
+    // Если после применения промокода цена стала 0, обрабатываем как бесплатное
+    const isActuallyFree = isFree || priceRub === 0;
+
+    // Если это бесплатное событие (например, COFFEE JAM) или цена стала 0 из-за промокода
+    if (isActuallyFree) {
       const freePaymentId = `FREE-${Date.now()}`;
       if (supabase && participantId && dbEventId) {
         await supabase
@@ -152,10 +187,20 @@ export async function POST(request: Request) {
             participant_id: participantId,
             event_id: dbEventId,
             amount_rub: 0,
-            method: "Без оплаты",
+            method: promoCodeId ? "Промокод" : "Без оплаты",
             status: "Оплачен", // Сразу считаем подтвержденным
-            external_payment_id: freePaymentId
+            external_payment_id: freePaymentId,
+            promo_code_id: promoCodeId,
+            discount_amount_rub: discountAmountRub
           });
+          
+        if (promoCodeId) {
+          await supabase.from("promo_code_usages").insert({
+            promo_code_id: promoCodeId,
+            participant_id: participantId,
+            order_id: freePaymentId
+          });
+        }
           
         // Получаем данные события для Telegram
         const { data: event } = await supabase
@@ -186,7 +231,7 @@ export async function POST(request: Request) {
             orderNumber: freePaymentId,
             eventDate: formatDate(event.starts_at),
             source: data.source,
-            paymentDate: isFree ? undefined : new Date().toLocaleString('ru-RU', {
+            paymentDate: isActuallyFree && !promoCodeId ? undefined : new Date().toLocaleString('ru-RU', {
               timeZone: 'Europe/Moscow',
               day: '2-digit', month: '2-digit', year: 'numeric',
               hour: '2-digit', minute: '2-digit'
@@ -266,7 +311,9 @@ export async function POST(request: Request) {
             amount_rub: priceRub,
             method: "Т-Банк",
             status: "Ждет",
-            external_payment_id: String(tbankResponse.PaymentId)
+            external_payment_id: String(tbankResponse.PaymentId),
+            promo_code_id: promoCodeId,
+            discount_amount_rub: discountAmountRub
           });
       }
 

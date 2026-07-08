@@ -106,6 +106,10 @@ type PaymentJoinedRow = {
   status: string | null;
   paid_at: string | null;
   source?: string | null;
+  discount_amount_rub?: number | null;
+  promo_code?: {
+    code: string | null;
+  } | null;
   participant: {
     full_name: string | null;
     slug?: string | null;
@@ -507,6 +511,8 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
         purpose: row.event?.title ?? "-",
         method: row.method ?? "Не указан",
         amount: formatMoney(row.amount_rub),
+        promoCode: row.promo_code?.code || "-",
+        discount: row.discount_amount_rub ? formatMoney(row.discount_amount_rub) : "-",
         source: source,
         status: row.status ?? "Ждет",
         action: "Открыть",
@@ -968,7 +974,7 @@ async function loadPayments() {
 
   const { data, error } = await supabase
     .from("payments")
-    .select("id, amount_rub, method, status, paid_at, participant:participants(full_name, slug), event:events(title)")
+    .select("id, amount_rub, method, status, paid_at, participant:participants(full_name, slug), event:events(title), promo_code:promo_codes(code), discount_amount_rub")
     .order("paid_at", { ascending: false });
 
   if (error) {
@@ -1278,6 +1284,8 @@ function normalizePaymentRow(raw: unknown): PaymentJoinedRow {
           title: string | null;
         }[]
       | null;
+    promo_code: { code: string | null } | { code: string | null }[] | null;
+    discount_amount_rub: number | null;
   };
 
   return {
@@ -1288,6 +1296,8 @@ function normalizePaymentRow(raw: unknown): PaymentJoinedRow {
     paid_at: row.paid_at,
     participant: unwrapRelation(row.participant),
     event: unwrapRelation(row.event),
+    promo_code: unwrapRelation(row.promo_code),
+    discount_amount_rub: row.discount_amount_rub,
   };
 }
 

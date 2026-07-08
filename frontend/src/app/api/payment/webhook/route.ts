@@ -45,13 +45,26 @@ export async function POST(request: Request) {
         // Находим к какому участнику и событию относится этот платеж (и проверяем его текущий статус)
         const { data: paymentInfo } = await supabase
           .from('payments')
-          .select('participant_id, event_id, status')
+          .select('participant_id, event_id, status, promo_code_id')
           .eq('external_payment_id', String(payload.PaymentId))
           .single();
 
         if (paymentInfo) {
           // Если платеж уже был отмечен как Оплачен, не отправляем уведомление повторно
           const isAlreadyPaid = paymentInfo.status === 'Оплачен';
+
+          if (paymentInfo.promo_code_id && !isAlreadyPaid) {
+            // Записываем использование промокода при подтверждении оплаты
+            try {
+              await supabase.from('promo_code_usages').insert({
+                promo_code_id: paymentInfo.promo_code_id,
+                participant_id: paymentInfo.participant_id,
+                order_id: String(payload.PaymentId)
+              }).select().single();
+            } catch (err) {
+              console.error("Failed to insert promo code usage:", err);
+            }
+          }
 
           // Обновляем статус платежа
           await supabase
