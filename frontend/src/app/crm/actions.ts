@@ -52,6 +52,23 @@ export async function toggleEventVisibility(eventId: string, isPublished: boolea
   return { success: true };
 }
 
+export async function updateEventStatus(eventId: string, status: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { error } = await supabase
+    .from("events")
+    .update({ status })
+    .eq("id", eventId);
+
+  if (error) throw new Error("Failed to update event status: " + error.message);
+
+  revalidatePath("/crm/classes");
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/");
+  return { success: true };
+}
+
 export async function deleteEvent(eventId: string) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");

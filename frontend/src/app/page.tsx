@@ -270,7 +270,8 @@ const faqs = [
 
 export default async function HomePage() {
   const livePosterEvents = await getSitePosterEvents();
-  const calendarEvents = livePosterEvents.length > 0 ? livePosterEvents : posterEvents;
+  const activeLiveEvents = livePosterEvents.filter(e => (e as any).status !== "Отменено");
+  const calendarEvents = activeLiveEvents.length > 0 ? activeLiveEvents : posterEvents;
 
   return (
     <main className="site-page">

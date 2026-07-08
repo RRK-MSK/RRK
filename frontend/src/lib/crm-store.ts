@@ -1131,23 +1131,14 @@ function isPendingPaymentStatus(value: string | null | undefined) {
   return pendingPaymentStatuses.includes(normalize(value));
 }
 
-function deriveEventStatus(event: Pick<EventRow, "status" | "capacity" | "booked_count">) {
+function deriveEventStatus(event: any) {
+  if (event.status) return event.status;
+  
+  if (!isFutureDate(event.starts_at)) return "Прошло";
   const capacity = event.capacity ?? 0;
-  const bookedCount = event.booked_count ?? 0;
-  const freeSpots = Math.max(capacity - bookedCount, 0);
-
-  if (capacity > 0 && bookedCount >= capacity) {
-    return "SOLD OUT";
-  }
-
-  if (event.status) {
-    return event.status;
-  }
-
-  if (freeSpots <= 2) {
-    return "Почти заполнено";
-  }
-
+  const booked = event.booked_count ?? 0;
+  if (capacity > 0 && booked >= capacity) return "SOLD OUT";
+  if (capacity > 0 && capacity - booked <= 2) return "Почти заполнено";
   return "Открыто";
 }
 

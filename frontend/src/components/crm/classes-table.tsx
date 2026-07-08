@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { FilterRow, SectionCard, SimpleTable } from "@/components/crm/ui";
-import { deleteEvent, toggleEventVisibility } from "@/app/crm/actions";
+import { deleteEvent, toggleEventVisibility, updateEventStatus } from "@/app/crm/actions";
 import type { TableRow } from "@/lib/crm-data";
 
 export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
@@ -18,6 +18,20 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
       await deleteEvent(eventId);
     } catch (err: any) {
       alert(err.message || "Ошибка при удалении");
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  const handleCancelEvent = async (eventId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "Отменено" ? "Открыто" : "Отменено";
+    if (!confirm(`Изменить статус занятия на "${newStatus}"?`)) return;
+    
+    setIsDeleting(eventId);
+    try {
+      await updateEventStatus(eventId, newStatus);
+    } catch (err: any) {
+      alert(err.message || "Ошибка при обновлении статуса");
     } finally {
       setIsDeleting(null);
     }
@@ -97,14 +111,24 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
                   );
                 })}
                 <td>
-                  <button 
-                    onClick={() => handleDelete(row.id as string)}
-                    className="ghost-button" 
-                    style={{ color: 'var(--brand)', opacity: isDeleting === row.id ? 0.5 : 1 }}
-                    disabled={isDeleting === row.id || !row.id}
-                  >
-                    {isDeleting === row.id ? "Удаление..." : "Удалить"}
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <button 
+                      onClick={() => handleCancelEvent(row.id as string, row.status as string)}
+                      className="ghost-button" 
+                      style={{ color: row.status === 'Отменено' ? 'var(--green)' : 'var(--muted)', opacity: isDeleting === row.id ? 0.5 : 1, padding: '4px 8px', fontSize: '13px', minHeight: 'auto' }}
+                      disabled={isDeleting === row.id || !row.id}
+                    >
+                      {row.status === 'Отменено' ? 'Восстановить' : 'Отменить'}
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(row.id as string)}
+                      className="ghost-button" 
+                      style={{ color: 'var(--brand)', opacity: isDeleting === row.id ? 0.5 : 1, padding: '4px 8px', fontSize: '13px', minHeight: 'auto' }}
+                      disabled={isDeleting === row.id || !row.id}
+                    >
+                      Удалить
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -83,6 +83,7 @@ export async function getSitePosterEvents() {
       booked,
       seatsLeft,
       hideCapacity,
+      status: (event as any).status ?? undefined,
     };
   });
 }
