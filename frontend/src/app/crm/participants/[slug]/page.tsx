@@ -6,6 +6,7 @@ import { ParticipantActions } from "@/components/crm/participant-actions";
 import { EnrollmentActions } from "@/components/crm/enrollment-actions";
 import { EditNoteModal } from "@/components/crm/edit-note-modal";
 import { AddParticipantRecordModal } from "@/components/crm/add-participant-record-modal";
+import { EditParticipantModal } from "@/components/crm/edit-participant-modal";
 import { getParticipantProfileData } from "@/lib/crm-store";
 
 export default async function ParticipantProfilePage({
@@ -54,6 +55,11 @@ export default async function ParticipantProfilePage({
             </div>
 
             <ParticipantActions profile={profile} />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Контакты</h3>
+              <EditParticipantModal profile={profile} />
+            </div>
 
             <dl className="profile-meta" style={{ gridTemplateColumns: '1fr' }}>
               <div>

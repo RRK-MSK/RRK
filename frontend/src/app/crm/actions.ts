@@ -158,6 +158,31 @@ export async function updateParticipantStatus(id: string, status: string) {
   return { success: true };
 }
 
+export async function updateParticipantData(id: string, data: { fullName: string, telegram: string, phone: string, email: string }) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const updates: any = {
+    full_name: data.fullName,
+  };
+  
+  if (data.telegram) updates.telegram = data.telegram;
+  if (data.phone) updates.phone = data.phone;
+  if (data.email) updates.email = data.email;
+
+  const { error } = await supabase
+    .from("participants")
+    .update(updates)
+    .eq("id", id);
+
+  if (error) throw new Error("Failed to update participant data");
+
+  revalidatePath("/crm/participants");
+  revalidatePath(`/crm/participants/[slug]`, "page");
+  revalidatePath("/");
+  return { success: true };
+}
+
 export async function updateParticipantTags(id: string, tags: string[]) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
