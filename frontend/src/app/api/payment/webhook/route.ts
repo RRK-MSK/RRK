@@ -120,7 +120,8 @@ export async function POST(request: Request) {
                   timeZone: 'Europe/Moscow',
                   day: '2-digit', month: '2-digit', year: 'numeric',
                   hour: '2-digit', minute: '2-digit'
-                })
+                }),
+                promoCodeUsed: !!paymentInfo.promo_code_id
               });
 
               // Send Email notification
