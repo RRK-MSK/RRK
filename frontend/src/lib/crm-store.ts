@@ -568,7 +568,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         time: formatTimeRange(row.starts_at, row.ends_at),
         host: row.host ?? "Команда РРК",
         format: row.category ?? "Практика",
-        status: row.status ?? deriveEventStatus(row),
+        status: deriveEventStatus(row),
         booked,
         capacity,
         paid,
@@ -591,7 +591,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
       pending: String(row.pending_count ?? 0),
       free: String(Math.max((row.capacity ?? 0) - (row.booked_count ?? 0), 0)),
       revenue: formatMoney((row.paid_count ?? 0) * (row.price_rub ?? 0)),
-      status: row.status ?? deriveEventStatus(row),
+      status: deriveEventStatus(row),
     })),
   };
 }
@@ -1140,9 +1140,10 @@ function isPendingPaymentStatus(value: string | null | undefined) {
 }
 
 function deriveEventStatus(event: any) {
+  if (event.status === "Отменено") return "Отменено";
+  if (!isFutureDate(event.starts_at)) return "Прошло";
   if (event.status) return event.status;
   
-  if (!isFutureDate(event.starts_at)) return "Прошло";
   const capacity = event.capacity ?? 0;
   const booked = event.booked_count ?? 0;
   if (capacity > 0 && booked >= capacity) return "SOLD OUT";
