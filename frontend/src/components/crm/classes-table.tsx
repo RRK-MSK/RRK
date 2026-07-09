@@ -40,13 +40,15 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
   const filteredRows = useMemo(() => {
     let result = initialRows;
 
-    if (activeFilter === "Открыто") {
+    if (activeFilter === "Все") {
+      result = result.filter(r => !r.status?.toString().toLowerCase().includes("прошл"));
+    } else if (activeFilter === "Открыто") {
       result = result.filter(r => r.status?.toString().toLowerCase().includes("открыт") || r.status?.toString().toLowerCase().includes("open"));
     } else if (activeFilter === "Почти заполнено") {
       result = result.filter(r => r.status?.toString().toLowerCase().includes("почти"));
     } else if (activeFilter === "SOLD OUT") {
       result = result.filter(r => r.status?.toString().toLowerCase().includes("sold") || r.status?.toString().toLowerCase().includes("нет мест"));
-    } else if (activeFilter === "Прошло") {
+    } else if (activeFilter === "Архив") {
       result = result.filter(r => r.status?.toString().toLowerCase().includes("прошл"));
     }
 
@@ -69,7 +71,7 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
       rightLabel={`${filteredRows.length} строк`}
     >
       <FilterRow
-        filters={["Все", "Открыто", "Почти заполнено", "SOLD OUT", "Прошло"]}
+        filters={["Все", "Открыто", "Почти заполнено", "SOLD OUT", "Архив"]}
         searchPlaceholder="Поиск по названию, ведущему, формату или дате"
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}

@@ -534,25 +534,27 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     };
   }
 
-  const openCount = rows.filter((row) => deriveEventStatus(row) === "Открыто").length;
-  const soldOutCount = rows.filter((row) => deriveEventStatus(row) === "SOLD OUT").length;
-  const freeSpots = rows.reduce(
+  const activeRows = rows.filter((row) => deriveEventStatus(row) !== "Прошло");
+  const openCount = activeRows.filter((row) => deriveEventStatus(row) === "Открыто").length;
+  const soldOutCount = activeRows.filter((row) => deriveEventStatus(row) === "SOLD OUT").length;
+  const freeSpots = activeRows.reduce(
     (sum, row) => sum + Math.max((row.capacity ?? 0) - (row.booked_count ?? 0), 0),
     0,
   );
-  const waitingPayments = rows.reduce((sum, row) => sum + (row.pending_count ?? 0), 0);
-  const potentialRevenue = rows.reduce((sum, row) => sum + ((row.capacity ?? 0) * (row.price_rub ?? 0)), 0);
+  const waitingPayments = activeRows.reduce((sum, row) => sum + (row.pending_count ?? 0), 0);
+  const potentialRevenue = activeRows.reduce((sum, row) => sum + ((row.capacity ?? 0) * (row.price_rub ?? 0)), 0);
 
   return {
     metrics: [
-      { label: "Всего занятий", value: String(rows.length), hint: "Текущая база афиши" },
+      { label: "Активных занятий", value: String(activeRows.length), hint: "Текущая база афиши" },
       { label: "Открыто для записи", value: String(openCount), hint: "Есть свободные места" },
       { label: "SOLD OUT", value: String(soldOutCount), hint: "Свободных мест нет" },
-      { label: "Свободных мест", value: String(freeSpots), hint: "По всем занятиям" },
+      { label: "Свободных мест", value: String(freeSpots), hint: "По активным занятиям" },
       { label: "Ожидают оплаты", value: String(waitingPayments), hint: "По pending_count" },
       { label: "Потенциальная выручка", value: formatMoney(potentialRevenue), hint: "capacity * price_rub" },
     ],
-    summaries: rows.map((row) => {
+    summaries: activeRows
+      .map((row) => {
       const capacity = row.capacity ?? 0;
       const booked = row.booked_count ?? 0;
       const paid = row.paid_count ?? 0;

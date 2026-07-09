@@ -24,7 +24,7 @@ export default async function ClassesPage() {
       <SectionCard
         title="Загрузка по занятиям"
         description="Понятный срез по каждому занятию: сколько записалось, сколько оплатило и сколько мест еще осталось."
-        rightLabel="13 занятий"
+        rightLabel={`${summaries.length} занятий`}
       >
         <div className="crm-class-load-grid">
           {summaries.map((item) => (
