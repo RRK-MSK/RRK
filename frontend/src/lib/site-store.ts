@@ -52,7 +52,7 @@ export async function getSitePosterEvents() {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, capacity, booked_count, is_published",
+      "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, capacity, booked_count, is_published, status",
     )
     .eq("is_published", true)
     .order("starts_at", { ascending: true });
@@ -62,7 +62,13 @@ export async function getSitePosterEvents() {
     return [] as SitePosterEvent[];
   }
 
-  return ((data ?? []) as EventRow[]).map((event, index) => {
+  return ((data ?? []) as EventRow[])
+    .filter((event) => {
+      const isPast = event.starts_at && new Date(event.starts_at).getTime() < Date.now();
+      const isCanceled = (event as any).status === "Отменено";
+      return !isPast && !isCanceled;
+    })
+    .map((event, index) => {
     const capacity = event.capacity ?? 10;
     const booked = Math.max(0, event.booked_count ?? 0);
     const seatsLeft = Math.max(capacity - booked, 0);
