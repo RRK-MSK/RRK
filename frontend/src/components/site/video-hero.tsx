@@ -103,7 +103,7 @@ export function VideoHero() {
                 окружение и весело проводишь время.
               </p>
               <div className="rrk-video-actions">
-                <Link href="#visit" className="site-button primary rrk-video-cta">
+                <Link href="#schedule" className="site-button primary rrk-video-cta">
                   Записаться
                   <ArrowRight size={18} />
                 </Link>

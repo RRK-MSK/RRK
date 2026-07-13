@@ -481,9 +481,9 @@ export default async function HomePage() {
             <span>Стоимость</span>
             <strong>4 400 ₽</strong>
           </div>
-          <BookingButton events={calendarEvents} className="site-button primary site-button-visit full">
+          <a href="#schedule" className="site-button primary site-button-visit full" style={{textDecoration: 'none'}}>
             Записаться на посещение
-          </BookingButton>
+          </a>
         </div>
       </section>
 
