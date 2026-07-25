@@ -1938,6 +1938,13 @@ th {
   font-family: var(--font-display), Impact, sans-serif;
 }
 
+.section-heading p {
+  margin: 0;
+  max-width: 860px;
+  line-height: 1.6;
+  color: rgba(43, 23, 17, 0.78);
+}
+
 .section-heading.invert span {
   background: rgba(255, 255, 255, 0.08);
 }
