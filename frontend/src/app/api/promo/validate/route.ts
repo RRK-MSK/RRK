@@ -26,8 +26,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Промокод не найден или недействителен" });
     }
 
+    if (promoCode.valid_from && new Date(promoCode.valid_from) > new Date()) {
+      return NextResponse.json({ success: false, error: "Промокод еще не активен" });
+    }
+
     if (promoCode.expires_at && new Date(promoCode.expires_at) < new Date()) {
       return NextResponse.json({ success: false, error: "Срок действия промокода истек" });
+    }
+
+    if (promoCode.usage_limit) {
+      const { count } = await supabase
+        .from("promo_code_usages")
+        .select("id", { count: "exact", head: true })
+        .eq("promo_code_id", promoCode.id);
+
+      if ((count ?? 0) >= promoCode.usage_limit) {
+        return NextResponse.json({ success: false, error: "Лимит использования промокода исчерпан" });
+      }
     }
 
     // 2. Если одноразовый, проверяем, не использовал ли его уже этот пользователь

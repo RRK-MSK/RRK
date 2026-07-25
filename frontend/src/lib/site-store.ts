@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/supabase/env";
 
 type SitePosterEvent = {
@@ -35,19 +37,31 @@ type EventRow = {
   capacity: number | null;
   booked_count: number | null;
   is_published: boolean | null;
+  status?: string | null;
+};
+
+type EventPriceTierRow = {
+  event_id: string;
+  seat_from: number;
+  seat_to: number | null;
+  price_rub: number;
 };
 
 export async function getSitePosterEvents() {
-  if (!hasSupabasePublicEnv()) {
+  const supabase = getSupabaseAdminClient() ?? (
+    hasSupabasePublicEnv()
+      ? createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+          },
+        })
+      : null
+  );
+
+  if (!supabase) {
     return [] as SitePosterEvent[];
   }
-
-  const supabase = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
 
   const { data, error } = await supabase
     .from("events")
@@ -62,6 +76,19 @@ export async function getSitePosterEvents() {
     return [] as SitePosterEvent[];
   }
 
+  const { data: priceTiers } = await supabase
+    .from("event_price_tiers")
+    .select("event_id, seat_from, seat_to, price_rub")
+    .order("seat_from", { ascending: true });
+
+  const tiersByEventId = new Map<string, EventPriceTierRow[]>();
+
+  for (const tier of ((priceTiers ?? []) as EventPriceTierRow[])) {
+    const current = tiersByEventId.get(tier.event_id) ?? [];
+    current.push(tier);
+    tiersByEventId.set(tier.event_id, current);
+  }
+
   return ((data ?? []) as EventRow[])
     .filter((event) => {
       const isPast = event.starts_at && new Date(event.starts_at).getTime() < Date.now();
@@ -69,6 +96,8 @@ export async function getSitePosterEvents() {
       return !isPast && !isCanceled;
     })
     .map((event, index) => {
+    const eventTiers = tiersByEventId.get(event.id) ?? [];
+    const currentPrice = getPriceForNextBooking(event.price_rub, event.booked_count, eventTiers as EventPriceTier[]);
     const capacity = event.capacity ?? 10;
     const booked = Math.max(0, event.booked_count ?? 0);
     const seatsLeft = Math.max(capacity - booked, 0);
@@ -83,7 +112,7 @@ export async function getSitePosterEvents() {
       description: event.subtitle ?? undefined,
       focus: event.description ?? undefined,
       host: event.host ?? undefined,
-      price: formatPrice(event.price_rub),
+      price: formatPrice(currentPrice),
       label: getLabel(event.category, event.city),
       capacity,
       booked,

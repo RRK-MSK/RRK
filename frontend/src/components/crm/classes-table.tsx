@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FilterRow, SectionCard, SimpleTable } from "@/components/crm/ui";
+import { FilterRow, SectionCard } from "@/components/crm/ui";
 import { deleteEvent, toggleEventVisibility, updateEventStatus } from "@/app/crm/actions";
+import { EventFormModal } from "@/components/crm/event-form-modal";
 import type { TableRow } from "@/lib/crm-data";
 
 export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
@@ -62,7 +63,21 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
     return result;
   }, [initialRows, activeFilter, searchQuery]);
 
-  const headers = initialRows.length > 0 ? Object.keys(initialRows[0] ?? {}).filter(k => k !== "id") : [];
+  const hiddenKeys = new Set([
+    "id",
+    "subtitleRaw",
+    "descriptionRaw",
+    "categoryRaw",
+    "cityRaw",
+    "hostRaw",
+    "startsAtRaw",
+    "endsAtRaw",
+    "priceRubRaw",
+    "capacityRaw",
+    "isPublishedRaw",
+    "pricingTiersRaw",
+  ]);
+  const headers = initialRows.length > 0 ? Object.keys(initialRows[0] ?? {}).filter((key) => !hiddenKeys.has(key)) : [];
 
   return (
     <SectionCard
@@ -114,6 +129,34 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
                 })}
                 <td>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <EventFormModal
+                      triggerLabel="Редактировать"
+                      triggerClassName="ghost-button"
+                      initialData={{
+                        id: row.id as string,
+                        title: String(row.title ?? ""),
+                        subtitle: String(row.subtitleRaw ?? ""),
+                        description: String(row.descriptionRaw ?? ""),
+                        category: String(row.categoryRaw ?? ""),
+                        city: String(row.cityRaw ?? "Москва"),
+                        host: String(row.hostRaw ?? ""),
+                        startsAt: String(row.startsAtRaw ?? ""),
+                        endsAt: String(row.endsAtRaw ?? ""),
+                        capacity: Number(row.capacityRaw ?? 10),
+                        price: Number(row.priceRubRaw ?? 0),
+                        isPublished: row.isPublishedRaw === "true",
+                        status: String(row.status ?? "Открыто"),
+                        pricingTiers: parsePricingTiers(row.pricingTiersRaw),
+                      }}
+                    />
+                    <button
+                      onClick={() => toggleEventVisibility(row.id as string, row.isPublishedRaw !== "true")}
+                      className="ghost-button"
+                      style={{ opacity: isDeleting === row.id ? 0.5 : 1, padding: '4px 8px', fontSize: '13px', minHeight: 'auto' }}
+                      disabled={isDeleting === row.id || !row.id}
+                    >
+                      {row.isPublishedRaw === "true" ? "Скрыть с сайта" : "Опубликовать"}
+                    </button>
                     <button 
                       onClick={() => handleCancelEvent(row.id as string, row.status as string)}
                       className="ghost-button" 
@@ -139,4 +182,21 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
       </div>
     </SectionCard>
   );
+}
+
+function parsePricingTiers(value: unknown) {
+  if (typeof value !== "string" || !value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Array<{ seat_from: number; seat_to: number | null; price_rub: number }>;
+    return parsed.map((tier) => ({
+      seatFrom: tier.seat_from,
+      seatTo: tier.seat_to,
+      priceRub: tier.price_rub,
+    }));
+  } catch {
+    return [];
+  }
 }

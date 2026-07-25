@@ -41,6 +41,7 @@ export const crmNavItems: NavItem[] = [
   { label: "Дашборд", href: "/crm/dashboard" },
   { label: "Участники", href: "/crm/participants" },
   { label: "Занятия", href: "/crm/classes" },
+  { label: "Промокоды", href: "/crm/promos" },
   { label: "Записи", href: "/crm/records" },
   { label: "Оплаты", href: "/crm/payments" },
   { label: "Расходы", href: "/crm/expenses" },

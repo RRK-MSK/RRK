@@ -23,6 +23,7 @@ import {
   upcomingClasses,
 } from "@/lib/crm-data";
 import type { ClassCard, Metric, ParticipantRow, TableRow } from "@/lib/crm-data";
+import { formatPriceTierSummary, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
 import { hasSupabasePublicEnv, hasSupabaseServiceRoleEnv } from "@/lib/supabase/env";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -30,6 +31,7 @@ type EventRow = {
   id: string;
   title: string;
   subtitle: string | null;
+  description: string | null;
   category: string | null;
   city: string | null;
   host: string | null;
@@ -43,6 +45,14 @@ type EventRow = {
   pending_count: number | null;
   waitlist_count: number | null;
   is_published: boolean | null;
+};
+
+type EventPriceTierRow = {
+  id: string;
+  event_id: string;
+  seat_from: number;
+  seat_to: number | null;
+  price_rub: number;
 };
 
 type ParticipantDbRow = {
@@ -525,13 +535,22 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
 
 export async function getClassesPageData(): Promise<ClassesPageData> {
   const rows = await loadEvents();
+  const priceTiers = await loadEventPriceTiers();
 
-  if (!rows) {
+  if (!rows || !priceTiers) {
     return {
       metrics: classesMetrics,
       rows: classRows,
       summaries: classRows.map((row, idx) => createFallbackClassSummary(row, idx)),
     };
+  }
+
+  const tiersByEventId = new Map<string, EventPriceTierRow[]>();
+
+  for (const tier of priceTiers) {
+    const current = tiersByEventId.get(tier.event_id) ?? [];
+    current.push(tier);
+    tiersByEventId.set(tier.event_id, current);
   }
 
   const activeRows = rows.filter((row) => deriveEventStatus(row) !== "Прошло");
@@ -555,6 +574,8 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     ],
     summaries: activeRows
       .map((row) => {
+      const eventTiers = tiersByEventId.get(row.id) ?? [];
+      const currentPrice = getPriceForNextBooking(row.price_rub, row.booked_count, eventTiers as EventPriceTier[]);
       const capacity = row.capacity ?? 0;
       const booked = row.booked_count ?? 0;
       const paid = row.paid_count ?? 0;
@@ -576,23 +597,42 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         free,
         waitlist: row.waitlist_count ?? 0,
         canceled: 0, // This needs proper data structure if we track canceled per event, assuming 0 for now
-        revenue: formatMoney(paid * (row.price_rub ?? 0)),
+        revenue: formatMoney(paid * currentPrice),
       };
     }),
-    rows: rows.map((row) => ({
-      id: row.id,
-      date: formatShortDate(row.starts_at),
-      time: formatTimeRange(row.starts_at, row.ends_at),
-      title: row.title,
-      format: row.category ?? "Практика",
-      host: row.host ?? "Команда РРК",
-      enrolled: (row.booked_count ?? 0) >= (row.capacity ?? 0) ? "Мест нет" : `${row.booked_count ?? 0} из ${row.capacity ?? 0}`,
-      paid: String(row.paid_count ?? 0),
-      pending: String(row.pending_count ?? 0),
-      free: String(Math.max((row.capacity ?? 0) - (row.booked_count ?? 0), 0)),
-      revenue: formatMoney((row.paid_count ?? 0) * (row.price_rub ?? 0)),
-      status: deriveEventStatus(row),
-    })),
+    rows: rows.map((row) => {
+      const eventTiers = tiersByEventId.get(row.id) ?? [];
+      const currentPrice = getPriceForNextBooking(row.price_rub, row.booked_count, eventTiers as EventPriceTier[]);
+
+      return {
+        id: row.id,
+        date: formatShortDate(row.starts_at),
+        time: formatTimeRange(row.starts_at, row.ends_at),
+        title: row.title,
+        format: row.category ?? "Практика",
+        host: row.host ?? "Команда РРК",
+        published: row.is_published ? "На сайте" : "Скрыто",
+        currentPrice: formatMoney(currentPrice),
+        pricing: eventTiers.length > 0 ? formatPriceTierSummary(eventTiers) : "Базовая цена",
+        enrolled: (row.booked_count ?? 0) >= (row.capacity ?? 0) ? "Мест нет" : `${row.booked_count ?? 0} из ${row.capacity ?? 0}`,
+        paid: String(row.paid_count ?? 0),
+        pending: String(row.pending_count ?? 0),
+        free: String(Math.max((row.capacity ?? 0) - (row.booked_count ?? 0), 0)),
+        revenue: formatMoney((row.paid_count ?? 0) * currentPrice),
+        status: deriveEventStatus(row),
+        subtitleRaw: row.subtitle ?? "",
+        descriptionRaw: row.description ?? "",
+        categoryRaw: row.category ?? "",
+        cityRaw: row.city ?? "Москва",
+        hostRaw: row.host ?? "",
+        startsAtRaw: row.starts_at,
+        endsAtRaw: row.ends_at ?? "",
+        priceRubRaw: String(row.price_rub ?? 0),
+        capacityRaw: String(row.capacity ?? 10),
+        isPublishedRaw: row.is_published ? "true" : "false",
+        pricingTiersRaw: JSON.stringify(eventTiers),
+      };
+    }),
   };
 }
 
@@ -857,7 +897,7 @@ async function loadEvents() {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, title, subtitle, category, city, host, status, starts_at, ends_at, price_rub, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published",
+      "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published",
     )
     .order("starts_at", { ascending: true });
 
@@ -867,6 +907,26 @@ async function loadEvents() {
   }
 
   return (data ?? []) as EventRow[];
+}
+
+async function loadEventPriceTiers() {
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("event_price_tiers")
+    .select("id, event_id, seat_from, seat_to, price_rub")
+    .order("seat_from", { ascending: true });
+
+  if (error) {
+    console.error("Supabase event_price_tiers query failed", error);
+    return null;
+  }
+
+  return (data ?? []) as EventPriceTierRow[];
 }
 
 async function loadParticipants() {

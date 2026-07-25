@@ -1,7 +1,105 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
+
+type EventTierInput = {
+  seatFrom: number;
+  seatTo: number | null;
+  priceRub: number;
+};
+
+type EventPayload = {
+  id?: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  category?: string;
+  city?: string;
+  host?: string;
+  startsAt: string;
+  endsAt: string;
+  capacity: number;
+  price: number;
+  isPublished: boolean;
+  status?: string;
+  pricingTiers?: EventTierInput[];
+};
+
+type PromoCodePayload = {
+  id?: string;
+  code: string;
+  description?: string;
+  discountPercent: number;
+  validFrom?: string | null;
+  expiresAt?: string | null;
+  usageLimit?: number | null;
+  isSingleUse: boolean;
+  isActive: boolean;
+  applicableServices?: string[];
+};
+
+function revalidateCrmAndSite() {
+  revalidatePath("/crm/classes");
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/promos");
+  revalidatePath("/crm/analytics");
+  revalidatePath("/");
+}
+
+function normalizeText(value?: string | null) {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
+}
+
+function normalizeIsoDate(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  return new Date(value).toISOString();
+}
+
+function normalizePricingTiers(tiers: EventTierInput[] = []) {
+  return [...tiers]
+    .map((tier) => ({
+      seat_from: Number(tier.seatFrom),
+      seat_to: tier.seatTo === null || tier.seatTo === undefined || tier.seatTo === 0 ? null : Number(tier.seatTo),
+      price_rub: Number(tier.priceRub),
+    }))
+    .filter((tier) => tier.seat_from > 0 && tier.price_rub >= 0)
+    .sort((left, right) => left.seat_from - right.seat_from);
+}
+
+async function getDynamicEventPrice(eventId: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return 0;
+  }
+
+  const { data: event, error: eventError } = await supabase
+    .from("events")
+    .select("price_rub, booked_count")
+    .eq("id", eventId)
+    .single();
+
+  if (eventError || !event) {
+    return 0;
+  }
+
+  const { data: tiers } = await supabase
+    .from("event_price_tiers")
+    .select("seat_from, seat_to, price_rub")
+    .eq("event_id", eventId)
+    .order("seat_from", { ascending: true });
+
+  return getPriceForNextBooking(
+    event.price_rub,
+    event.booked_count,
+    ((tiers ?? []) as EventPriceTier[]),
+  );
+}
 
 export async function addParticipant(formData: FormData) {
   const supabase = getSupabaseAdminClient();
@@ -64,9 +162,7 @@ export async function toggleEventVisibility(eventId: string, isPublished: boolea
 
   if (error) throw new Error("Failed to update event visibility");
 
-  revalidatePath("/crm/classes");
-  revalidatePath("/crm/dashboard");
-  revalidatePath("/");
+  revalidateCrmAndSite();
   return { success: true };
 }
 
@@ -81,9 +177,7 @@ export async function updateEventStatus(eventId: string, status: string) {
 
   if (error) throw new Error("Failed to update event status: " + error.message);
 
-  revalidatePath("/crm/classes");
-  revalidatePath("/crm/dashboard");
-  revalidatePath("/");
+  revalidateCrmAndSite();
   return { success: true };
 }
 
@@ -98,46 +192,161 @@ export async function deleteEvent(eventId: string) {
 
   if (error) throw new Error("Failed to delete event: " + error.message);
 
-  revalidatePath("/crm/classes");
-  revalidatePath("/crm/dashboard");
-  revalidatePath("/");
+  revalidateCrmAndSite();
   return { success: true };
 }
 
 export async function addEvent(formData: FormData) {
+  return saveEvent({
+    title: String(formData.get("title") ?? ""),
+    subtitle: String(formData.get("subtitle") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    category: String(formData.get("category") ?? ""),
+    city: String(formData.get("city") ?? "Москва"),
+    host: String(formData.get("host") ?? ""),
+    startsAt: String(formData.get("startsAt") ?? ""),
+    endsAt: String(formData.get("endsAt") ?? ""),
+    capacity: parseInt(String(formData.get("capacity") ?? "10"), 10) || 10,
+    price: parseInt(String(formData.get("price") ?? "4400"), 10) || 4400,
+    isPublished: formData.get("isPublished") !== "false",
+    status: String(formData.get("status") ?? "Открыто"),
+    pricingTiers: [],
+  });
+}
+
+export async function saveEvent(payload: EventPayload) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  const title = formData.get("title") as string;
-  const category = formData.get("category") as string;
-  const startsAt = formData.get("startsAt") as string;
-  const endsAt = formData.get("endsAt") as string;
-  const capacity = parseInt(formData.get("capacity") as string) || 10;
-  const price = parseInt(formData.get("price") as string) || 4400;
+  if (!payload.title?.trim() || !payload.startsAt || !payload.endsAt) {
+    throw new Error("Заполните название, дату начала и дату окончания");
+  }
 
-  if (!title || !startsAt || !endsAt) throw new Error("Missing required fields");
+  const normalizedPayload = {
+    title: payload.title.trim(),
+    subtitle: normalizeText(payload.subtitle),
+    description: normalizeText(payload.description),
+    category: normalizeText(payload.category),
+    city: normalizeText(payload.city) ?? "Москва",
+    host: normalizeText(payload.host),
+    starts_at: normalizeIsoDate(payload.startsAt),
+    ends_at: normalizeIsoDate(payload.endsAt),
+    capacity: Math.max(Number(payload.capacity) || 0, 1),
+    price_rub: Math.max(Number(payload.price) || 0, 0),
+    is_published: payload.isPublished,
+    status: normalizeText(payload.status) ?? "Открыто",
+  };
 
-  // Create event with Moscow timezone by forcing ISO string if datetime-local doesn't include TZ
-  const startsAtDate = new Date(startsAt);
-  const endsAtDate = new Date(endsAt);
+  let eventId = payload.id;
+
+  if (payload.id) {
+    const { error } = await supabase
+      .from("events")
+      .update(normalizedPayload)
+      .eq("id", payload.id);
+
+    if (error) {
+      throw new Error("Не удалось обновить занятие: " + error.message);
+    }
+  } else {
+    const { data, error } = await supabase
+      .from("events")
+      .insert(normalizedPayload)
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      throw new Error("Не удалось создать занятие: " + error?.message);
+    }
+
+    eventId = data.id;
+  }
+
+  const pricingTiers = normalizePricingTiers(payload.pricingTiers);
+
+  if (eventId) {
+    const { error: deleteTiersError } = await supabase
+      .from("event_price_tiers")
+      .delete()
+      .eq("event_id", eventId);
+
+    if (deleteTiersError) {
+      throw new Error("Не удалось обновить ценовые пороги: " + deleteTiersError.message);
+    }
+
+    if (pricingTiers.length > 0) {
+      const { error: insertTiersError } = await supabase
+        .from("event_price_tiers")
+        .insert(pricingTiers.map((tier) => ({ ...tier, event_id: eventId })));
+
+      if (insertTiersError) {
+        throw new Error("Не удалось сохранить ценовые пороги: " + insertTiersError.message);
+      }
+    }
+  }
+
+  revalidateCrmAndSite();
+  return { success: true, eventId };
+}
+
+export async function savePromoCode(payload: PromoCodePayload) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  if (!payload.code?.trim()) {
+    throw new Error("Укажите код промокода");
+  }
+
+  const normalizedCode = payload.code.trim().toUpperCase();
+  const normalizedPayload = {
+    code: normalizedCode,
+    description: normalizeText(payload.description),
+    discount_percent: Math.min(Math.max(Number(payload.discountPercent) || 0, 1), 100),
+    valid_from: normalizeIsoDate(payload.validFrom),
+    expires_at: normalizeIsoDate(payload.expiresAt),
+    usage_limit: payload.usageLimit ? Math.max(Number(payload.usageLimit), 1) : null,
+    is_single_use: payload.isSingleUse,
+    is_active: payload.isActive,
+    applicable_services: payload.applicableServices?.length ? payload.applicableServices : ["all"],
+  };
+
+  if (payload.id) {
+    const { error } = await supabase
+      .from("promo_codes")
+      .update(normalizedPayload)
+      .eq("id", payload.id);
+
+    if (error) {
+      throw new Error("Не удалось обновить промокод: " + error.message);
+    }
+  } else {
+    const { error } = await supabase
+      .from("promo_codes")
+      .insert(normalizedPayload);
+
+    if (error) {
+      throw new Error("Не удалось создать промокод: " + error.message);
+    }
+  }
+
+  revalidateCrmAndSite();
+  return { success: true };
+}
+
+export async function deletePromoCode(id: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
 
   const { error } = await supabase
-    .from("events")
-    .insert({
-      title,
-      category,
-      starts_at: startsAtDate.toISOString(),
-      ends_at: endsAtDate.toISOString(),
-      capacity,
-      price_rub: price,
-      is_published: true,
-    });
+    .from("promo_codes")
+    .delete()
+    .eq("id", id);
 
-  if (error) throw new Error("Failed to add event: " + error.message);
+  if (error) {
+    throw new Error("Не удалось удалить промокод: " + error.message);
+  }
 
-  revalidatePath("/crm/classes");
-  revalidatePath("/crm/dashboard");
-  revalidatePath("/");
+  revalidateCrmAndSite();
   return { success: true };
 }
 
@@ -267,7 +476,8 @@ export async function addRecord(formData: FormData) {
   }
 
   // 2. Получим данные о событии
-  const { data: event } = await supabase.from("events").select("price_rub, title, starts_at").eq("id", eventId).single();
+  const { data: event } = await supabase.from("events").select("title, starts_at").eq("id", eventId).single();
+  const currentPriceRub = await getDynamicEventPrice(eventId);
 
   // 3. Создадим запись
   const { data: enrollment, error: eError } = await supabase
@@ -289,7 +499,7 @@ export async function addRecord(formData: FormData) {
   await supabase.from("payments").insert({
     participant_id: participantId,
     event_id: eventId,
-    amount_rub: event?.price_rub || 0,
+    amount_rub: currentPriceRub,
     method: isPaid ? "Наличные / Перевод" : "Ожидает",
     status: isPaid ? "Оплачен" : "Ожидает",
     external_payment_id: `MANUAL-${Date.now()}`,
@@ -439,7 +649,8 @@ export async function addParticipantEnrollment(formData: FormData) {
 
   if (!participantId || !eventId) throw new Error("Participant and Event are required");
 
-  const { data: event } = await supabase.from("events").select("price_rub, title, starts_at").eq("id", eventId).single();
+  const { data: event } = await supabase.from("events").select("title, starts_at").eq("id", eventId).single();
+  const currentPriceRub = await getDynamicEventPrice(eventId);
 
   const { error: eError } = await supabase
     .from("enrollments")
@@ -457,7 +668,7 @@ export async function addParticipantEnrollment(formData: FormData) {
   await supabase.from("payments").insert({
     participant_id: participantId,
     event_id: eventId,
-    amount_rub: event?.price_rub || 0,
+    amount_rub: currentPriceRub,
     method: isPaid ? "Наличные / Перевод" : "Ожидает",
     status: isPaid ? "Оплачен" : "Ожидает",
     external_payment_id: `MANUAL-${Date.now()}`,

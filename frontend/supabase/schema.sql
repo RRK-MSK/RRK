@@ -98,11 +98,15 @@ create table if not exists public.promo_codes (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   discount_percent integer not null check (discount_percent > 0 and discount_percent <= 100),
+  description text,
   applicable_services text[] default '{"all"}',
   is_single_use boolean not null default true,
+  usage_limit integer,
   is_active boolean not null default true,
+  valid_from timestamptz,
   expires_at timestamptz,
-  created_at timestamptz not null default timezone('utc', now())
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
 );
 
 create table if not exists public.promo_code_usages (
@@ -112,6 +116,16 @@ create table if not exists public.promo_code_usages (
   order_id text not null,
   used_at timestamptz not null default timezone('utc', now()),
   unique(promo_code_id, participant_id)
+);
+
+create table if not exists public.event_price_tiers (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  seat_from integer not null check (seat_from > 0),
+  seat_to integer check (seat_to is null or seat_to >= seat_from),
+  price_rub integer not null check (price_rub >= 0),
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
 );
 
 alter table public.payments 
@@ -243,12 +257,25 @@ create trigger reviews_set_updated_at
 before update on public.reviews
 for each row execute function public.set_updated_at();
 
+drop trigger if exists promo_codes_set_updated_at on public.promo_codes;
+create trigger promo_codes_set_updated_at
+before update on public.promo_codes
+for each row execute function public.set_updated_at();
+
+drop trigger if exists event_price_tiers_set_updated_at on public.event_price_tiers;
+create trigger event_price_tiers_set_updated_at
+before update on public.event_price_tiers
+for each row execute function public.set_updated_at();
+
 alter publication supabase_realtime add table public.participants;
 alter publication supabase_realtime add table public.events;
 alter publication supabase_realtime add table public.enrollments;
 alter publication supabase_realtime add table public.payments;
 alter publication supabase_realtime add table public.expenses;
 alter publication supabase_realtime add table public.reviews;
+alter publication supabase_realtime add table public.promo_codes;
+alter publication supabase_realtime add table public.promo_code_usages;
+alter publication supabase_realtime add table public.event_price_tiers;
 
 alter table public.participants enable row level security;
 alter table public.events enable row level security;
@@ -256,6 +283,9 @@ alter table public.enrollments enable row level security;
 alter table public.payments enable row level security;
 alter table public.expenses enable row level security;
 alter table public.reviews enable row level security;
+alter table public.promo_codes enable row level security;
+alter table public.promo_code_usages enable row level security;
+alter table public.event_price_tiers enable row level security;
 
 do $$
 begin
@@ -275,7 +305,7 @@ do $$
 declare
   table_name text;
 begin
-  foreach table_name in array array['participants', 'events', 'enrollments', 'payments', 'expenses', 'reviews']
+  foreach table_name in array array['participants', 'events', 'enrollments', 'payments', 'expenses', 'reviews', 'promo_codes', 'promo_code_usages', 'event_price_tiers']
   loop
     if not exists (
       select 1 from pg_policies

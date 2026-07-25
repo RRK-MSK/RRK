@@ -1,7 +1,24 @@
 import { NextResponse } from "next/server";
+import { getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
 import { tbank } from "@/lib/tbank/client";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { sendTelegramNotification } from "@/lib/telegram";
+
+function isPromoWithinDateRange(promoCode: { valid_from?: string | null; expires_at?: string | null }) {
+  const now = Date.now();
+  const validFrom = promoCode.valid_from ? new Date(promoCode.valid_from).getTime() : null;
+  const expiresAt = promoCode.expires_at ? new Date(promoCode.expires_at).getTime() : null;
+
+  if (validFrom && validFrom > now) {
+    return false;
+  }
+
+  if (expiresAt && expiresAt < now) {
+    return false;
+  }
+
+  return true;
+}
 
 export async function POST(request: Request) {
   try {
@@ -29,29 +46,46 @@ export async function POST(request: Request) {
     
     let priceRub = 4400;
     let participantId = null;
+    let bookedCount = 0;
 
     if (supabase) {
       // 1. Ищем событие в БД
       if (!dbEventId && eventTitle) {
         const { data: events } = await supabase
           .from("events")
-          .select("id, price_rub")
+          .select("id, price_rub, booked_count")
           .ilike("title", `${eventTitle}%`)
           .limit(1);
           
         if (events && events.length > 0) {
           dbEventId = events[0].id;
           priceRub = events[0].price_rub || priceRub;
+          bookedCount = events[0].booked_count || 0;
         }
       } else if (dbEventId) {
         const { data: eventRow } = await supabase
           .from("events")
-          .select("price_rub")
+          .select("price_rub, booked_count")
           .eq("id", dbEventId)
           .single();
         if (eventRow) {
           priceRub = eventRow.price_rub || priceRub;
+          bookedCount = eventRow.booked_count || 0;
         }
+      }
+
+      if (dbEventId) {
+        const { data: priceTiers } = await supabase
+          .from("event_price_tiers")
+          .select("seat_from, seat_to, price_rub")
+          .eq("event_id", dbEventId)
+          .order("seat_from", { ascending: true });
+
+        priceRub = getPriceForNextBooking(
+          priceRub,
+          bookedCount,
+          ((priceTiers ?? []) as EventPriceTier[]),
+        );
       }
 
       // Если это тестовое событие (1 рубль)
@@ -64,7 +98,6 @@ export async function POST(request: Request) {
       }
 
       // 2. Ищем или создаем участника
-      const phoneOrTg = phone || telegram;
         const orConditions = [];
         if (phone) orConditions.push(`phone.eq.${phone}`);
         if (telegram) orConditions.push(`telegram.eq.${telegram}`);
@@ -153,8 +186,20 @@ export async function POST(request: Request) {
         .eq("code", promoCode.toUpperCase())
         .single();
         
-      if (promoData && promoData.is_active) {
+      if (promoData && promoData.is_active && isPromoWithinDateRange(promoData)) {
         let canUse = true;
+
+        if (promoData.usage_limit) {
+          const { count } = await supabase
+            .from("promo_code_usages")
+            .select("id", { count: "exact", head: true })
+            .eq("promo_code_id", promoData.id);
+
+          if ((count ?? 0) >= promoData.usage_limit) {
+            canUse = false;
+          }
+        }
+
         if (promoData.is_single_use) {
           const { data: usage } = await supabase
             .from("promo_code_usages")
@@ -231,6 +276,7 @@ export async function POST(request: Request) {
             orderNumber: freePaymentId,
             eventDate: formatDate(event.starts_at),
             source: data.source,
+            promoCodeUsed: !!promoCodeId,
             paymentDate: isActuallyFree && !promoCodeId ? undefined : new Date().toLocaleString('ru-RU', {
               timeZone: 'Europe/Moscow',
               day: '2-digit', month: '2-digit', year: 'numeric',
