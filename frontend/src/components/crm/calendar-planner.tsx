@@ -63,7 +63,7 @@ export function CrmCalendarPlanner({ rows }: { rows: TableRow[] }) {
           label: getMonthLabel(year, month - 1),
           shortLabel: getShortMonthLabel(year, month - 1),
           offset: getMonthOffset(year, month - 1),
-          daysInMonth: new Date(year, month, 0).getDate(),
+          daysInMonth: getDaysInMonth(year, month - 1),
           groupedEvents: new Map<number, CalendarEvent[]>(),
         });
       }
@@ -300,7 +300,7 @@ function normalizeCalendarEvent(row: TableRow) {
 }
 
 function getMonthOffset(year: number, monthIndex: number) {
-  const firstDay = new Date(year, monthIndex, 1).getDay();
+  const firstDay = new Date(Date.UTC(year, monthIndex, 1, 12)).getUTCDay();
   return (firstDay + 6) % 7;
 }
 
@@ -309,14 +309,18 @@ function getMonthLabel(year: number, monthIndex: number) {
     month: "long",
     year: "numeric",
     timeZone: "Europe/Moscow",
-  }).format(new Date(year, monthIndex, 1));
+  }).format(new Date(Date.UTC(year, monthIndex, 1, 12)));
 }
 
 function getShortMonthLabel(year: number, monthIndex: number) {
   return new Intl.DateTimeFormat("ru-RU", {
     month: "long",
     timeZone: "Europe/Moscow",
-  }).format(new Date(year, monthIndex, 1));
+  }).format(new Date(Date.UTC(year, monthIndex, 1, 12)));
+}
+
+function getDaysInMonth(year: number, monthIndex: number) {
+  return new Date(Date.UTC(year, monthIndex + 1, 0, 12)).getUTCDate();
 }
 
 function buildNewEventInitialData(month: CalendarMonth | undefined, day: number) {
