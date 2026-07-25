@@ -307,7 +307,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
           </div>
           <div className="poster-calendar-note">
             <strong>{selectedMonth?.filteredEventsCount ?? 0} событий в {selectedMonth?.shortLabel ?? "месяце"}</strong>
-            <p>На каждую тренировку 10 мест.</p>
+            <p>Количество мест указано в карточке каждого события.</p>
           </div>
         </div>
 
@@ -342,7 +342,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                   aria-pressed={day === effectiveSelectedDay}
                 >
                   <span className="poster-calendar-day-number">{day}</span>
-                  {dayEvents.length > 0 && !dayEvents.some(e => e.hideCapacity || (e.capacity ?? 10) >= 10000) && (daySeatsLeft < 10) && (daySeatsLeft > 0) ? (
+                  {dayEvents.length > 0 && !dayEvents.some(e => e.hideCapacity || (e.capacity ?? 10) >= 10000) && daySeatsLeft > 0 ? (
                     <span className="poster-calendar-day-count">{daySeatsLeft}</span>
                   ) : null}
                 </button>
@@ -377,9 +377,9 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                   <div className="poster-event-spots">
                     {getEventSeatsLeft(event) <= 0 ? (
                       <strong style={{ color: 'var(--brand)' }}>Мест нет</strong>
-                    ) : getEventSeatsLeft(event) < 10 ? (
-                      <strong>Осталось {getEventSeatsLeft(event)} мест</strong>
-                    ) : null}
+                    ) : (
+                      <strong>{getEventSeatsLeft(event)} мест</strong>
+                    )}
                   </div>
                 )}
                 {event.label ? <p className="poster-event-label">{event.label}</p> : null}
