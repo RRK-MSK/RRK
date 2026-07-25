@@ -7,6 +7,7 @@ export type PosterEvent = {
   tone: string;
   date: string;
   time: string;
+  startsAt?: string;
   title: string;
   description?: string;
   focus?: string;
@@ -24,10 +25,34 @@ type PosterCalendarProps = {
 };
 
 type DayKind = "standard" | "collab" | "spb" | "big";
+type CalendarMonth = {
+  key: string;
+  monthIndex: number;
+  year: number;
+  label: string;
+  shortLabel: string;
+  offset: number;
+  daysInMonth: number;
+  groupedEvents: Map<number, PosterEvent[]>;
+  activeDays: number[];
+  filteredEventsCount: number;
+};
 
 const weekDays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const julyOffset = 2;
-const julyDays = 31;
+const monthNames = [
+  "января",
+  "февраля",
+  "марта",
+  "апреля",
+  "мая",
+  "июня",
+  "июля",
+  "августа",
+  "сентября",
+  "октября",
+  "ноября",
+  "декабря",
+];
 
 const getDayNumber = (date: string) => {
   const match = date.match(/\d+/);
@@ -45,15 +70,21 @@ const splitDateLabel = (date: string) => {
 };
 
 const getDayKind = (dayEvents: PosterEvent[]): DayKind => {
-  if (dayEvents.some((event) => event.title.includes("ПИТЕРЕ"))) {
+  if (dayEvents.some((event) => event.title.toUpperCase().includes("ПИТЕРЕ"))) {
     return "spb";
   }
 
-  if (dayEvents.some((event) => event.label?.includes("ДК x РРК") || event.title.includes("COFFEE JAM"))) {
+  if (dayEvents.some((event) => {
+    const title = event.title.toLowerCase();
+    return event.label?.includes("ДК x РРК") || title.includes("coffee jam") || title.includes("кофе джем");
+  })) {
     return "collab";
   }
 
-  if (dayEvents.some((event) => event.title === "БИГ-ТРЕНИРОВКА")) {
+  if (dayEvents.some((event) => {
+    const title = event.title.toLowerCase();
+    return title.includes("биг-тренировка") || title.includes("большая тренировка");
+  })) {
     return "big";
   }
 
@@ -82,6 +113,49 @@ const getEventSeatsLeft = (event: PosterEvent) =>
 const getDaySeatsLeft = (dayEvents: PosterEvent[]) =>
   dayEvents.reduce((sum, event) => sum + getEventSeatsLeft(event), 0);
 
+function getMonthInfo(event: PosterEvent) {
+  if (event.startsAt) {
+    const date = new Date(event.startsAt);
+    const parts = new Intl.DateTimeFormat("ru-RU", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+      timeZone: "Europe/Moscow",
+    }).formatToParts(date);
+
+    const day = Number(parts.find((part) => part.type === "day")?.value ?? "1");
+    const month = Number(parts.find((part) => part.type === "month")?.value ?? "1") - 1;
+    const year = Number(parts.find((part) => part.type === "year")?.value ?? String(new Date().getFullYear()));
+
+    return { day, monthIndex: month, year };
+  }
+
+  const day = getDayNumber(event.date);
+  const normalizedDate = event.date.toLowerCase();
+  const monthIndex = monthNames.findIndex((month) => normalizedDate.includes(month));
+
+  return {
+    day: Number.isNaN(day) ? 1 : day,
+    monthIndex: monthIndex >= 0 ? monthIndex : 0,
+    year: 2026,
+  };
+}
+
+function getMonthOffset(year: number, monthIndex: number) {
+  const day = new Date(Date.UTC(year, monthIndex, 1)).getUTCDay();
+  return (day + 6) % 7;
+}
+
+function getMonthLabel(year: number, monthIndex: number) {
+  const date = new Date(Date.UTC(year, monthIndex, 1));
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Moscow",
+  }).format(date);
+}
+
 export function PosterCalendar({ events }: PosterCalendarProps) {
   const [bookedEventIds, setBookedEventIds] = useState<string[]>([]);
   const [selectedKind, setSelectedKind] = useState<DayKind | null>(null);
@@ -93,7 +167,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
         if (stored) {
           setBookedEventIds(JSON.parse(stored));
         }
-      } catch (e) {}
+        } catch {}
     };
 
     updateBookedEvents();
@@ -106,38 +180,65 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
     return events.filter(e => getDayKind([e]) === selectedKind);
   }, [events, selectedKind]);
 
-  const groupedEvents = useMemo(() => {
-    const map = new Map<number, PosterEvent[]>();
+  const months = useMemo(() => {
+    const map = new Map<string, CalendarMonth>();
 
     for (const event of filteredEvents) {
-      const day = getDayNumber(event.date);
-      if (Number.isNaN(day)) continue;
-      
-      const current = map.get(day) ?? [];
-      current.push(event);
-      map.set(day, current);
+      const { day, monthIndex, year } = getMonthInfo(event);
+      const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+      const existing = map.get(key);
+
+      if (existing) {
+        const current = existing.groupedEvents.get(day) ?? [];
+        current.push(event);
+        existing.groupedEvents.set(day, current);
+        existing.activeDays = Array.from(existing.groupedEvents.keys()).sort((left, right) => left - right);
+        existing.filteredEventsCount += 1;
+        continue;
+      }
+
+      const groupedEvents = new Map<number, PosterEvent[]>();
+      groupedEvents.set(day, [event]);
+
+      map.set(key, {
+        key,
+        monthIndex,
+        year,
+        label: getMonthLabel(year, monthIndex),
+        shortLabel: monthNames[monthIndex] ?? "",
+        offset: getMonthOffset(year, monthIndex),
+        daysInMonth: new Date(year, monthIndex + 1, 0).getDate(),
+        groupedEvents,
+        activeDays: [day],
+        filteredEventsCount: 1,
+      });
     }
 
-    return map;
+    return Array.from(map.values()).sort((left, right) => {
+      if (left.year !== right.year) return left.year - right.year;
+      return left.monthIndex - right.monthIndex;
+    });
   }, [filteredEvents]);
 
-  const activeDays = useMemo(
-    () => Array.from(groupedEvents.keys()).sort((left, right) => left - right),
-    [groupedEvents],
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(months[0]?.key ?? "");
+  const effectiveSelectedMonthKey = months.some((month) => month.key === selectedMonthKey)
+    ? selectedMonthKey
+    : (months[0]?.key ?? "");
+
+  const selectedMonthIndex = useMemo(
+    () => Math.max(months.findIndex((month) => month.key === effectiveSelectedMonthKey), 0),
+    [months, effectiveSelectedMonthKey],
   );
 
+  const selectedMonth = months[selectedMonthIndex];
+  const groupedEvents = selectedMonth?.groupedEvents ?? new Map<number, PosterEvent[]>();
+  const activeDays = selectedMonth?.activeDays ?? [];
+
   const [selectedDay, setSelectedDay] = useState(activeDays[0] ?? 1);
+  const effectiveSelectedDay = activeDays.includes(selectedDay) ? selectedDay : (activeDays[0] ?? 1);
 
-  // When selectedKind changes, auto-select the first available day for that kind
-  useEffect(() => {
-    if (activeDays.length > 0 && !activeDays.includes(selectedDay)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedDay(activeDays[0]);
-    }
-  }, [selectedKind, activeDays, selectedDay]);
-
-  const selectedEvents = groupedEvents.get(selectedDay) ?? [];
-  const selectedDate = selectedEvents[0]?.date ?? `${selectedDay} июля`;
+  const selectedEvents = groupedEvents.get(effectiveSelectedDay) ?? [];
+  const selectedDate = selectedEvents[0]?.date ?? `${effectiveSelectedDay} ${selectedMonth?.shortLabel ?? "июля"}`;
   const selectedDateParts = splitDateLabel(selectedDate);
   const selectedDateLabel = selectedDateParts.meta
     ? `${selectedDateParts.main} ${selectedDateParts.meta}`
@@ -145,14 +246,14 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
 
   const calendarCells = useMemo(
     () =>
-      Array.from({ length: julyOffset + julyDays }, (_, index) => {
-        if (index < julyOffset) {
+      Array.from({ length: (selectedMonth?.offset ?? 0) + (selectedMonth?.daysInMonth ?? 31) }, (_, index) => {
+        if (index < (selectedMonth?.offset ?? 0)) {
           return null;
         }
 
-        return index - julyOffset + 1;
+        return index - (selectedMonth?.offset ?? 0) + 1;
       }),
-    [],
+    [selectedMonth],
   );
 
   return (
@@ -160,7 +261,27 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
       <div className="poster-calendar-board">
         <div className="poster-calendar-head">
           <div>
-            <span>Июль 2026</span>
+            <div className="poster-calendar-month-switcher">
+              <button
+                type="button"
+                className="poster-calendar-month-arrow"
+                onClick={() => setSelectedMonthKey(months[Math.max(selectedMonthIndex - 1, 0)]?.key ?? selectedMonthKey)}
+                disabled={selectedMonthIndex <= 0}
+                aria-label="Предыдущий месяц"
+              >
+                ←
+              </button>
+              <span>{selectedMonth?.label ?? "Афиша"}</span>
+              <button
+                type="button"
+                className="poster-calendar-month-arrow"
+                onClick={() => setSelectedMonthKey(months[Math.min(selectedMonthIndex + 1, Math.max(months.length - 1, 0))]?.key ?? selectedMonthKey)}
+                disabled={selectedMonthIndex >= months.length - 1}
+                aria-label="Следующий месяц"
+              >
+                →
+              </button>
+            </div>
             <div className="poster-calendar-legend" aria-label="Типы событий">
               <span 
                 className={`poster-calendar-legend-item kind-standard ${selectedKind === 'standard' ? 'is-active' : ''}`}
@@ -185,7 +306,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
             </div>
           </div>
           <div className="poster-calendar-note">
-            <strong>{filteredEvents.length} событий в июле</strong>
+            <strong>{selectedMonth?.filteredEventsCount ?? 0} событий в {selectedMonth?.shortLabel ?? "месяце"}</strong>
             <p>На каждую тренировку 10 мест.</p>
           </div>
         </div>
@@ -213,12 +334,12 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                     "poster-calendar-day",
                     dayEvents.length > 0 ? "has-event" : "",
                     dayKind ? `kind-${dayKind}` : "",
-                    day === selectedDay ? "is-selected" : "",
+                    day === effectiveSelectedDay ? "is-selected" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
                   onClick={() => setSelectedDay(day)}
-                  aria-pressed={day === selectedDay}
+                  aria-pressed={day === effectiveSelectedDay}
                 >
                   <span className="poster-calendar-day-number">{day}</span>
                   {dayEvents.length > 0 && !dayEvents.some(e => e.hideCapacity || (e.capacity ?? 10) >= 10000) && (daySeatsLeft < 10) && (daySeatsLeft > 0) ? (

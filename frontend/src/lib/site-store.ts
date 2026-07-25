@@ -11,6 +11,7 @@ type SitePosterEvent = {
   tone: string;
   date: string;
   time: string;
+  startsAt?: string;
   title: string;
   description?: string;
   focus?: string;
@@ -92,7 +93,7 @@ export async function getSitePosterEvents() {
   return ((data ?? []) as EventRow[])
     .filter((event) => {
       const isPast = event.starts_at && new Date(event.starts_at).getTime() < Date.now();
-      const isCanceled = (event as any).status === "Отменено";
+      const isCanceled = event.status === "Отменено";
       return !isPast && !isCanceled;
     })
     .map((event, index) => {
@@ -101,13 +102,15 @@ export async function getSitePosterEvents() {
     const capacity = event.capacity ?? 10;
     const booked = Math.max(0, event.booked_count ?? 0);
     const seatsLeft = Math.max(capacity - booked, 0);
-    const hideCapacity = capacity >= 10000 || event.title?.toLowerCase().includes("coffee jam");
+    const normalizedTitle = event.title?.toLowerCase() ?? "";
+    const hideCapacity = capacity >= 10000 || normalizedTitle.includes("coffee jam") || normalizedTitle.includes("кофе джем");
 
     return {
       id: event.id,
       tone: getTone(event.category, index),
       date: formatSiteDate(event.starts_at),
-      time: formatTimeRange(event.starts_at, event.ends_at),
+      time: formatTimeRange(event),
+      startsAt: event.starts_at,
       title: event.title,
       description: event.subtitle ?? undefined,
       focus: event.description ?? undefined,
@@ -118,7 +121,7 @@ export async function getSitePosterEvents() {
       booked,
       seatsLeft,
       hideCapacity,
-      status: (event as any).status ?? undefined,
+      status: event.status ?? undefined,
     };
   });
 }
@@ -166,19 +169,25 @@ function formatSiteDate(value: string) {
   return `${day} ${month} (${weekday})`;
 }
 
-function formatTimeRange(startValue: string, endValue: string | null) {
-  const start = new Date(startValue);
+function formatTimeRange(event: EventRow) {
+  const normalizedCategory = (event.category ?? "").toLowerCase();
+
+  if (normalizedCategory.includes("full day") || normalizedCategory.includes("full_day")) {
+    return "FULL DAY";
+  }
+
+  const start = new Date(event.starts_at);
   const startTime = new Intl.DateTimeFormat("ru-RU", {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Europe/Moscow"
   }).format(start);
 
-  if (!endValue) {
+  if (!event.ends_at) {
     return startTime;
   }
 
-  const end = new Date(endValue);
+  const end = new Date(event.ends_at);
   const endTime = new Intl.DateTimeFormat("ru-RU", {
     hour: "2-digit",
     minute: "2-digit",

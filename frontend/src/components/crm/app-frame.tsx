@@ -57,9 +57,11 @@ export function AppFrame({ children }: { children: ReactNode }) {
 
         <div className="sidebar-footer">
           <p className="desktop-only">Внутренняя панель для записей, оплат и афиши РРК.</p>
-          <Link href="/crm/logout" className="logout-link">
-            Выйти
-          </Link>
+          <form action="/crm/logout" method="post">
+            <button type="submit" className="logout-link" style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+              Выйти
+            </button>
+          </form>
         </div>
       </aside>
       <main className="content-area">{children}</main>

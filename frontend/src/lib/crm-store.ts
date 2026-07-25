@@ -115,17 +115,22 @@ type PaymentJoinedRow = {
   method: string | null;
   status: string | null;
   paid_at: string | null;
+  promo_code_id?: string | null;
   source?: string | null;
   discount_amount_rub?: number | null;
   promo_code?: {
+    id?: string | null;
     code: string | null;
   } | null;
   participant: {
+    id?: string | null;
     full_name: string | null;
     slug?: string | null;
   } | null;
   event: {
+    id?: string | null;
     title: string | null;
+    starts_at?: string | null;
   } | null;
 };
 
@@ -516,6 +521,7 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
       const source = sourceMap.get(key) || "Сайт";
       
       return {
+        id: row.id,
         date: formatShortDate(row.paid_at),
         participant: row.participant?.full_name ?? "-",
         purpose: row.event?.title ?? "-",
@@ -526,6 +532,14 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
         source: source,
         status: row.status ?? "Ждет",
         action: "Открыть",
+        participantIdRaw: row.participant?.id ?? "",
+        eventIdRaw: row.event?.id ?? "",
+        paidAtRaw: row.paid_at ?? "",
+        amountRubRaw: String(row.amount_rub ?? 0),
+        methodRaw: row.method ?? "",
+        statusRaw: row.status ?? "Ждет",
+        promoCodeIdRaw: row.promo_code_id ?? row.promo_code?.id ?? "",
+        discountAmountRubRaw: String(row.discount_amount_rub ?? 0),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         slug: (row as any).participant?.slug ?? "",
       };
@@ -1036,7 +1050,7 @@ async function loadPayments() {
 
   const { data, error } = await supabase
     .from("payments")
-    .select("id, amount_rub, method, status, paid_at, participant:participants(full_name, slug), event:events(title), promo_code:promo_codes(code), discount_amount_rub")
+    .select("id, amount_rub, method, status, paid_at, participant_id, event_id, promo_code_id, participant:participants(id, full_name, slug), event:events(id, title, starts_at), promo_code:promo_codes(id, code), discount_amount_rub")
     .order("paid_at", { ascending: false });
 
   if (error) {
@@ -1329,25 +1343,37 @@ function normalizePaymentRow(raw: unknown): PaymentJoinedRow {
     method: string | null;
     status: string | null;
     paid_at: string | null;
+    participant_id?: string | null;
+    event_id?: string | null;
+    promo_code_id?: string | null;
     participant:
       | {
+          id?: string | null;
           full_name: string | null;
           slug: string | null;
         }
       | {
+          id?: string | null;
           full_name: string | null;
           slug: string | null;
         }[]
       | null;
     event:
       | {
+          id?: string | null;
           title: string | null;
+          starts_at?: string | null;
         }
       | {
+          id?: string | null;
           title: string | null;
+          starts_at?: string | null;
         }[]
       | null;
-    promo_code: { code: string | null } | { code: string | null }[] | null;
+    promo_code:
+      | { id?: string | null; code: string | null }
+      | { id?: string | null; code: string | null }[]
+      | null;
     discount_amount_rub: number | null;
   };
 
@@ -1357,6 +1383,7 @@ function normalizePaymentRow(raw: unknown): PaymentJoinedRow {
     method: row.method,
     status: row.status,
     paid_at: row.paid_at,
+    promo_code_id: row.promo_code_id ?? null,
     participant: unwrapRelation(row.participant),
     event: unwrapRelation(row.event),
     promo_code: unwrapRelation(row.promo_code),

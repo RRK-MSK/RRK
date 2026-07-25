@@ -1,10 +1,21 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { PaymentFormModal, type PaymentFormOption } from "@/components/crm/payment-form-modal";
 import { FilterRow, SectionCard, StatusBadge } from "@/components/crm/ui";
 import type { TableRow } from "@/lib/crm-data";
 
-export function PaymentsTable({ initialRows }: { initialRows: TableRow[] }) {
+export function PaymentsTable({
+  initialRows,
+  participants,
+  events,
+  promoCodes,
+}: {
+  initialRows: TableRow[];
+  participants: PaymentFormOption[];
+  events: PaymentFormOption[];
+  promoCodes: PaymentFormOption[];
+}) {
   const [activeFilter, setActiveFilter] = useState("Все");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -45,7 +56,20 @@ export function PaymentsTable({ initialRows }: { initialRows: TableRow[] }) {
     return result;
   }, [initialRows, activeFilter, searchQuery]);
 
-  const headers = initialRows.length > 0 ? Object.keys(initialRows[0] ?? {}).filter(k => k !== "slug") : [];
+  const hiddenKeys = new Set([
+    "id",
+    "action",
+    "slug",
+    "participantIdRaw",
+    "eventIdRaw",
+    "paidAtRaw",
+    "amountRubRaw",
+    "methodRaw",
+    "statusRaw",
+    "promoCodeIdRaw",
+    "discountAmountRubRaw",
+  ]);
+  const headers = initialRows.length > 0 ? Object.keys(initialRows[0] ?? {}).filter((key) => !hiddenKeys.has(key)) : [];
 
   function formatHeader(value: string) {
     if (value === "date") return "Дата";
@@ -113,11 +137,12 @@ export function PaymentsTable({ initialRows }: { initialRows: TableRow[] }) {
               {headers.map((header) => (
                 <th key={header}>{formatHeader(header)}</th>
               ))}
+              <th>Действие</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((row, index) => (
-              <tr key={index}>
+              <tr key={String(row.id ?? index)}>
                 {headers.map((header) => {
                   const value = row[header];
                   const normalizedHeader = header.toLowerCase();
@@ -125,31 +150,42 @@ export function PaymentsTable({ initialRows }: { initialRows: TableRow[] }) {
                     normalizedHeader.includes("status") ||
                     normalizedHeader.includes("payment") ||
                     normalizedHeader.includes("confirmation");
-                  const isAction = header === "action";
 
                   return (
                     <td key={header}>
                       {isStatus ? (
                         <StatusBadge value={value?.toString() || ""} />
-                      ) : isAction ? (
-                        row.slug ? (
-                          <a href={`/crm/participants/${row.slug}`} className="ghost-button link-button">
-                            {value?.toString() || "Открыть"}
-                          </a>
-                        ) : (
-                          <button className="ghost-button">{value?.toString() || "Открыть"}</button>
-                        )
                       ) : (
                         value?.toString()
                       )}
                     </td>
                   );
                 })}
+                <td>
+                  <PaymentFormModal
+                    triggerLabel="Редактировать"
+                    triggerClassName="ghost-button"
+                    participants={participants}
+                    events={events}
+                    promoCodes={promoCodes}
+                    initialData={{
+                      id: String(row.id ?? ""),
+                      participantId: String(row.participantIdRaw ?? ""),
+                      eventId: String(row.eventIdRaw ?? ""),
+                      amountRub: Number(row.amountRubRaw ?? 0),
+                      method: String(row.methodRaw ?? "Наличные / Перевод"),
+                      status: String(row.statusRaw ?? "Оплачен"),
+                      paidAt: String(row.paidAtRaw ?? ""),
+                      promoCodeId: String(row.promoCodeIdRaw ?? ""),
+                      discountAmountRub: Number(row.discountAmountRubRaw ?? 0),
+                    }}
+                  />
+                </td>
               </tr>
             ))}
             {filteredRows.length === 0 && (
               <tr>
-                <td colSpan={headers.length} style={{ textAlign: "center", color: "var(--muted)", padding: "40px" }}>
+                <td colSpan={headers.length + 1} style={{ textAlign: "center", color: "var(--muted)", padding: "40px" }}>
                   Ничего не найдено
                 </td>
               </tr>

@@ -40,7 +40,20 @@ type PromoCodePayload = {
   applicableServices?: string[];
 };
 
+type PaymentPayload = {
+  id?: string;
+  participantId: string;
+  eventId?: string | null;
+  amountRub: number;
+  method?: string;
+  status?: string;
+  paidAt?: string;
+  promoCodeId?: string | null;
+  discountAmountRub?: number;
+};
+
 function revalidateCrmAndSite() {
+  revalidatePath("/crm/calendar");
   revalidatePath("/crm/classes");
   revalidatePath("/crm/dashboard");
   revalidatePath("/crm/promos");
@@ -350,6 +363,76 @@ export async function deletePromoCode(id: string) {
   return { success: true };
 }
 
+export async function savePayment(payload: PaymentPayload) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error("Supabase is not configured");
+  }
+
+  if (!payload.participantId) {
+    throw new Error("Выберите участника");
+  }
+
+  const normalizedEventId = payload.eventId?.trim() ? payload.eventId : null;
+  const normalizedStatus = normalizeText(payload.status) ?? "Оплачен";
+  const normalizedMethod = normalizeText(payload.method) ?? "Наличные / Перевод";
+  const normalizedPromoCodeId = payload.promoCodeId?.trim() ? payload.promoCodeId : null;
+  const normalizedPaidAt = normalizeIsoDate(payload.paidAt) ?? new Date().toISOString();
+  const normalizedAmount = Math.max(Number(payload.amountRub) || 0, 0);
+  const normalizedDiscount = Math.max(Number(payload.discountAmountRub) || 0, 0);
+
+  const paymentPayload = {
+    participant_id: payload.participantId,
+    event_id: normalizedEventId,
+    amount_rub: normalizedAmount,
+    method: normalizedMethod,
+    status: normalizedStatus,
+    paid_at: normalizedPaidAt,
+    promo_code_id: normalizedPromoCodeId,
+    discount_amount_rub: normalizedDiscount,
+    external_payment_id: payload.id ? undefined : `MANUAL-${Date.now()}`,
+  };
+
+  if (payload.id) {
+    const { error } = await supabase
+      .from("payments")
+      .update(paymentPayload)
+      .eq("id", payload.id);
+
+    if (error) {
+      throw new Error("Не удалось обновить оплату: " + error.message);
+    }
+  } else {
+    const { error } = await supabase
+      .from("payments")
+      .insert(paymentPayload);
+
+    if (error) {
+      throw new Error("Не удалось создать оплату: " + error.message);
+    }
+  }
+
+  if (normalizedEventId) {
+    await supabase
+      .from("enrollments")
+      .update({
+        payment_status: normalizedStatus,
+      })
+      .eq("participant_id", payload.participantId)
+      .eq("event_id", normalizedEventId);
+  }
+
+  revalidatePath("/crm/payments");
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/participants");
+  revalidatePath("/crm/records");
+  revalidatePath("/crm/promos");
+  revalidatePath("/crm/analytics");
+  revalidatePath("/");
+
+  return { success: true };
+}
+
 export async function updateParticipantStatus(id: string, status: string) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
@@ -531,6 +614,7 @@ export async function markEnrollmentPaid(enrollmentId: string) {
 
   if (error) throw new Error("Failed to mark paid: " + error.message);
 
+  revalidatePath("/crm/calendar");
   revalidatePath("/crm/classes");
   revalidatePath("/crm/dashboard");
   revalidatePath("/crm/participants");
@@ -549,6 +633,7 @@ export async function transferParticipant(enrollmentId: string, newEventId: stri
 
   if (error) throw new Error("Failed to transfer: " + error.message);
 
+  revalidatePath("/crm/calendar");
   revalidatePath("/crm/classes");
   revalidatePath("/crm/dashboard");
   revalidatePath("/crm/participants");
@@ -566,6 +651,7 @@ export async function updateEnrollmentStatus(enrollmentId: string, status: strin
 
   if (error) throw new Error("Failed to update status: " + error.message);
 
+  revalidatePath("/crm/calendar");
   revalidatePath("/crm/classes");
   revalidatePath("/crm/dashboard");
   revalidatePath("/crm/participants");

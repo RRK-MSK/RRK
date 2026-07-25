@@ -2140,6 +2140,32 @@ th {
   color: #7c3e34;
 }
 
+.poster-calendar-month-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.poster-calendar-month-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(94, 44, 37, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #631120;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.poster-calendar-month-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .poster-calendar-head h3,
 .poster-calendar-detail-head h3 {
   margin: 8px 0 0;
@@ -3533,6 +3559,16 @@ th {
 
   .poster-calendar-head {
     grid-template-columns: 1fr;
+  }
+
+  .poster-calendar-month-switcher {
+    gap: 8px;
+  }
+
+  .poster-calendar-month-arrow {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
   }
 
   .poster-calendar-grid,
