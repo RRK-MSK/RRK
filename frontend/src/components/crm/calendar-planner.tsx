@@ -279,15 +279,16 @@ export function CrmCalendarPlanner({ rows }: { rows: TableRow[] }) {
 function normalizeCalendarEvent(row: TableRow) {
   const id = String(row.id ?? "");
   const startsAt = String(row.startsAtRaw ?? "");
+  const status = String(row.status ?? "Открыто");
 
-  if (!id || !startsAt) {
+  if (!id || !startsAt || status === "Прошло") {
     return null;
   }
 
   return {
     id,
     title: String(row.title ?? ""),
-    status: String(row.status ?? "Открыто"),
+    status,
     time: String(row.time ?? ""),
     format: String(row.format ?? "Практика"),
     host: String(row.host ?? "Команда РРК"),
