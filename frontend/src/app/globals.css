@@ -2121,9 +2121,9 @@ th {
   gap: 14px;
   padding: 18px;
   border-radius: 24px;
-  border: 1px solid rgba(71, 24, 30, 0.08);
-  background: rgba(255, 252, 248, 0.9);
-  box-shadow: 0 18px 40px rgba(84, 39, 34, 0.06);
+  border: 1px solid rgba(112, 17, 34, 0.12);
+  background: rgba(255, 252, 248, 0.96);
+  box-shadow: 0 18px 40px rgba(84, 39, 34, 0.08);
 }
 
 .poster-calendar-head {
@@ -2235,7 +2235,7 @@ th {
   gap: 6px;
   padding: 14px;
   border-radius: 18px;
-  background: rgba(122, 19, 37, 0.07);
+  background: linear-gradient(180deg, rgba(122, 19, 37, 0.14), rgba(122, 19, 37, 0.08));
 }
 
 .poster-calendar-note strong {
@@ -2272,17 +2272,17 @@ th {
 
 .poster-calendar-day {
   --calendar-day-accent: #7a1325;
-  --calendar-day-surface: rgba(122, 19, 37, 0.08);
-  --calendar-day-surface-selected: rgba(122, 19, 37, 0.16);
-  --calendar-day-shadow: rgba(122, 19, 37, 0.14);
+  --calendar-day-surface: rgba(122, 19, 37, 0.18);
+  --calendar-day-surface-selected: rgba(122, 19, 37, 0.3);
+  --calendar-day-shadow: rgba(122, 19, 37, 0.22);
   position: relative;
   display: grid;
   align-content: space-between;
   min-height: 72px;
   padding: 10px 8px;
-  border: 1px solid rgba(94, 44, 37, 0.08);
+  border: 1px solid rgba(94, 44, 37, 0.14);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, 0.82);
   color: #2b1711;
   text-align: left;
   transition:
@@ -2293,13 +2293,14 @@ th {
 }
 
 .poster-calendar-day.has-event {
-  border-color: color-mix(in srgb, var(--calendar-day-accent) 22%, white);
-  background: linear-gradient(180deg, var(--calendar-day-surface), rgba(255, 255, 255, 0.82));
+  border-color: color-mix(in srgb, var(--calendar-day-accent) 38%, white);
+  background: linear-gradient(180deg, var(--calendar-day-surface), rgba(255, 255, 255, 0.94));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
 .poster-calendar-day.is-selected {
-  border-color: color-mix(in srgb, var(--calendar-day-accent) 48%, white);
-  background: linear-gradient(180deg, var(--calendar-day-surface-selected), rgba(255, 246, 246, 0.96));
+  border-color: color-mix(in srgb, var(--calendar-day-accent) 70%, white);
+  background: linear-gradient(180deg, var(--calendar-day-surface-selected), rgba(255, 242, 242, 1));
   box-shadow: 0 16px 30px var(--calendar-day-shadow);
   transform: translateY(-2px);
 }
@@ -2311,49 +2312,49 @@ th {
 
 .poster-calendar-day.kind-standard {
   --calendar-day-accent: #7a1325;
-  --calendar-day-surface: rgba(122, 19, 37, 0.08);
-  --calendar-day-surface-selected: rgba(122, 19, 37, 0.16);
-  --calendar-day-shadow: rgba(122, 19, 37, 0.14);
+  --calendar-day-surface: rgba(122, 19, 37, 0.18);
+  --calendar-day-surface-selected: rgba(122, 19, 37, 0.3);
+  --calendar-day-shadow: rgba(122, 19, 37, 0.2);
 }
 
 .poster-calendar-day.kind-collab,
 .poster-calendar-legend-item.kind-collab {
   --calendar-day-accent: #9b5b16;
-  --calendar-day-surface: rgba(155, 91, 22, 0.12);
-  --calendar-day-surface-selected: rgba(155, 91, 22, 0.2);
-  --calendar-day-shadow: rgba(155, 91, 22, 0.16);
+  --calendar-day-surface: rgba(155, 91, 22, 0.2);
+  --calendar-day-surface-selected: rgba(155, 91, 22, 0.32);
+  --calendar-day-shadow: rgba(155, 91, 22, 0.22);
 }
 
 .poster-calendar-day.kind-spb,
 .poster-calendar-legend-item.kind-spb {
   --calendar-day-accent: #215e92;
-  --calendar-day-surface: rgba(33, 94, 146, 0.12);
-  --calendar-day-surface-selected: rgba(33, 94, 146, 0.2);
-  --calendar-day-shadow: rgba(33, 94, 146, 0.16);
+  --calendar-day-surface: rgba(33, 94, 146, 0.2);
+  --calendar-day-surface-selected: rgba(33, 94, 146, 0.32);
+  --calendar-day-shadow: rgba(33, 94, 146, 0.22);
 }
 
 .poster-calendar-day.kind-big,
 .poster-calendar-legend-item.kind-big {
   --calendar-day-accent: #7a2f7f;
-  --calendar-day-surface: rgba(122, 47, 127, 0.12);
-  --calendar-day-surface-selected: rgba(122, 47, 127, 0.2);
-  --calendar-day-shadow: rgba(122, 47, 127, 0.16);
+  --calendar-day-surface: rgba(122, 47, 127, 0.2);
+  --calendar-day-surface-selected: rgba(122, 47, 127, 0.32);
+  --calendar-day-shadow: rgba(122, 47, 127, 0.22);
 }
 
 .poster-calendar-day.kind-standard,
 .poster-calendar-legend-item.kind-standard {
   --calendar-day-accent: #7a1325;
-  --calendar-day-surface: rgba(122, 19, 37, 0.08);
-  --calendar-day-surface-selected: rgba(122, 19, 37, 0.16);
-  --calendar-day-shadow: rgba(122, 19, 37, 0.14);
+  --calendar-day-surface: rgba(122, 19, 37, 0.18);
+  --calendar-day-surface-selected: rgba(122, 19, 37, 0.3);
+  --calendar-day-shadow: rgba(122, 19, 37, 0.2);
 }
 
 .poster-calendar-legend-item.kind-standard,
 .poster-calendar-legend-item.kind-collab,
 .poster-calendar-legend-item.kind-spb,
 .poster-calendar-legend-item.kind-big {
-  border-color: color-mix(in srgb, var(--calendar-day-accent) 24%, white);
-  background: linear-gradient(180deg, var(--calendar-day-surface), rgba(255, 255, 255, 0.94));
+  border-color: color-mix(in srgb, var(--calendar-day-accent) 44%, white);
+  background: linear-gradient(180deg, var(--calendar-day-surface), rgba(255, 255, 255, 0.98));
   color: color-mix(in srgb, var(--calendar-day-accent) 82%, black);
 }
 
