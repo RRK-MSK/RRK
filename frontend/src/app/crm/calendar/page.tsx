@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { MetricGrid, PageHeader, SectionCard } from "@/components/crm/ui";
 import { getClassesPageData } from "@/lib/crm-store";
+import { CrmCalendarPlanner } from "@/components/crm/calendar-planner";
 import { ClassCard } from "@/components/crm/class-card";
 import { ClassesTable } from "@/components/crm/classes-table";
 import { AddClassModal } from "@/components/crm/add-class-modal";
@@ -20,6 +21,13 @@ export default async function CalendarPage() {
 
       <SectionCard title="Операционная сводка" description="Сколько занятий открыто, где sold out и сколько денег в потенциале.">
         <MetricGrid items={metrics} />
+      </SectionCard>
+
+      <SectionCard
+        title="Планирование по дням"
+        description="Визуальный календарь как на сайте: нажмите на день, посмотрите занятия и сразу добавьте новое с ценой, временем и вместимостью."
+      >
+        <CrmCalendarPlanner rows={rows} />
       </SectionCard>
 
       <SectionCard

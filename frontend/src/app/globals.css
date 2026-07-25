@@ -2471,6 +2471,195 @@ th {
   gap: 16px;
 }
 
+.crm-calendar-planner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.75fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.crm-calendar-board,
+.crm-calendar-detail {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: var(--shadow);
+}
+
+.crm-calendar-board-head,
+.crm-calendar-detail-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.crm-calendar-month-switcher {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.crm-calendar-month-switcher strong {
+  display: block;
+  font-size: 22px;
+  text-transform: capitalize;
+}
+
+.crm-calendar-month-switcher p,
+.crm-calendar-detail-head p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.crm-calendar-month-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(112, 17, 34, 0.12);
+  background: var(--surface-strong);
+  color: var(--brand);
+}
+
+.crm-calendar-month-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.crm-calendar-weekdays,
+.crm-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.crm-calendar-weekdays span {
+  display: grid;
+  place-items: center;
+  min-height: 28px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.crm-calendar-empty,
+.crm-calendar-day {
+  min-height: 84px;
+  border-radius: 16px;
+}
+
+.crm-calendar-empty {
+  display: block;
+}
+
+.crm-calendar-day {
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+  padding: 12px 10px;
+  border: 1px solid rgba(112, 17, 34, 0.08);
+  background: rgba(247, 244, 237, 0.72);
+  text-align: left;
+  color: var(--text);
+}
+
+.crm-calendar-day.has-events {
+  background: rgba(112, 17, 34, 0.08);
+  border-color: rgba(112, 17, 34, 0.16);
+}
+
+.crm-calendar-day.is-selected {
+  background: rgba(112, 17, 34, 0.14);
+  border-color: rgba(112, 17, 34, 0.3);
+  box-shadow: 0 14px 28px rgba(112, 17, 34, 0.12);
+}
+
+.crm-calendar-day-number {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.crm-calendar-day-meta {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.crm-calendar-detail-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.crm-calendar-detail-head h3 {
+  margin: 8px 0 0;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.crm-calendar-event-list {
+  display: grid;
+  gap: 12px;
+}
+
+.crm-calendar-event-card,
+.crm-calendar-empty-state {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(112, 17, 34, 0.1);
+  background: rgba(247, 244, 237, 0.9);
+}
+
+.crm-calendar-event-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.crm-calendar-event-top strong {
+  display: block;
+  font-size: 18px;
+}
+
+.crm-calendar-event-top p,
+.crm-calendar-empty-state p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.crm-calendar-event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crm-calendar-event-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(112, 17, 34, 0.08);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .crm-class-load-card {
   display: grid;
   gap: 14px;
@@ -3619,6 +3808,47 @@ th {
 
   .crm-class-load-grid {
     grid-template-columns: 1fr;
+  }
+
+  .crm-calendar-planner {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-calendar-board,
+  .crm-calendar-detail {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .crm-calendar-board-head,
+  .crm-calendar-detail-head,
+  .crm-calendar-month-switcher {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .crm-calendar-weekdays,
+  .crm-calendar-grid {
+    gap: 4px;
+  }
+
+  .crm-calendar-empty,
+  .crm-calendar-day {
+    min-height: 60px;
+    padding: 8px 6px;
+    border-radius: 14px;
+  }
+
+  .crm-calendar-day-number {
+    font-size: 16px;
+  }
+
+  .crm-calendar-day-meta {
+    font-size: 11px;
+  }
+
+  .crm-calendar-detail-head h3 {
+    font-size: 26px;
   }
 
   .crm-class-load-card {
