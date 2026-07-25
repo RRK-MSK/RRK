@@ -31,6 +31,9 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
     price: "",
     paymentMethod: "card",
     promoCode: "",
+    ticketLabel: "",
+    ticketPriceRub: "",
+    ticketCapacity: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,10 +55,11 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
       const response = await fetch('/api/promo/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           code: formData.promoCode, 
           phone: formData.phone, 
-          telegram: formData.telegram 
+          telegram: formData.telegram,
+          ticketPriceRub: formData.ticketPriceRub,
         })
       });
       const data = await response.json();
@@ -64,16 +68,19 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
         setDiscountPercent(data.discount_percent);
         
         // Calculate new price
+        const normalizedTicketPrice = Number(formData.ticketPriceRub);
         const currentPriceMatch = formData.price.replace(/\s/g, '').match(/(\d+)/);
-        if (currentPriceMatch) {
-          const originalPrice = parseInt(currentPriceMatch[0], 10);
+        const originalPrice = Number.isFinite(normalizedTicketPrice) && normalizedTicketPrice > 0
+          ? normalizedTicketPrice
+          : (currentPriceMatch ? parseInt(currentPriceMatch[0], 10) : 0);
+        if (originalPrice > 0) {
           const newPrice = Math.max(0, originalPrice - Math.round(originalPrice * (data.discount_percent / 100)));
           setDiscountedPrice(newPrice);
         }
       } else {
         setPromoError(data.error || "Промокод недействителен");
       }
-    } catch (e) {
+    } catch {
       setPromoError("Ошибка при проверке промокода");
     }
   };
@@ -211,7 +218,10 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
                 const selectedIndex = e.target.selectedIndex;
                 const selectedOption = e.target.options[selectedIndex];
                 const price = selectedOption.getAttribute('data-price') || '';
-                setFormData({...formData, eventId: e.target.value, price});
+                const ticketLabel = selectedOption.getAttribute('data-ticket-label') || '';
+                const ticketPriceRub = selectedOption.getAttribute('data-ticket-price-rub') || '';
+                const ticketCapacity = selectedOption.getAttribute('data-ticket-capacity') || '';
+                setFormData({...formData, eventId: e.target.value, price, ticketLabel, ticketPriceRub, ticketCapacity});
                 setPromoError("");
                 setPromoSuccess("");
                 setDiscountPercent(0);
@@ -221,14 +231,46 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
               <option value="" disabled>Выберите событие</option>
               {events.map((ev, i) => {
                 const isSoldOut = !ev.hideCapacity && (ev.capacity ?? 10) < 10000 && getEventSeatsLeft(ev) <= 0;
+                const baseValue = ev.id ? `${ev.id}::${ev.title}` : `${ev.date} | ${ev.time} - ${ev.title}`;
+
+                if (ev.bookingOptions?.length) {
+                  return ev.bookingOptions.map((option, optionIndex) => {
+                    const optionSoldOut = option.seatsLeft <= 0;
+
+                    return (
+                      <option
+                        key={`${i}-${optionIndex}`}
+                        value={baseValue}
+                        data-price={option.price}
+                        data-ticket-label={option.label}
+                        data-ticket-price-rub={String(option.priceRub)}
+                        data-ticket-capacity={String(option.capacity)}
+                        disabled={optionSoldOut}
+                      >
+                        {ev.date} | {ev.time} | {ev.title} | {option.label} {optionSoldOut ? '(Мест нет)' : `(${option.price}, ${option.seatsLeft} мест)`}
+                      </option>
+                    );
+                  });
+                }
+
                 return (
-                  <option key={i} value={ev.id ? `${ev.id}::${ev.title}` : `${ev.date} | ${ev.time} - ${ev.title}`} data-price={ev.price} disabled={isSoldOut}>
+                  <option key={i} value={baseValue} data-price={ev.price} disabled={isSoldOut}>
                     {ev.date} | {ev.time} | {ev.title} {isSoldOut ? '(Мест нет)' : `(${ev.price})`}
                   </option>
                 );
               })}
             </select>
           </div>
+
+          {formData.ticketLabel ? (
+            <div className="booking-field">
+              <label>Выбранный тариф</label>
+              <div style={{ padding: '12px 14px', borderRadius: '14px', background: 'rgba(112, 17, 34, 0.06)', border: '1px solid rgba(112, 17, 34, 0.12)' }}>
+                <strong style={{ display: 'block', marginBottom: '4px' }}>{formData.ticketLabel}</strong>
+                <span style={{ color: 'var(--muted)' }}>{formData.price}</span>
+              </div>
+            </div>
+          ) : null}
 
           {!(formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация")) && (
             <div className="booking-field">

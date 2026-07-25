@@ -2471,8 +2471,39 @@ th {
   font-weight: 600;
 }
 
+.poster-event-tariffs {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.poster-event-tariff {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.poster-event-tariff strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.poster-event-tariff span {
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
 .poster-event-soft .poster-event-spots {
   background: rgba(122, 19, 37, 0.08);
+}
+
+.poster-event-soft .poster-event-tariff {
+  border-color: rgba(112, 17, 34, 0.14);
+  background: rgba(112, 17, 34, 0.06);
 }
 
 .crm-class-load-grid {

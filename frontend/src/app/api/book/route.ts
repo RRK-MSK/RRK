@@ -26,6 +26,10 @@ export async function POST(request: Request) {
     console.log("New booking request:", data);
 
     const { firstName, lastName, phone, telegram, email, eventId, paymentMethod, source, promoCode } = data;
+    const selectedTicketLabel = typeof data.ticketLabel === "string" ? data.ticketLabel.trim() : "";
+    const selectedTicketPriceRub = Number(data.ticketPriceRub ?? 0);
+    const selectedTicketCapacity = Number(data.ticketCapacity ?? 0);
+    const ticketNote = selectedTicketLabel ? `Тариф: ${selectedTicketLabel}` : null;
     
     // Пытаемся найти ID события в базе (по title)
     // eventId с фронта сейчас выглядит как "uuid::Название" или "5 июля (вс) | 19:00-22:30 - Название"
@@ -88,6 +92,10 @@ export async function POST(request: Request) {
         );
       }
 
+      if (selectedTicketPriceRub > 0) {
+        priceRub = selectedTicketPriceRub;
+      }
+
       // Если это тестовое событие (1 рубль)
       if (eventId && eventId.includes("Тестовое")) {
         priceRub = 1;
@@ -137,6 +145,26 @@ export async function POST(request: Request) {
 
       // 3. Создаем запись (enrollment)
       if (participantId && dbEventId) {
+        if (ticketNote && selectedTicketCapacity > 0) {
+          const { data: existingTariffBookings, error: tariffError } = await supabase
+            .from("enrollments")
+            .select("id, status")
+            .eq("event_id", dbEventId)
+            .eq("note", ticketNote);
+
+          if (tariffError) {
+            console.error("Tariff seats check error:", tariffError);
+          }
+
+          const tariffBookedCount = (existingTariffBookings ?? []).filter((row) => !(row.status ?? "").toLowerCase().includes("отмен")).length;
+          if (tariffBookedCount >= selectedTicketCapacity) {
+            return NextResponse.json(
+              { success: false, error: `На тариф «${selectedTicketLabel}» мест больше нет` },
+              { status: 400 },
+            );
+          }
+        }
+
         const actualSource = source === "Telegram Mini App" ? "Telegram Mini App" : "Сайт (Оплата Т-Банк)";
         const { error: eError } = await supabase
           .from("enrollments")
@@ -146,6 +174,7 @@ export async function POST(request: Request) {
             status: "Активна",
             payment_status: "Ждет оплату",
             source: actualSource,
+            note: ticketNote,
           });
         if (eError) console.error("Enrollment insert error:", eError);
 
@@ -334,7 +363,7 @@ export async function POST(request: Request) {
         Taxation: "usn_income", // УСН Доходы (замените если другая система налогообложения)
         Items: [
           {
-            Name: `Участие в РРК: ${eventTitle || 'Событие'}`,
+            Name: `Участие в РРК: ${eventTitle || 'Событие'}${selectedTicketLabel ? ` (${selectedTicketLabel})` : ""}`,
             Price: amountKopecks,
             Quantity: 1.00,
             Amount: amountKopecks,

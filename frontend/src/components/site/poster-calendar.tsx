@@ -18,6 +18,13 @@ export type PosterEvent = {
   booked?: number;
   seatsLeft?: number;
   hideCapacity?: boolean;
+  bookingOptions?: {
+    label: string;
+    price: string;
+    priceRub: number;
+    capacity: number;
+    seatsLeft: number;
+  }[];
 };
 
 type PosterCalendarProps = {
@@ -220,10 +227,11 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
     });
   }, [filteredEvents]);
 
-  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(months[0]?.key ?? "");
+  const defaultMonthKey = useMemo(() => months[months.length - 1]?.key ?? "", [months]);
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(defaultMonthKey);
   const effectiveSelectedMonthKey = months.some((month) => month.key === selectedMonthKey)
     ? selectedMonthKey
-    : (months[0]?.key ?? "");
+    : defaultMonthKey;
 
   const selectedMonthIndex = useMemo(
     () => Math.max(months.findIndex((month) => month.key === effectiveSelectedMonthKey), 0),
@@ -387,6 +395,16 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                 {event.description ? <p className="poster-event-description">{event.description}</p> : null}
                 {event.focus ? <p className="poster-event-focus">({event.focus})</p> : null}
                 {event.host ? <p className="poster-event-host">{event.host}</p> : null}
+                {event.bookingOptions?.length ? (
+                  <div className="poster-event-tariffs">
+                    {event.bookingOptions.map((option) => (
+                      <div key={`${event.id}-${option.label}`} className="poster-event-tariff">
+                        <strong>{option.label}</strong>
+                        <span>{option.price} · {option.seatsLeft} из {option.capacity} мест</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </article>
             ))
           ) : (

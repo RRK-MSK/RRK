@@ -22,6 +22,13 @@ type SitePosterEvent = {
   booked?: number;
   seatsLeft?: number;
   hideCapacity?: boolean;
+  bookingOptions?: {
+    label: string;
+    price: string;
+    priceRub: number;
+    capacity: number;
+    seatsLeft: number;
+  }[];
 };
 
 type EventRow = {
@@ -46,6 +53,12 @@ type EventPriceTierRow = {
   seat_from: number;
   seat_to: number | null;
   price_rub: number;
+};
+
+type EnrollmentRow = {
+  event_id: string;
+  note: string | null;
+  status: string | null;
 };
 
 export async function getSitePosterEvents() {
@@ -82,12 +95,37 @@ export async function getSitePosterEvents() {
     .select("event_id, seat_from, seat_to, price_rub")
     .order("seat_from", { ascending: true });
 
+  const eventIds = ((data ?? []) as EventRow[]).map((event) => event.id);
+  const { data: enrollments } = eventIds.length > 0
+    ? await supabase
+        .from("enrollments")
+        .select("event_id, note, status")
+        .in("event_id", eventIds)
+    : { data: [] as EnrollmentRow[] };
+
   const tiersByEventId = new Map<string, EventPriceTierRow[]>();
+  const tariffUsageByEventId = new Map<string, Map<string, number>>();
 
   for (const tier of ((priceTiers ?? []) as EventPriceTierRow[])) {
     const current = tiersByEventId.get(tier.event_id) ?? [];
     current.push(tier);
     tiersByEventId.set(tier.event_id, current);
+  }
+
+  for (const enrollment of ((enrollments ?? []) as EnrollmentRow[])) {
+    const normalizedStatus = (enrollment.status ?? "").toLowerCase();
+    if (normalizedStatus.includes("отмен")) {
+      continue;
+    }
+
+    const note = enrollment.note?.trim();
+    if (!note) {
+      continue;
+    }
+
+    const eventUsage = tariffUsageByEventId.get(enrollment.event_id) ?? new Map<string, number>();
+    eventUsage.set(note, (eventUsage.get(note) ?? 0) + 1);
+    tariffUsageByEventId.set(enrollment.event_id, eventUsage);
   }
 
   return ((data ?? []) as EventRow[])
@@ -104,6 +142,11 @@ export async function getSitePosterEvents() {
     const seatsLeft = Math.max(capacity - booked, 0);
     const normalizedTitle = event.title?.toLowerCase() ?? "";
     const hideCapacity = capacity >= 10000 || normalizedTitle.includes("coffee jam") || normalizedTitle.includes("кофе джем");
+    const bookingOptions = buildBookingOptions(
+      event,
+      eventTiers,
+      tariffUsageByEventId.get(event.id),
+    );
 
     return {
       id: event.id,
@@ -121,9 +164,64 @@ export async function getSitePosterEvents() {
       booked,
       seatsLeft,
       hideCapacity,
+      bookingOptions,
       status: event.status ?? undefined,
     };
   });
+}
+
+function buildBookingOptions(
+  event: EventRow,
+  tiers: EventPriceTierRow[],
+  usageByTariff: Map<string, number> | undefined,
+) {
+  if (!isAugustCommunityEvent(event) || tiers.length < 2) {
+    return undefined;
+  }
+
+  const normalizedTiers = [...tiers].sort((left, right) => left.seat_from - right.seat_from);
+  const speakerTier = normalizedTiers[0];
+  const viewerTier = normalizedTiers[1];
+
+  const options = [
+    { label: "Быть спикером", note: "Тариф: Быть спикером", tier: speakerTier },
+    { label: "Зритель", note: "Тариф: Зритель", tier: viewerTier },
+  ];
+
+  return options.map((option) => {
+    const maxSeat = option.tier.seat_to ?? (event.capacity ?? option.tier.seat_from);
+    const capacity = Math.max(maxSeat - option.tier.seat_from + 1, 0);
+    const used = usageByTariff?.get(option.note) ?? 0;
+    const seatsLeft = Math.max(capacity - used, 0);
+
+    return {
+      label: option.label,
+      price: formatPrice(option.tier.price_rub),
+      priceRub: option.tier.price_rub,
+      capacity,
+      seatsLeft,
+    };
+  });
+}
+
+function isAugustCommunityEvent(event: EventRow) {
+  if (!event.starts_at) {
+    return false;
+  }
+
+  const normalizedTitle = (event.title ?? "").toLowerCase();
+  if (!normalizedTitle.includes("реально разговорный клуб")) {
+    return false;
+  }
+
+  const moscowDate = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Europe/Moscow",
+  }).format(new Date(event.starts_at));
+
+  return moscowDate === "2026-08-26";
 }
 
 function getTone(category: string | null, index: number) {
