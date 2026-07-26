@@ -18,6 +18,7 @@ type SitePosterEvent = {
   focus?: string;
   host?: string;
   price: string;
+  displayPrice?: string;
   label?: string;
   capacity?: number;
   booked?: number;
@@ -169,6 +170,7 @@ export async function getSitePosterEvents() {
       focus: event.description ?? undefined,
       host: event.host ?? undefined,
       price: isAugustPicnic ? "Скоро тут появится цена и адрес" : formatPrice(currentPrice),
+      displayPrice: isCoffeeJamEvent(event) ? "от 770₽" : undefined,
       label: getLabel(event.category),
       capacity,
       booked,

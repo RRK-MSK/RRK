@@ -13,6 +13,7 @@ export type PosterEvent = {
   focus?: string;
   host?: string;
   price: string;
+  displayPrice?: string;
   label?: string;
   capacity?: number;
   booked?: number;
@@ -372,7 +373,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                 ) : null}
                 <div className="poster-event-top">
                   <span>{event.time}</span>
-                  <span className={event.bookingClosed ? "poster-event-price-note" : undefined}>{event.price}</span>
+                  <span className={event.bookingClosed ? "poster-event-price-note" : undefined}>{event.displayPrice ?? event.price}</span>
                 </div>
                 {event.bookingClosedMessage ? (
                   <div className="poster-event-spots">
