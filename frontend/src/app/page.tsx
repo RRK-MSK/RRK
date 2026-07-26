@@ -66,7 +66,7 @@ const posterEvents = [
     time: "16:00-20:00",
     title: "BIG ТРЕНИРОВКА В ПИТЕРЕ",
     focus: "Философия РРК, играем сцены, создаем связи и узнаем себя.",
-    price: "5000₽",
+    price: "5500₽",
     capacity: 20,
   },
   {
@@ -270,7 +270,7 @@ const faqs = [
 
 export default async function HomePage() {
   const livePosterEvents = await getSitePosterEvents();
-  const activeLiveEvents = livePosterEvents.filter(e => (e as any).status !== "Отменено");
+  const activeLiveEvents = livePosterEvents.filter((event) => event.status !== "Отменено");
   const calendarEvents = activeLiveEvents.length > 0 ? activeLiveEvents : posterEvents;
 
   return (

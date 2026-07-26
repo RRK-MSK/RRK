@@ -33,7 +33,7 @@ type PosterCalendarProps = {
   events: PosterEvent[];
 };
 
-type DayKind = "standard" | "collab" | "spb" | "big";
+type DayKind = "standard" | "collab" | "big";
 type CalendarMonth = {
   key: string;
   monthIndex: number;
@@ -79,10 +79,6 @@ const splitDateLabel = (date: string) => {
 };
 
 const getDayKind = (dayEvents: PosterEvent[]): DayKind => {
-  if (dayEvents.some((event) => event.title.toUpperCase().includes("ПИТЕРЕ"))) {
-    return "spb";
-  }
-
   if (dayEvents.some((event) => {
     const title = event.title.toLowerCase();
     return event.label?.includes("ДК x РРК") || title.includes("coffee jam") || title.includes("кофе джем");
@@ -303,11 +299,6 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                 style={{ cursor: 'pointer', opacity: selectedKind && selectedKind !== 'collab' ? 0.5 : 1 }}
                 onClick={() => setSelectedKind(selectedKind === 'collab' ? null : 'collab')}
               >Коллаборация</span>
-              <span 
-                className={`poster-calendar-legend-item kind-spb ${selectedKind === 'spb' ? 'is-active' : ''}`}
-                style={{ cursor: 'pointer', opacity: selectedKind && selectedKind !== 'spb' ? 0.5 : 1 }}
-                onClick={() => setSelectedKind(selectedKind === 'spb' ? null : 'spb')}
-              >Питер</span>
               <span 
                 className={`poster-calendar-legend-item kind-big ${selectedKind === 'big' ? 'is-active' : ''}`}
                 style={{ cursor: 'pointer', opacity: selectedKind && selectedKind !== 'big' ? 0.5 : 1 }}

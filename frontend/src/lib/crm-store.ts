@@ -314,7 +314,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
         date: formatShortDate(event.starts_at),
         time: formatTimeRange(event.starts_at, event.ends_at),
         host: event.host ?? "Команда РРК",
-        price: formatMoney(event.price_rub),
+        price: formatMoney(getEventBasePrice(event)),
       })),
     unpaidRecords,
   };
@@ -611,7 +611,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     0,
   );
   const waitingPayments = activeRows.reduce((sum, row) => sum + (row.pending_count ?? 0), 0);
-  const potentialRevenue = activeRows.reduce((sum, row) => sum + ((row.capacity ?? 0) * (row.price_rub ?? 0)), 0);
+  const potentialRevenue = activeRows.reduce((sum, row) => sum + ((row.capacity ?? 0) * getEventBasePrice(row)), 0);
 
   return {
     metrics: [
@@ -650,7 +650,10 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     }),
     rows: rows.map((row) => {
       const eventTiers = tiersByEventId.get(row.id) ?? [];
-      const currentPrice = getPriceForNextBooking(row.price_rub, row.booked_count, eventTiers as EventPriceTier[]);
+      const basePrice = getEventBasePrice(row);
+      const currentPrice = eventTiers.length > 0
+        ? getPriceForNextBooking(basePrice, row.booked_count, eventTiers as EventPriceTier[])
+        : basePrice;
 
       return {
         id: row.id,
@@ -675,7 +678,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         hostRaw: row.host ?? "",
         startsAtRaw: row.starts_at,
         endsAtRaw: row.ends_at ?? "",
-        priceRubRaw: String(row.price_rub ?? 0),
+        priceRubRaw: String(basePrice),
         capacityRaw: String(row.capacity ?? 10),
         isPublishedRaw: row.is_published ? "true" : "false",
         pricingTiersRaw: JSON.stringify(eventTiers),
@@ -1279,6 +1282,20 @@ function formatNextEvent(title: string | null, startsAt: string | null) {
 
 function normalize(value: string | null | undefined) {
   return (value ?? "").trim().toLowerCase();
+}
+
+function isBigTrainingEvent(event: Pick<EventRow, "title" | "category">) {
+  const normalizedTitle = normalize(event.title);
+  const normalizedCategory = normalize(event.category);
+
+  return normalizedTitle.includes("большая тренировка")
+    || normalizedTitle.includes("big тренировка")
+    || normalizedCategory.includes("big")
+    || normalizedCategory.includes("биг");
+}
+
+function getEventBasePrice(event: Pick<EventRow, "title" | "category" | "price_rub">) {
+  return isBigTrainingEvent(event) ? 5500 : (event.price_rub ?? 0);
 }
 
 function createFallbackClassSummary(row: TableRow, idx: number): ClassLoadSummary {

@@ -20,6 +20,11 @@ function isPromoWithinDateRange(promoCode: { valid_from?: string | null; expires
   return true;
 }
 
+function isBigTrainingBooking(value: string | null | undefined) {
+  const normalized = (value ?? "").toLowerCase();
+  return normalized.includes("большая тренировка") || normalized.includes("big тренировка");
+}
+
 export async function POST(request: Request) {
   try {
     const data = await request.json();
@@ -64,7 +69,7 @@ export async function POST(request: Request) {
           
         if (events && events.length > 0) {
           dbEventId = events[0].id;
-          priceRub = events[0].price_rub || priceRub;
+          priceRub = isBigTrainingBooking(eventTitle) ? 5500 : (events[0].price_rub || priceRub);
           bookedCount = events[0].booked_count || 0;
         }
       } else if (dbEventId) {
@@ -74,7 +79,7 @@ export async function POST(request: Request) {
           .eq("id", dbEventId)
           .single();
         if (eventRow) {
-          priceRub = eventRow.price_rub || priceRub;
+          priceRub = isBigTrainingBooking(eventTitle ?? eventId) ? 5500 : (eventRow.price_rub || priceRub);
           bookedCount = eventRow.booked_count || 0;
         }
       }
@@ -100,8 +105,8 @@ export async function POST(request: Request) {
       // Если это тестовое событие (1 рубль)
       if (eventId && eventId.includes("Тестовое")) {
         priceRub = 1;
-      } else if (eventId && eventId.includes("5000")) {
-        priceRub = 5000;
+      } else if (isBigTrainingBooking(eventTitle ?? eventId) || (eventId && eventId.includes("5000"))) {
+        priceRub = 5500;
       } else if (eventId && eventId.includes("10 000")) {
         priceRub = 10000;
       }
@@ -202,7 +207,7 @@ export async function POST(request: Request) {
     } else {
       // Фолбек цены, если нет БД
       if (eventId && eventId.includes("Тестовое")) priceRub = 1;
-      else if (eventId && eventId.includes("5000")) priceRub = 5000;
+      else if (isBigTrainingBooking(eventTitle ?? eventId) || (eventId && eventId.includes("5000"))) priceRub = 5500;
       else if (eventId && eventId.includes("10 000")) priceRub = 10000;
     }
 

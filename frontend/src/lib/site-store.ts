@@ -12,6 +12,7 @@ type SitePosterEvent = {
   date: string;
   time: string;
   startsAt?: string;
+  status?: string;
   title: string;
   description?: string;
   focus?: string;
@@ -138,7 +139,10 @@ export async function getSitePosterEvents() {
     })
     .map((event, index) => {
     const eventTiers = tiersByEventId.get(event.id) ?? [];
-    const currentPrice = getPriceForNextBooking(event.price_rub, event.booked_count, eventTiers as EventPriceTier[]);
+    const basePrice = getEventBasePrice(event);
+    const currentPrice = eventTiers.length > 0
+      ? getPriceForNextBooking(basePrice, event.booked_count, eventTiers as EventPriceTier[])
+      : basePrice;
     const capacity = event.capacity ?? 10;
     const booked = Math.max(0, event.booked_count ?? 0);
     const seatsLeft = Math.max(capacity - booked, 0);
@@ -162,7 +166,7 @@ export async function getSitePosterEvents() {
       focus: event.description ?? undefined,
       host: event.host ?? undefined,
       price: isAugustPicnic ? "Скоро тут появится цена и адрес" : formatPrice(currentPrice),
-      label: getLabel(event.category, event.city),
+      label: getLabel(event.category),
       capacity,
       booked,
       seatsLeft,
@@ -263,16 +267,11 @@ function getTone(category: string | null, index: number) {
   return index % 2 === 0 ? "solid" : "soft";
 }
 
-function getLabel(category: string | null, city: string | null) {
+function getLabel(category: string | null) {
   const normalizedCategory = (category ?? "").toLowerCase();
-  const normalizedCity = (city ?? "").toLowerCase();
 
   if (normalizedCategory.includes("collab") || normalizedCategory.includes("коллаб")) {
     return "Коллаборация";
-  }
-
-  if (normalizedCity.includes("питер") || normalizedCity.includes("санкт")) {
-    return "Питер";
   }
 
   if (normalizedCategory.includes("big") || normalizedCategory.includes("биг")) {
@@ -280,6 +279,20 @@ function getLabel(category: string | null, city: string | null) {
   }
 
   return undefined;
+}
+
+function getEventBasePrice(event: Pick<EventRow, "title" | "category" | "price_rub">) {
+  return isBigTrainingEvent(event) ? 5500 : (event.price_rub ?? 0);
+}
+
+function isBigTrainingEvent(event: Pick<EventRow, "title" | "category">) {
+  const normalizedTitle = (event.title ?? "").toLowerCase();
+  const normalizedCategory = (event.category ?? "").toLowerCase();
+
+  return normalizedTitle.includes("большая тренировка")
+    || normalizedTitle.includes("big тренировка")
+    || normalizedCategory.includes("big")
+    || normalizedCategory.includes("биг");
 }
 
 function formatSiteDate(value: string) {
