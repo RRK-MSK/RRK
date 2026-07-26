@@ -57,7 +57,7 @@ const posterEvents = [
     label: "ДК x РРК",
     title: "COFFEE JAM",
     description: "зарядка для SOFT скиллов",
-    price: "Участие бесплатно, регистрация",
+    price: "от 770₽",
     hideCapacity: true,
   },
   {
@@ -130,7 +130,7 @@ const posterEvents = [
     label: "ДК x РРК",
     title: "COFFEE JAM",
     description: "зарядка для SOFT скиллов",
-    price: "Участие бесплатно, регистрация",
+    price: "от 770₽",
     hideCapacity: true,
   },
   {

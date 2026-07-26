@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 type EventTierInput = {
@@ -404,9 +404,9 @@ async function getDynamicEventPrice(eventId: string) {
     .order("seat_from", { ascending: true });
 
   return getPriceForNextBooking(
-    event.price_rub,
+    Math.max(event.price_rub ?? 0, 770),
     event.booked_count,
-    ((tiers ?? []) as EventPriceTier[]),
+    getCoffeeJamPriceTiers((tiers ?? []) as EventPriceTier[]),
   );
 }
 

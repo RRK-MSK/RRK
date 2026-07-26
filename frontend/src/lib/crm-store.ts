@@ -23,7 +23,7 @@ import {
   upcomingClasses,
 } from "@/lib/crm-data";
 import type { ClassCard, Metric, ParticipantRow, TableRow } from "@/lib/crm-data";
-import { formatPriceTierSummary, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import { coffeeJamDefaultPriceTiers, formatPriceTierSummary, getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
 import { hasSupabasePublicEnv, hasSupabaseServiceRoleEnv } from "@/lib/supabase/env";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -650,9 +650,12 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     }),
     rows: rows.map((row) => {
       const eventTiers = tiersByEventId.get(row.id) ?? [];
+      const effectiveEventTiers = isCoffeeJamEvent(row)
+        ? getCoffeeJamPriceTiers(eventTiers as EventPriceTier[])
+        : eventTiers;
       const basePrice = getEventBasePrice(row);
-      const currentPrice = isCoffeeJamEvent(row) && eventTiers.length > 0
-        ? getPriceForNextBooking(basePrice, row.booked_count, eventTiers as EventPriceTier[])
+      const currentPrice = isCoffeeJamEvent(row)
+        ? getPriceForNextBooking(basePrice, row.booked_count, effectiveEventTiers as EventPriceTier[])
         : basePrice;
 
       return {
@@ -664,7 +667,9 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         host: row.host ?? "Команда РРК",
         published: row.is_published ? "На сайте" : "Скрыто",
         currentPrice: formatMoney(currentPrice),
-        pricing: eventTiers.length > 0 ? formatPriceTierSummary(eventTiers) : "Базовая цена",
+        pricing: isCoffeeJamEvent(row)
+          ? formatPriceTierSummary(effectiveEventTiers as EventPriceTier[])
+          : (eventTiers.length > 0 ? formatPriceTierSummary(eventTiers) : "Базовая цена"),
         enrolled: (row.booked_count ?? 0) >= (row.capacity ?? 0) ? "Мест нет" : `${row.booked_count ?? 0} из ${row.capacity ?? 0}`,
         paid: String(row.paid_count ?? 0),
         pending: String(row.pending_count ?? 0),
@@ -681,7 +686,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         priceRubRaw: String(basePrice),
         capacityRaw: String(row.capacity ?? 10),
         isPublishedRaw: row.is_published ? "true" : "false",
-        pricingTiersRaw: JSON.stringify(eventTiers),
+        pricingTiersRaw: JSON.stringify(isCoffeeJamEvent(row) && eventTiers.length === 0 ? coffeeJamDefaultPriceTiers : eventTiers),
       };
     }),
   };
@@ -1305,6 +1310,10 @@ function isCoffeeJamEvent(event: Pick<EventRow, "title" | "category">) {
 }
 
 function getEventBasePrice(event: Pick<EventRow, "title" | "category" | "price_rub">) {
+  if (isCoffeeJamEvent(event)) {
+    return Math.max(event.price_rub ?? 0, 770);
+  }
+
   return isBigTrainingEvent(event) ? 5500 : (event.price_rub ?? 0);
 }
 

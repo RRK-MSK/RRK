@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/supabase/env";
 
@@ -139,9 +139,12 @@ export async function getSitePosterEvents() {
     })
     .map((event, index) => {
     const eventTiers = tiersByEventId.get(event.id) ?? [];
+    const effectiveEventTiers = isCoffeeJamEvent(event)
+      ? getCoffeeJamPriceTiers(eventTiers as EventPriceTier[])
+      : eventTiers;
     const basePrice = getEventBasePrice(event);
-    const currentPrice = isCoffeeJamEvent(event) && eventTiers.length > 0
-      ? getPriceForNextBooking(basePrice, event.booked_count, eventTiers as EventPriceTier[])
+    const currentPrice = isCoffeeJamEvent(event)
+      ? getPriceForNextBooking(basePrice, event.booked_count, effectiveEventTiers as EventPriceTier[])
       : basePrice;
     const capacity = event.capacity ?? 10;
     const booked = Math.max(0, event.booked_count ?? 0);
@@ -282,6 +285,10 @@ function getLabel(category: string | null) {
 }
 
 function getEventBasePrice(event: Pick<EventRow, "title" | "category" | "price_rub">) {
+  if (isCoffeeJamEvent(event)) {
+    return Math.max(event.price_rub ?? 0, 770);
+  }
+
   return isBigTrainingEvent(event) ? 5500 : (event.price_rub ?? 0);
 }
 

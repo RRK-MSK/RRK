@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
 import { tbank } from "@/lib/tbank/client";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { sendTelegramNotification } from "@/lib/telegram";
@@ -74,7 +74,9 @@ export async function POST(request: Request) {
           
         if (events && events.length > 0) {
           dbEventId = events[0].id;
-          priceRub = isBigTrainingBooking(eventTitle) ? 5500 : (events[0].price_rub || priceRub);
+          priceRub = isBigTrainingBooking(eventTitle)
+            ? 5500
+            : (isCoffeeJamBooking(eventTitle) ? Math.max(events[0].price_rub ?? 0, 770) : (events[0].price_rub || priceRub));
           bookedCount = events[0].booked_count || 0;
         }
       } else if (dbEventId) {
@@ -84,7 +86,9 @@ export async function POST(request: Request) {
           .eq("id", dbEventId)
           .single();
         if (eventRow) {
-          priceRub = isBigTrainingBooking(eventTitle ?? eventId) ? 5500 : (eventRow.price_rub || priceRub);
+          priceRub = isBigTrainingBooking(eventTitle ?? eventId)
+            ? 5500
+            : (isCoffeeJamBooking(eventTitle ?? eventId) ? Math.max(eventRow.price_rub ?? 0, 770) : (eventRow.price_rub || priceRub));
           bookedCount = eventRow.booked_count || 0;
         }
       }
@@ -97,10 +101,11 @@ export async function POST(request: Request) {
           .order("seat_from", { ascending: true });
 
         if (isCoffeeJamBooking(eventTitle ?? eventId)) {
+          const effectivePriceTiers = getCoffeeJamPriceTiers((priceTiers ?? []) as EventPriceTier[]);
           priceRub = getPriceForNextBooking(
             priceRub,
             bookedCount,
-            ((priceTiers ?? []) as EventPriceTier[]),
+            effectivePriceTiers,
           );
         }
       }
