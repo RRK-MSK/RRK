@@ -237,7 +237,7 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                   <div>
                     <strong>Ценовые пороги</strong>
                     <p style={{ marginTop: "4px", color: "var(--muted)", fontSize: "14px" }}>
-                      Цена будет меняться автоматически по номеру следующего места: 1-10, 11-50 и так далее.
+                      Автопереключение цены работает только для Кофе Джема: 1-10, 11-50 и так далее.
                     </p>
                   </div>
                   <button type="button" className="ghost-button" onClick={addPricingRow}>
@@ -273,7 +273,7 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                     </div>
                   )) : (
                     <div style={{ color: "var(--muted)", fontSize: "14px" }}>
-                      Пока действует только базовая цена. Если добавить пороги, сайт и CRM начнут переключать стоимость автоматически.
+                      Пока действует только базовая цена. Если добавить пороги для Кофе Джема, сайт и CRM начнут переключать стоимость автоматически.
                     </div>
                   )}
                 </div>

@@ -144,6 +144,16 @@ function normalizePricingTiers(tiers: EventTierInput[] = []) {
     .sort((left, right) => left.seat_from - right.seat_from);
 }
 
+function isCoffeeJamEvent(event: { title?: string | null; category?: string | null }) {
+  const normalizedTitle = normalizeStatus(event.title);
+  const normalizedCategory = normalizeStatus(event.category);
+
+  return normalizedTitle.includes("coffee jam")
+    || normalizedTitle.includes("кофе джем")
+    || normalizedCategory.includes("coffee jam")
+    || normalizedCategory.includes("кофе джем");
+}
+
 async function logRevenueAudit(entry: RevenueAuditEntry) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) {
@@ -375,12 +385,16 @@ async function getDynamicEventPrice(eventId: string) {
 
   const { data: event, error: eventError } = await supabase
     .from("events")
-    .select("price_rub, booked_count")
+    .select("title, category, price_rub, booked_count")
     .eq("id", eventId)
     .single();
 
   if (eventError || !event) {
     return 0;
+  }
+
+  if (!isCoffeeJamEvent(event)) {
+    return event.price_rub ?? 0;
   }
 
   const { data: tiers } = await supabase

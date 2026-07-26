@@ -651,7 +651,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     rows: rows.map((row) => {
       const eventTiers = tiersByEventId.get(row.id) ?? [];
       const basePrice = getEventBasePrice(row);
-      const currentPrice = eventTiers.length > 0
+      const currentPrice = isCoffeeJamEvent(row) && eventTiers.length > 0
         ? getPriceForNextBooking(basePrice, row.booked_count, eventTiers as EventPriceTier[])
         : basePrice;
 
@@ -1292,6 +1292,16 @@ function isBigTrainingEvent(event: Pick<EventRow, "title" | "category">) {
     || normalizedTitle.includes("big тренировка")
     || normalizedCategory.includes("big")
     || normalizedCategory.includes("биг");
+}
+
+function isCoffeeJamEvent(event: Pick<EventRow, "title" | "category">) {
+  const normalizedTitle = normalize(event.title);
+  const normalizedCategory = normalize(event.category);
+
+  return normalizedTitle.includes("coffee jam")
+    || normalizedTitle.includes("кофе джем")
+    || normalizedCategory.includes("coffee jam")
+    || normalizedCategory.includes("кофе джем");
 }
 
 function getEventBasePrice(event: Pick<EventRow, "title" | "category" | "price_rub">) {

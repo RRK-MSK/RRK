@@ -140,7 +140,7 @@ export async function getSitePosterEvents() {
     .map((event, index) => {
     const eventTiers = tiersByEventId.get(event.id) ?? [];
     const basePrice = getEventBasePrice(event);
-    const currentPrice = eventTiers.length > 0
+    const currentPrice = isCoffeeJamEvent(event) && eventTiers.length > 0
       ? getPriceForNextBooking(basePrice, event.booked_count, eventTiers as EventPriceTier[])
       : basePrice;
     const capacity = event.capacity ?? 10;
@@ -283,6 +283,16 @@ function getLabel(category: string | null) {
 
 function getEventBasePrice(event: Pick<EventRow, "title" | "category" | "price_rub">) {
   return isBigTrainingEvent(event) ? 5500 : (event.price_rub ?? 0);
+}
+
+function isCoffeeJamEvent(event: Pick<EventRow, "title" | "category">) {
+  const normalizedTitle = (event.title ?? "").toLowerCase();
+  const normalizedCategory = (event.category ?? "").toLowerCase();
+
+  return normalizedTitle.includes("coffee jam")
+    || normalizedTitle.includes("кофе джем")
+    || normalizedCategory.includes("coffee jam")
+    || normalizedCategory.includes("кофе джем");
 }
 
 function isBigTrainingEvent(event: Pick<EventRow, "title" | "category">) {

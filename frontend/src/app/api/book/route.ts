@@ -25,6 +25,11 @@ function isBigTrainingBooking(value: string | null | undefined) {
   return normalized.includes("большая тренировка") || normalized.includes("big тренировка");
 }
 
+function isCoffeeJamBooking(value: string | null | undefined) {
+  const normalized = (value ?? "").toLowerCase();
+  return normalized.includes("coffee jam") || normalized.includes("кофе джем");
+}
+
 export async function POST(request: Request) {
   try {
     const data = await request.json();
@@ -91,11 +96,13 @@ export async function POST(request: Request) {
           .eq("event_id", dbEventId)
           .order("seat_from", { ascending: true });
 
-        priceRub = getPriceForNextBooking(
-          priceRub,
-          bookedCount,
-          ((priceTiers ?? []) as EventPriceTier[]),
-        );
+        if (isCoffeeJamBooking(eventTitle ?? eventId)) {
+          priceRub = getPriceForNextBooking(
+            priceRub,
+            bookedCount,
+            ((priceTiers ?? []) as EventPriceTier[]),
+          );
+        }
       }
 
       if (selectedTicketPriceRub > 0) {
