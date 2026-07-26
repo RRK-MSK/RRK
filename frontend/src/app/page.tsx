@@ -211,6 +211,7 @@ const posterEvents = [
 const founders = [
   {
     image: "/IMG_2728.jpeg",
+    imageClassName: "founder-image-ramon",
     name: "РАМОН РУЗАНОВ",
     role: "МЕДИА И КОММУНИКАЦИИ",
     preview: "Выстраивает медиа РРК и наш голос",
@@ -408,7 +409,7 @@ export default async function HomePage() {
                   alt={founder.name}
                   width={720}
                   height={900}
-                  className="founder-image"
+                  className={`founder-image ${founder.imageClassName ?? ""}`.trim()}
                 />
               </div>
               <div className="founder-copy">

@@ -26,6 +26,7 @@ type SitePosterEvent = {
   hideCapacity?: boolean;
   bookingClosed?: boolean;
   bookingClosedMessage?: string;
+  bookingLink?: string;
   bookingOptions?: {
     label: string;
     price: string;
@@ -152,6 +153,7 @@ export async function getSitePosterEvents() {
     const seatsLeft = Math.max(capacity - booked, 0);
     const normalizedTitle = event.title?.toLowerCase() ?? "";
     const isAugustPicnic = isAugustPicnicEvent(event);
+    const isFallingChairs = isFallingChairsEvent(event);
     const hideCapacity = capacity >= 10000 || normalizedTitle.includes("coffee jam") || normalizedTitle.includes("кофе джем");
     const bookingOptions = buildBookingOptions(
       event,
@@ -176,8 +178,11 @@ export async function getSitePosterEvents() {
       booked,
       seatsLeft,
       hideCapacity: isAugustPicnic ? true : hideCapacity,
-      bookingClosed: isAugustPicnic,
-      bookingClosedMessage: isAugustPicnic ? "Запись скоро откроем" : undefined,
+      bookingClosed: isAugustPicnic || isFallingChairs,
+      bookingClosedMessage: isAugustPicnic
+        ? "Запись скоро откроем"
+        : (isFallingChairs ? "Запись через @rrclubadmin" : undefined),
+      bookingLink: isFallingChairs ? "https://t.me/rrclubadmin" : undefined,
       bookingOptions,
       status: event.status ?? undefined,
     };
@@ -256,6 +261,11 @@ function isAugustPicnicEvent(event: EventRow) {
   }).format(new Date(event.starts_at));
 
   return moscowDate === "2026-08-30";
+}
+
+function isFallingChairsEvent(event: EventRow) {
+  const normalizedTitle = (event.title ?? "").toLowerCase();
+  return normalizedTitle.includes("падающими стульями");
 }
 
 function getTone(category: string | null, index: number) {

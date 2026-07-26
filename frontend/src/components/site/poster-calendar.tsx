@@ -21,6 +21,7 @@ export type PosterEvent = {
   hideCapacity?: boolean;
   bookingClosed?: boolean;
   bookingClosedMessage?: string;
+  bookingLink?: string;
   bookingOptions?: {
     label: string;
     price: string;
@@ -378,6 +379,16 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                 {event.bookingClosedMessage ? (
                   <div className="poster-event-spots">
                     <strong>{event.bookingClosedMessage}</strong>
+                    {event.bookingLink ? (
+                      <a
+                        href={event.bookingLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="poster-event-admin-link"
+                      >
+                        Написать администратору
+                      </a>
+                    ) : null}
                   </div>
                 ) : null}
                 {event.hideCapacity || getEventCapacity(event) >= 10000 ? null : (
