@@ -364,11 +364,6 @@ export default async function HomePage() {
       <section id="formats" className="site-section programs-section">
         <div className="section-heading">
           <span>Формат участия</span>
-          <h2>АВГУСТ - МЕСЯЦ КОМЬЮНИТИ 🤍</h2>
-          <p>
-            Весь август мы посвящаем людям, которые делают РРК тем самым местом. Больше знакомств, совместных
-            событий, разговоров и поводов проводить время вместе не только на тренингах, но и за их пределами.
-          </p>
         </div>
         <div className="programs-grid">
           {programs.map((program) => (
@@ -377,10 +372,10 @@ export default async function HomePage() {
                 <span>{program.type}</span>
                 <span>{program.city}</span>
               </div>
-              <a href="#schedule" className="program-status" style={{textDecoration: 'none'}}>{program.status}</a>
               <p className="program-date">{program.date}</p>
               <h3>{program.title}</h3>
               <p>{program.description}</p>
+              <a href="#schedule" className="program-status" style={{textDecoration: 'none'}}>{program.status}</a>
             </article>
           ))}
         </div>
