@@ -22,6 +22,8 @@ type SitePosterEvent = {
   booked?: number;
   seatsLeft?: number;
   hideCapacity?: boolean;
+  bookingClosed?: boolean;
+  bookingClosedMessage?: string;
   bookingOptions?: {
     label: string;
     price: string;
@@ -141,6 +143,7 @@ export async function getSitePosterEvents() {
     const booked = Math.max(0, event.booked_count ?? 0);
     const seatsLeft = Math.max(capacity - booked, 0);
     const normalizedTitle = event.title?.toLowerCase() ?? "";
+    const isAugustPicnic = isAugustPicnicEvent(event);
     const hideCapacity = capacity >= 10000 || normalizedTitle.includes("coffee jam") || normalizedTitle.includes("кофе джем");
     const bookingOptions = buildBookingOptions(
       event,
@@ -158,12 +161,14 @@ export async function getSitePosterEvents() {
       description: event.subtitle ?? undefined,
       focus: event.description ?? undefined,
       host: event.host ?? undefined,
-      price: formatPrice(currentPrice),
+      price: isAugustPicnic ? "Скоро тут появится цена и адрес" : formatPrice(currentPrice),
       label: getLabel(event.category, event.city),
       capacity,
       booked,
       seatsLeft,
-      hideCapacity,
+      hideCapacity: isAugustPicnic ? true : hideCapacity,
+      bookingClosed: isAugustPicnic,
+      bookingClosedMessage: isAugustPicnic ? "Запись скоро откроем" : undefined,
       bookingOptions,
       status: event.status ?? undefined,
     };
@@ -222,6 +227,26 @@ function isAugustCommunityEvent(event: EventRow) {
   }).format(new Date(event.starts_at));
 
   return moscowDate === "2026-08-26";
+}
+
+function isAugustPicnicEvent(event: EventRow) {
+  if (!event.starts_at) {
+    return false;
+  }
+
+  const normalizedTitle = (event.title ?? "").toLowerCase();
+  if (!normalizedTitle.includes("пикник")) {
+    return false;
+  }
+
+  const moscowDate = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Europe/Moscow",
+  }).format(new Date(event.starts_at));
+
+  return moscowDate === "2026-08-30";
 }
 
 function getTone(category: string | null, index: number) {

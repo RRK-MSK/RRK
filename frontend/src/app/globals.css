@@ -2415,11 +2415,18 @@ th {
 .poster-event-top {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.poster-event-price-note {
+  max-width: 230px;
+  text-align: right;
+  line-height: 1.45;
 }
 
 .poster-event-spots {

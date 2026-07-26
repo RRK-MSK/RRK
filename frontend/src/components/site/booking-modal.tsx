@@ -229,7 +229,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
               }}
             >
               <option value="" disabled>Выберите событие</option>
-              {events.map((ev, i) => {
+              {events.filter((ev) => !ev.bookingClosed).map((ev, i) => {
                 const isSoldOut = !ev.hideCapacity && (ev.capacity ?? 10) < 10000 && getEventSeatsLeft(ev) <= 0;
                 const baseValue = ev.id ? `${ev.id}::${ev.title}` : `${ev.date} | ${ev.time} - ${ev.title}`;
 

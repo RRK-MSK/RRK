@@ -18,6 +18,8 @@ export type PosterEvent = {
   booked?: number;
   seatsLeft?: number;
   hideCapacity?: boolean;
+  bookingClosed?: boolean;
+  bookingClosedMessage?: string;
   bookingOptions?: {
     label: string;
     price: string;
@@ -379,8 +381,13 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                 ) : null}
                 <div className="poster-event-top">
                   <span>{event.time}</span>
-                  <span>{event.price}</span>
+                  <span className={event.bookingClosed ? "poster-event-price-note" : undefined}>{event.price}</span>
                 </div>
+                {event.bookingClosedMessage ? (
+                  <div className="poster-event-spots">
+                    <strong>{event.bookingClosedMessage}</strong>
+                  </div>
+                ) : null}
                 {event.hideCapacity || getEventCapacity(event) >= 10000 ? null : (
                   <div className="poster-event-spots">
                     {getEventSeatsLeft(event) <= 0 ? (
