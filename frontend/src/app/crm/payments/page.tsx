@@ -6,7 +6,7 @@ import { PaymentsTable } from "@/components/crm/payments-table";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 export default async function PaymentsPage() {
-  const { metrics, rows } = await getPaymentsPageData();
+  const { metrics, rows, auditRows = [] } = await getPaymentsPageData();
   const supabase = getSupabaseAdminClient();
 
   let participants: PaymentFormOption[] = [];
@@ -57,6 +57,44 @@ export default async function PaymentsPage() {
       </SectionCard>
 
       <PaymentsTable initialRows={rows} participants={participants} events={events} promoCodes={promoCodes} />
+
+      <SectionCard title="История выручки" description="Журнал переносов, возвратов и подтвержденных оплат для аудита.">
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Операция</th>
+                <th>Влияние</th>
+                <th>Сумма</th>
+                <th>Участник</th>
+                <th>Занятие</th>
+                <th>Причина</th>
+              </tr>
+            </thead>
+            <tbody>
+              {auditRows.map((row, index) => (
+                <tr key={`${row.date}-${row.operation}-${index}`}>
+                  <td>{row.date}</td>
+                  <td>{row.operation}</td>
+                  <td>{row.direction}</td>
+                  <td>{row.amount}</td>
+                  <td>{row.participant}</td>
+                  <td>{row.event}</td>
+                  <td>{row.reason}</td>
+                </tr>
+              ))}
+              {auditRows.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center", color: "var(--muted)", padding: "32px" }}>
+                    Пока нет записей в журнале выручки
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </SectionCard>
     </div>
   );
 }

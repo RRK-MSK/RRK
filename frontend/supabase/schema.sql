@@ -61,13 +61,28 @@ create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
   participant_id uuid references public.participants(id) on delete set null,
   event_id uuid references public.events(id) on delete set null,
+  enrollment_id uuid references public.enrollments(id) on delete set null,
   amount_rub integer not null default 0,
   method text,
   status text not null default 'Ждет',
+  note text,
   paid_at timestamptz default timezone('utc', now()),
   external_payment_id text,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.revenue_audit_log (
+  id uuid primary key default gen_random_uuid(),
+  payment_id uuid references public.payments(id) on delete set null,
+  participant_id uuid references public.participants(id) on delete set null,
+  enrollment_id uuid references public.enrollments(id) on delete set null,
+  event_id uuid references public.events(id) on delete set null,
+  direction text not null check (direction in ('plus', 'minus', 'neutral')),
+  operation_type text not null,
+  amount_rub integer not null default 0,
+  reason text,
+  created_at timestamptz not null default timezone('utc', now())
 );
 
 create table if not exists public.expenses (
@@ -130,7 +145,14 @@ create table if not exists public.event_price_tiers (
 
 alter table public.payments 
   add column if not exists promo_code_id uuid references public.promo_codes(id) on delete set null,
-  add column if not exists discount_amount_rub integer default 0;
+  add column if not exists discount_amount_rub integer default 0,
+  add column if not exists enrollment_id uuid references public.enrollments(id) on delete set null,
+  add column if not exists note text;
+
+create index if not exists payments_participant_event_idx on public.payments(participant_id, event_id);
+create index if not exists payments_enrollment_idx on public.payments(enrollment_id);
+create index if not exists revenue_audit_log_created_at_idx on public.revenue_audit_log(created_at desc);
+create index if not exists revenue_audit_log_payment_idx on public.revenue_audit_log(payment_id);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -271,6 +293,7 @@ alter publication supabase_realtime add table public.participants;
 alter publication supabase_realtime add table public.events;
 alter publication supabase_realtime add table public.enrollments;
 alter publication supabase_realtime add table public.payments;
+alter publication supabase_realtime add table public.revenue_audit_log;
 alter publication supabase_realtime add table public.expenses;
 alter publication supabase_realtime add table public.reviews;
 alter publication supabase_realtime add table public.promo_codes;
@@ -281,6 +304,7 @@ alter table public.participants enable row level security;
 alter table public.events enable row level security;
 alter table public.enrollments enable row level security;
 alter table public.payments enable row level security;
+alter table public.revenue_audit_log enable row level security;
 alter table public.expenses enable row level security;
 alter table public.reviews enable row level security;
 alter table public.promo_codes enable row level security;
@@ -305,7 +329,7 @@ do $$
 declare
   table_name text;
 begin
-  foreach table_name in array array['participants', 'events', 'enrollments', 'payments', 'expenses', 'reviews', 'promo_codes', 'promo_code_usages', 'event_price_tiers']
+  foreach table_name in array array['participants', 'events', 'enrollments', 'payments', 'revenue_audit_log', 'expenses', 'reviews', 'promo_codes', 'promo_code_usages', 'event_price_tiers']
   loop
     if not exists (
       select 1 from pg_policies

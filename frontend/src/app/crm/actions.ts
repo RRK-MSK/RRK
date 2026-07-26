@@ -52,13 +52,72 @@ type PaymentPayload = {
   discountAmountRub?: number;
 };
 
+type CancelEnrollmentMode = "credit" | "refund";
+
+type RevenueAuditEntry = {
+  paymentId?: string | null;
+  participantId?: string | null;
+  enrollmentId?: string | null;
+  eventId?: string | null;
+  direction: "plus" | "minus" | "neutral";
+  operationType: string;
+  amountRub: number;
+  reason: string;
+};
+
+type PaymentRow = {
+  id: string;
+  participant_id: string | null;
+  event_id: string | null;
+  enrollment_id?: string | null;
+  amount_rub: number | null;
+  method: string | null;
+  status: string | null;
+  note?: string | null;
+  paid_at?: string | null;
+};
+
+type EnrollmentDetailsRow = {
+  id: string;
+  participant_id: string;
+  event_id: string;
+  status: string | null;
+  payment_status: string | null;
+  confirmation_status?: string | null;
+  source?: string | null;
+  note?: string | null;
+  event?: {
+    id?: string | null;
+    title?: string | null;
+    starts_at?: string | null;
+    price_rub?: number | null;
+  } | null;
+};
+
 function revalidateCrmAndSite() {
   revalidatePath("/crm/calendar");
   revalidatePath("/crm/classes");
   revalidatePath("/crm/dashboard");
   revalidatePath("/crm/promos");
   revalidatePath("/crm/analytics");
+  revalidatePath("/crm/payments");
+  revalidatePath("/crm/records");
+  revalidatePath("/crm/participants");
   revalidatePath("/");
+}
+
+function normalizeStatus(value?: string | null) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function isPaidPaymentStatus(value?: string | null) {
+  const normalized = normalizeStatus(value);
+  return normalized.includes("paid") || normalized.includes("оплач");
+}
+
+function isRefundPaymentStatus(value?: string | null) {
+  const normalized = normalizeStatus(value);
+  return normalized.includes("refund") || normalized.includes("возврат");
 }
 
 function normalizeText(value?: string | null) {
@@ -83,6 +142,229 @@ function normalizePricingTiers(tiers: EventTierInput[] = []) {
     }))
     .filter((tier) => tier.seat_from > 0 && tier.price_rub >= 0)
     .sort((left, right) => left.seat_from - right.seat_from);
+}
+
+async function logRevenueAudit(entry: RevenueAuditEntry) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return;
+  }
+
+  await supabase.from("revenue_audit_log").insert({
+    payment_id: entry.paymentId ?? null,
+    participant_id: entry.participantId ?? null,
+    enrollment_id: entry.enrollmentId ?? null,
+    event_id: entry.eventId ?? null,
+    direction: entry.direction,
+    operation_type: entry.operationType,
+    amount_rub: Math.max(Number(entry.amountRub) || 0, 0),
+    reason: entry.reason,
+  });
+}
+
+async function getEnrollmentDetails(enrollmentId: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("id, participant_id, event_id, status, payment_status, confirmation_status, source, note, event:events(id, title, starts_at, price_rub)")
+    .eq("id", enrollmentId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  const raw = data as EnrollmentDetailsRow & { event?: EnrollmentDetailsRow["event"] | EnrollmentDetailsRow["event"][] };
+
+  return {
+    ...raw,
+    event: Array.isArray(raw.event) ? (raw.event[0] ?? null) : (raw.event ?? null),
+  } as EnrollmentDetailsRow;
+}
+
+async function findPaymentForEnrollment(participantId: string, eventId: string, enrollmentId?: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return null;
+  }
+
+  if (enrollmentId) {
+    const { data: linkedPayment } = await supabase
+      .from("payments")
+      .select("id, participant_id, event_id, enrollment_id, amount_rub, method, status, note, paid_at")
+      .eq("enrollment_id", enrollmentId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (linkedPayment) {
+      return linkedPayment as PaymentRow;
+    }
+  }
+
+  const { data: exactPayment } = await supabase
+    .from("payments")
+    .select("id, participant_id, event_id, enrollment_id, amount_rub, method, status, note, paid_at")
+    .eq("participant_id", participantId)
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return (exactPayment as PaymentRow | null) ?? null;
+}
+
+async function findReusableCreditPayment(participantId: string) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const { data } = await supabase
+    .from("payments")
+    .select("id, participant_id, event_id, enrollment_id, amount_rub, method, status, note, paid_at")
+    .eq("participant_id", participantId)
+    .is("event_id", null)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  const payment = ((data ?? []) as PaymentRow[]).find((row) => !isRefundPaymentStatus(row.status));
+  return payment ?? null;
+}
+
+async function syncPaymentForEnrollment({
+  participantId,
+  eventId,
+  enrollmentId,
+  isPaid,
+  amountRub,
+  method,
+  note,
+  reason,
+}: {
+  participantId: string;
+  eventId: string;
+  enrollmentId: string;
+  isPaid: boolean;
+  amountRub: number;
+  method?: string | null;
+  note?: string | null;
+  reason: string;
+}) {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error("Supabase is not configured");
+  }
+
+  const exactPayment = await findPaymentForEnrollment(participantId, eventId, enrollmentId);
+  const creditPayment = exactPayment ? null : await findReusableCreditPayment(participantId);
+  const payment = exactPayment ?? creditPayment;
+
+  const nextStatus = payment
+    ? (isPaidPaymentStatus(payment.status) ? "Оплачен" : (isPaid ? "Оплачен" : "Ожидает"))
+    : (isPaid ? "Оплачен" : "Ожидает");
+  const nextAmount = payment && isPaidPaymentStatus(payment.status)
+    ? Math.max(Number(payment.amount_rub) || 0, 0)
+    : Math.max(Number(amountRub) || 0, 0);
+  const nextMethod = method ?? payment?.method ?? (isPaid ? "Наличные / Перевод" : "Ожидает");
+  const nextNote = normalizeText(note) ?? payment?.note ?? null;
+
+  if (payment) {
+    const previousPaid = isPaidPaymentStatus(payment.status);
+    const movedAcrossEvents = payment.event_id !== eventId || payment.enrollment_id !== enrollmentId;
+
+    const { error } = await supabase
+      .from("payments")
+      .update({
+        event_id: eventId,
+        enrollment_id: enrollmentId,
+        amount_rub: nextAmount,
+        method: nextMethod,
+        status: nextStatus,
+        note: nextNote,
+        paid_at: nextStatus === "Оплачен" ? (payment.paid_at ?? new Date().toISOString()) : payment.paid_at,
+      })
+      .eq("id", payment.id);
+
+    if (error) {
+      throw new Error("Не удалось обновить оплату: " + error.message);
+    }
+
+    if (!previousPaid && nextStatus === "Оплачен") {
+      await logRevenueAudit({
+        paymentId: payment.id,
+        participantId,
+        enrollmentId,
+        eventId,
+        direction: "plus",
+        operationType: "payment_confirmed",
+        amountRub: nextAmount,
+        reason,
+      });
+    } else if (movedAcrossEvents) {
+      await logRevenueAudit({
+        paymentId: payment.id,
+        participantId,
+        enrollmentId,
+        eventId,
+        direction: "neutral",
+        operationType: creditPayment ? "payment_reused" : "payment_transferred",
+        amountRub: nextAmount,
+        reason,
+      });
+    }
+
+    await supabase
+      .from("enrollments")
+      .update({ payment_status: nextStatus })
+      .eq("id", enrollmentId);
+
+    return { paymentId: payment.id, status: nextStatus, reused: Boolean(creditPayment) };
+  }
+
+  const externalPaymentId = `MANUAL-${Date.now()}`;
+  const { data: createdPayment, error } = await supabase
+    .from("payments")
+    .insert({
+      participant_id: participantId,
+      event_id: eventId,
+      enrollment_id: enrollmentId,
+      amount_rub: nextAmount,
+      method: nextMethod,
+      status: nextStatus,
+      note: nextNote,
+      external_payment_id: externalPaymentId,
+    })
+    .select("id")
+    .single();
+
+  if (error || !createdPayment) {
+    throw new Error("Не удалось создать оплату: " + error?.message);
+  }
+
+  if (nextStatus === "Оплачен") {
+    await logRevenueAudit({
+      paymentId: createdPayment.id,
+      participantId,
+      enrollmentId,
+      eventId,
+      direction: "plus",
+      operationType: "payment_created",
+      amountRub: nextAmount,
+      reason,
+    });
+  }
+
+  await supabase
+    .from("enrollments")
+    .update({ payment_status: nextStatus })
+    .eq("id", enrollmentId);
+
+  return { paymentId: createdPayment.id, status: nextStatus, reused: false };
 }
 
 async function getDynamicEventPrice(eventId: string) {
@@ -381,17 +663,45 @@ export async function savePayment(payload: PaymentPayload) {
   const normalizedAmount = Math.max(Number(payload.amountRub) || 0, 0);
   const normalizedDiscount = Math.max(Number(payload.discountAmountRub) || 0, 0);
 
+  let existingPayment: PaymentRow | null = null;
+  if (payload.id) {
+    const { data } = await supabase
+      .from("payments")
+      .select("id, participant_id, event_id, enrollment_id, amount_rub, method, status, note, paid_at")
+      .eq("id", payload.id)
+      .single();
+    existingPayment = (data as PaymentRow | null) ?? null;
+  }
+
+  let enrollmentId: string | null = null;
+  if (normalizedEventId) {
+    const { data: enrollment } = await supabase
+      .from("enrollments")
+      .select("id")
+      .eq("participant_id", payload.participantId)
+      .eq("event_id", normalizedEventId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    enrollmentId = enrollment?.id ?? null;
+  }
+
   const paymentPayload = {
     participant_id: payload.participantId,
     event_id: normalizedEventId,
+    enrollment_id: enrollmentId,
     amount_rub: normalizedAmount,
     method: normalizedMethod,
     status: normalizedStatus,
     paid_at: normalizedPaidAt,
     promo_code_id: normalizedPromoCodeId,
     discount_amount_rub: normalizedDiscount,
+    note: normalizedEventId ? null : "Оплата без привязки к конкретной записи",
     external_payment_id: payload.id ? undefined : `MANUAL-${Date.now()}`,
   };
+
+  let savedPaymentId = payload.id ?? null;
 
   if (payload.id) {
     const { error } = await supabase
@@ -403,13 +713,17 @@ export async function savePayment(payload: PaymentPayload) {
       throw new Error("Не удалось обновить оплату: " + error.message);
     }
   } else {
-    const { error } = await supabase
+    const { data: createdPayment, error } = await supabase
       .from("payments")
-      .insert(paymentPayload);
+      .insert(paymentPayload)
+      .select("id")
+      .single();
 
     if (error) {
       throw new Error("Не удалось создать оплату: " + error.message);
     }
+
+    savedPaymentId = createdPayment?.id ?? null;
   }
 
   if (normalizedEventId) {
@@ -422,13 +736,46 @@ export async function savePayment(payload: PaymentPayload) {
       .eq("event_id", normalizedEventId);
   }
 
-  revalidatePath("/crm/payments");
-  revalidatePath("/crm/dashboard");
-  revalidatePath("/crm/participants");
-  revalidatePath("/crm/records");
-  revalidatePath("/crm/promos");
-  revalidatePath("/crm/analytics");
-  revalidatePath("/");
+  const previousPaid = isPaidPaymentStatus(existingPayment?.status);
+  const nextPaid = isPaidPaymentStatus(normalizedStatus);
+  const previousAmount = Math.max(Number(existingPayment?.amount_rub) || 0, 0);
+
+  if (!previousPaid && nextPaid) {
+    await logRevenueAudit({
+      paymentId: savedPaymentId,
+      participantId: payload.participantId,
+      enrollmentId,
+      eventId: normalizedEventId,
+      direction: "plus",
+      operationType: payload.id ? "payment_confirmed" : "payment_created",
+      amountRub: normalizedAmount,
+      reason: payload.id ? "Ручное подтверждение оплаты" : "Ручное добавление оплаченного платежа",
+    });
+  } else if (previousPaid && !nextPaid && isRefundPaymentStatus(normalizedStatus)) {
+    await logRevenueAudit({
+      paymentId: savedPaymentId,
+      participantId: payload.participantId,
+      enrollmentId,
+      eventId: normalizedEventId,
+      direction: "minus",
+      operationType: "refund_issued",
+      amountRub: previousAmount,
+      reason: "Ручной возврат оплаты",
+    });
+  } else if (previousPaid && nextPaid && previousAmount !== normalizedAmount) {
+    await logRevenueAudit({
+      paymentId: savedPaymentId,
+      participantId: payload.participantId,
+      enrollmentId,
+      eventId: normalizedEventId,
+      direction: normalizedAmount > previousAmount ? "plus" : "minus",
+      operationType: "payment_amount_adjusted",
+      amountRub: Math.abs(normalizedAmount - previousAmount),
+      reason: "Ручная корректировка суммы уже оплаченного платежа",
+    });
+  }
+
+  revalidateCrmAndSite();
 
   return { success: true };
 }
@@ -454,7 +801,12 @@ export async function updateParticipantData(id: string, data: { fullName: string
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  const updates: any = {
+  const updates: {
+    full_name: string;
+    telegram?: string;
+    phone?: string;
+    email?: string;
+  } = {
     full_name: data.fullName,
   };
   
@@ -578,14 +930,15 @@ export async function addRecord(formData: FormData) {
 
   if (eError) throw new Error("Failed to add enrollment");
 
-  // 4. Создадим платеж
-  await supabase.from("payments").insert({
-    participant_id: participantId,
-    event_id: eventId,
-    amount_rub: currentPriceRub,
+  await syncPaymentForEnrollment({
+    participantId,
+    eventId,
+    enrollmentId: enrollment.id,
+    isPaid,
+    amountRub: currentPriceRub,
     method: isPaid ? "Наличные / Перевод" : "Ожидает",
-    status: isPaid ? "Оплачен" : "Ожидает",
-    external_payment_id: `MANUAL-${Date.now()}`,
+    note: "CRM: запись из вкладки Записи",
+    reason: "Новая запись участника в CRM",
   });
 
   // 5. Обновим next_event_title
@@ -607,24 +960,38 @@ export async function markEnrollmentPaid(enrollmentId: string) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  const { error } = await supabase
-    .from("enrollments")
-    .update({ payment_status: "Оплачен" })
-    .eq("id", enrollmentId);
+  const enrollment = await getEnrollmentDetails(enrollmentId);
+  if (!enrollment) {
+    throw new Error("Запись не найдена");
+  }
 
-  if (error) throw new Error("Failed to mark paid: " + error.message);
+  const currentPriceRub = await getDynamicEventPrice(enrollment.event_id);
+  await syncPaymentForEnrollment({
+    participantId: enrollment.participant_id,
+    eventId: enrollment.event_id,
+    enrollmentId,
+    isPaid: true,
+    amountRub: currentPriceRub,
+    method: "Наличные / Перевод",
+    note: enrollment.note ?? null,
+    reason: "Оплата подтверждена в CRM",
+  });
 
-  revalidatePath("/crm/calendar");
-  revalidatePath("/crm/classes");
-  revalidatePath("/crm/dashboard");
-  revalidatePath("/crm/participants");
-  revalidatePath("/crm/records");
+  revalidateCrmAndSite();
   return { success: true };
 }
 
 export async function transferParticipant(enrollmentId: string, newEventId: string) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
+
+  const enrollment = await getEnrollmentDetails(enrollmentId);
+  if (!enrollment) {
+    throw new Error("Запись не найдена");
+  }
+
+  const linkedPayment = await findPaymentForEnrollment(enrollment.participant_id, enrollment.event_id, enrollmentId);
+  const nextEventPrice = await getDynamicEventPrice(newEventId);
 
   const { error } = await supabase
     .from("enrollments")
@@ -633,10 +1000,49 @@ export async function transferParticipant(enrollmentId: string, newEventId: stri
 
   if (error) throw new Error("Failed to transfer: " + error.message);
 
-  revalidatePath("/crm/calendar");
-  revalidatePath("/crm/classes");
-  revalidatePath("/crm/dashboard");
-  revalidatePath("/crm/participants");
+  if (linkedPayment) {
+    const amountRub = isPaidPaymentStatus(linkedPayment.status)
+      ? Math.max(Number(linkedPayment.amount_rub) || 0, 0)
+      : nextEventPrice;
+
+    const { error: paymentError } = await supabase
+      .from("payments")
+      .update({
+        event_id: newEventId,
+        enrollment_id: enrollmentId,
+        amount_rub: amountRub,
+        note: `Перенос из занятия ${enrollment.event_id}`,
+      })
+      .eq("id", linkedPayment.id);
+
+    if (paymentError) {
+      throw new Error("Не удалось перенести оплату: " + paymentError.message);
+    }
+
+    await logRevenueAudit({
+      paymentId: linkedPayment.id,
+      participantId: enrollment.participant_id,
+      enrollmentId,
+      eventId: newEventId,
+      direction: "neutral",
+      operationType: "payment_transferred",
+      amountRub,
+      reason: "Запись перенесена на новую дату без создания нового платежа",
+    });
+  } else {
+    await syncPaymentForEnrollment({
+      participantId: enrollment.participant_id,
+      eventId: newEventId,
+      enrollmentId,
+      isPaid: isPaidPaymentStatus(enrollment.payment_status),
+      amountRub: nextEventPrice,
+      method: isPaidPaymentStatus(enrollment.payment_status) ? "Наличные / Перевод" : "Ожидает",
+      note: enrollment.note ?? null,
+      reason: "При переносе создана или привязана существующая оплата",
+    });
+  }
+
+  revalidateCrmAndSite();
   return { success: true };
 }
 
@@ -651,10 +1057,69 @@ export async function updateEnrollmentStatus(enrollmentId: string, status: strin
 
   if (error) throw new Error("Failed to update status: " + error.message);
 
-  revalidatePath("/crm/calendar");
-  revalidatePath("/crm/classes");
-  revalidatePath("/crm/dashboard");
-  revalidatePath("/crm/participants");
+  revalidateCrmAndSite();
+  return { success: true };
+}
+
+export async function cancelEnrollment(enrollmentId: string, mode: CancelEnrollmentMode = "credit") {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const enrollment = await getEnrollmentDetails(enrollmentId);
+  if (!enrollment) {
+    throw new Error("Запись не найдена");
+  }
+
+  const linkedPayment = await findPaymentForEnrollment(enrollment.participant_id, enrollment.event_id, enrollmentId);
+  const nextPaymentStatus = mode === "refund"
+    ? "Возврат"
+    : (linkedPayment?.status ?? enrollment.payment_status ?? "Ожидает");
+
+  const { error } = await supabase
+    .from("enrollments")
+    .update({
+      status: "Отменена",
+      confirmation_status: "Отменена",
+      payment_status: nextPaymentStatus,
+    })
+    .eq("id", enrollmentId);
+
+  if (error) {
+    throw new Error("Не удалось отменить запись: " + error.message);
+  }
+
+  if (linkedPayment) {
+    const updatedPayment = {
+      event_id: null,
+      enrollment_id: null,
+      status: mode === "refund" ? "Возврат" : linkedPayment.status,
+      note: mode === "refund" ? "Возврат после отмены записи" : "Оплата сохранена после отмены записи",
+    };
+
+    const { error: paymentError } = await supabase
+      .from("payments")
+      .update(updatedPayment)
+      .eq("id", linkedPayment.id);
+
+    if (paymentError) {
+      throw new Error("Не удалось обновить оплату при отмене: " + paymentError.message);
+    }
+
+    await logRevenueAudit({
+      paymentId: linkedPayment.id,
+      participantId: enrollment.participant_id,
+      enrollmentId,
+      eventId: enrollment.event_id,
+      direction: mode === "refund" ? "minus" : "neutral",
+      operationType: mode === "refund" ? "refund_issued" : "cancellation_credit_retained",
+      amountRub: Math.max(Number(linkedPayment.amount_rub) || 0, 0),
+      reason: mode === "refund"
+        ? "Отмена записи с полным возвратом средств"
+        : "Отмена записи с сохранением оплаты для повторной записи",
+    });
+  }
+
+  revalidateCrmAndSite();
   return { success: true };
 }
 
@@ -662,49 +1127,38 @@ export async function updateEnrollment(enrollmentId: string, updates: { event_id
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  const { error } = await supabase
-    .from("enrollments")
-    .update(updates)
-    .eq("id", enrollmentId);
+  const currentEnrollment = await getEnrollmentDetails(enrollmentId);
+  if (!currentEnrollment) {
+    throw new Error("Запись не найдена");
+  }
 
-  if (error) throw new Error("Failed to update enrollment");
+  if (updates.event_id && updates.event_id !== currentEnrollment.event_id) {
+    await transferParticipant(enrollmentId, updates.event_id);
+  }
 
-  // If payment_status is being updated, we should also try to update or insert a payment record
-  if (updates.payment_status) {
-    const { data: enrollment } = await supabase.from("enrollments").select("participant_id, event_id, events(price_rub)").eq("id", enrollmentId).single();
-    if (enrollment) {
-      const isPaid = updates.payment_status === "Оплачен";
-      
-      if (isPaid) {
-        // Upsert payment
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const price = (enrollment.events as any)?.price_rub || 0;
-        const { data: existingPayment } = await supabase.from("payments")
-          .select("id").eq("participant_id", enrollment.participant_id).eq("event_id", enrollment.event_id).limit(1).maybeSingle();
-          
-        if (existingPayment) {
-          await supabase.from("payments").update({ status: "Оплачен", amount_rub: price }).eq("id", existingPayment.id);
-        } else {
-          await supabase.from("payments").insert({
-            participant_id: enrollment.participant_id,
-            event_id: enrollment.event_id,
-            amount_rub: price,
-            method: "Наличные / Перевод",
-            status: "Оплачен",
-            external_payment_id: `MANUAL-${Date.now()}`,
-          });
-        }
-      } else {
-        // Mark payment as waiting or delete it? We'll just mark it as pending
-        await supabase.from("payments").update({ status: "Ожидает" })
-          .eq("participant_id", enrollment.participant_id).eq("event_id", enrollment.event_id);
-      }
+  if (updates.status && updates.status !== currentEnrollment.status) {
+    if (normalizeStatus(updates.status).includes("отмен")) {
+      await cancelEnrollment(enrollmentId, "credit");
+    } else {
+      await updateEnrollmentStatus(enrollmentId, updates.status);
     }
   }
 
-  revalidatePath("/crm/participants");
-  revalidatePath(`/crm/participants/[slug]`, "page");
-  revalidatePath("/");
+  if (updates.payment_status && updates.payment_status !== currentEnrollment.payment_status) {
+    const currentPriceRub = await getDynamicEventPrice(currentEnrollment.event_id);
+    await syncPaymentForEnrollment({
+      participantId: currentEnrollment.participant_id,
+      eventId: currentEnrollment.event_id,
+      enrollmentId,
+      isPaid: isPaidPaymentStatus(updates.payment_status),
+      amountRub: currentPriceRub,
+      method: isPaidPaymentStatus(updates.payment_status) ? "Наличные / Перевод" : "Ожидает",
+      note: currentEnrollment.note ?? null,
+      reason: "Статус оплаты обновлен вручную в CRM",
+    });
+  }
+
+  revalidateCrmAndSite();
   return { success: true };
 }
 
@@ -738,7 +1192,7 @@ export async function addParticipantEnrollment(formData: FormData) {
   const { data: event } = await supabase.from("events").select("title, starts_at").eq("id", eventId).single();
   const currentPriceRub = await getDynamicEventPrice(eventId);
 
-  const { error: eError } = await supabase
+  const { data: enrollment, error: eError } = await supabase
     .from("enrollments")
     .insert({
       participant_id: participantId,
@@ -747,17 +1201,21 @@ export async function addParticipantEnrollment(formData: FormData) {
       status: "Активна",
       payment_status: isPaid ? "Оплачен" : "Ожидает",
       confirmation_status: "Подтверждено",
-    });
+    })
+    .select("id")
+    .single();
 
   if (eError) throw new Error("Failed to add enrollment");
 
-  await supabase.from("payments").insert({
-    participant_id: participantId,
-    event_id: eventId,
-    amount_rub: currentPriceRub,
+  await syncPaymentForEnrollment({
+    participantId,
+    eventId,
+    enrollmentId: enrollment.id,
+    isPaid,
+    amountRub: currentPriceRub,
     method: isPaid ? "Наличные / Перевод" : "Ожидает",
-    status: isPaid ? "Оплачен" : "Ожидает",
-    external_payment_id: `MANUAL-${Date.now()}`,
+    note: "CRM: запись из карточки участника",
+    reason: "Новая запись из карточки участника",
   });
 
   if (event) {
@@ -767,9 +1225,7 @@ export async function addParticipantEnrollment(formData: FormData) {
     }).eq("id", participantId);
   }
 
-  revalidatePath("/crm/participants");
-  revalidatePath(`/crm/participants/[slug]`, "page");
-  revalidatePath("/");
+  revalidateCrmAndSite();
   return { success: true };
 }
 export async function getEventParticipants(eventId: string) {
@@ -796,7 +1252,30 @@ export async function getEventParticipants(eventId: string) {
     return { error: error.message, data: [] };
   }
 
-  return { error: null, data: data as any[] };
+  const normalizedRows = ((data ?? []) as Array<{
+    id: string;
+    status: string | null;
+    payment_status: string | null;
+    participant:
+      | {
+          id: string;
+          full_name: string | null;
+          telegram: string | null;
+          slug: string | null;
+        }
+      | Array<{
+          id: string;
+          full_name: string | null;
+          telegram: string | null;
+          slug: string | null;
+        }>
+      | null;
+  }>).map((row) => ({
+    ...row,
+    participant: Array.isArray(row.participant) ? (row.participant[0] ?? null) : row.participant,
+  }));
+
+  return { error: null, data: normalizedRows };
 }
 
 export async function getAvailableEventsForTransfer() {
@@ -810,5 +1289,5 @@ export async function getAvailableEventsForTransfer() {
     .order("starts_at", { ascending: true });
 
   if (error) return { error: error.message, data: [] };
-  return { error: null, data: data as any[] };
+  return { error: null, data: (data ?? []) as Array<{ id: string; title: string; starts_at: string; status: string | null }> };
 }

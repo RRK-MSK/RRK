@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         // Находим к какому участнику и событию относится этот платеж (и проверяем его текущий статус)
         const { data: paymentInfo } = await supabase
           .from('payments')
-          .select('participant_id, event_id, status, promo_code_id')
+          .select('id, participant_id, event_id, enrollment_id, amount_rub, status, promo_code_id')
           .eq('external_payment_id', String(payload.PaymentId))
           .single();
 
@@ -73,11 +73,31 @@ export async function POST(request: Request) {
             .eq('external_payment_id', String(payload.PaymentId));
 
           // Обновляем статус в enrollments
-          await supabase
-            .from('enrollments')
-            .update({ payment_status: 'Оплачен' })
-            .eq('participant_id', paymentInfo.participant_id)
-            .eq('event_id', paymentInfo.event_id);
+          if (paymentInfo.enrollment_id) {
+            await supabase
+              .from('enrollments')
+              .update({ payment_status: 'Оплачен' })
+              .eq('id', paymentInfo.enrollment_id);
+          } else {
+            await supabase
+              .from('enrollments')
+              .update({ payment_status: 'Оплачен' })
+              .eq('participant_id', paymentInfo.participant_id)
+              .eq('event_id', paymentInfo.event_id);
+          }
+
+          if (!isAlreadyPaid) {
+            await supabase.from('revenue_audit_log').insert({
+              payment_id: paymentInfo.id,
+              participant_id: paymentInfo.participant_id,
+              enrollment_id: paymentInfo.enrollment_id,
+              event_id: paymentInfo.event_id,
+              direction: 'plus',
+              operation_type: 'payment_confirmed',
+              amount_rub: paymentInfo.amount_rub ?? 0,
+              reason: 'T-Банк подтвердил оплату',
+            });
+          }
 
           // Отправляем уведомление только если это первый раз
           if (!isAlreadyPaid) {

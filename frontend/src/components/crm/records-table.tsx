@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useMemo } from "react";
-import { FilterRow, SectionCard, SimpleTable } from "@/components/crm/ui";
+import { FilterRow, SectionCard } from "@/components/crm/ui";
 import type { TableRow } from "@/lib/crm-data";
 
 export function RecordsTable({ initialRows }: { initialRows: TableRow[] }) {
@@ -70,9 +71,9 @@ export function RecordsTable({ initialRows }: { initialRows: TableRow[] }) {
                         <span className={`status-badge ${value?.toString().includes("Оплачен") || value?.toString().includes("Подтвержд") ? 'tone-green' : value?.toString().includes("Ждет") || value?.toString().includes("Ожида") ? 'tone-sand' : 'tone-gray'}`}>{value}</span>
                       ) : isAction ? (
                         row.slug ? (
-                          <a href={`/crm/participants/${row.slug}`} className="ghost-button link-button">
+                          <Link href={`/crm/participants/${row.slug}`} className="ghost-button link-button">
                             {value}
-                          </a>
+                          </Link>
                         ) : (
                           <button className="ghost-button">{value}</button>
                         )

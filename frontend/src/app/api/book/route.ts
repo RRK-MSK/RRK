@@ -51,6 +51,7 @@ export async function POST(request: Request) {
     let priceRub = 4400;
     let participantId = null;
     let bookedCount = 0;
+    let enrollmentId = null;
 
     if (supabase) {
       // 1. Ищем событие в БД
@@ -166,7 +167,7 @@ export async function POST(request: Request) {
         }
 
         const actualSource = source === "Telegram Mini App" ? "Telegram Mini App" : "Сайт (Оплата Т-Банк)";
-        const { error: eError } = await supabase
+        const { data: enrollment, error: eError } = await supabase
           .from("enrollments")
           .insert({
             participant_id: participantId,
@@ -175,8 +176,11 @@ export async function POST(request: Request) {
             payment_status: "Ждет оплату",
             source: actualSource,
             note: ticketNote,
-          });
+          })
+          .select("id")
+          .single();
         if (eError) console.error("Enrollment insert error:", eError);
+        enrollmentId = enrollment?.id ?? null;
 
         // Обновляем участнику next_event, чтобы было видно в базе
         if (eventTitle) {
@@ -200,6 +204,54 @@ export async function POST(request: Request) {
       if (eventId && eventId.includes("Тестовое")) priceRub = 1;
       else if (eventId && eventId.includes("5000")) priceRub = 5000;
       else if (eventId && eventId.includes("10 000")) priceRub = 10000;
+    }
+
+    if (supabase && participantId && dbEventId && enrollmentId) {
+      const { data: detachedPaidPayments } = await supabase
+        .from("payments")
+        .select("id, amount_rub, status")
+        .eq("participant_id", participantId)
+        .is("event_id", null)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      const reusablePayment = (detachedPaidPayments ?? []).find((row) => {
+        const normalizedStatus = (row.status ?? "").toLowerCase();
+        return (
+          (normalizedStatus.includes("paid") || normalizedStatus.includes("оплач")) &&
+          !normalizedStatus.includes("refund") &&
+          !normalizedStatus.includes("возврат")
+        );
+      });
+
+      if (reusablePayment) {
+        await supabase
+          .from("payments")
+          .update({
+            event_id: dbEventId,
+            enrollment_id: enrollmentId,
+            note: "Оплата повторно привязана при новой записи с сайта",
+          })
+          .eq("id", reusablePayment.id);
+
+        await supabase
+          .from("enrollments")
+          .update({ payment_status: "Оплачен" })
+          .eq("id", enrollmentId);
+
+        await supabase.from("revenue_audit_log").insert({
+          payment_id: reusablePayment.id,
+          participant_id: participantId,
+          enrollment_id: enrollmentId,
+          event_id: dbEventId,
+          direction: "neutral",
+          operation_type: "payment_reused",
+          amount_rub: reusablePayment.amount_rub ?? 0,
+          reason: "Повторная запись клиента с автоматическим переносом существующей оплаты",
+        });
+
+        return NextResponse.json({ success: true, paymentUrl: "https://t.me/rrclubadmin", note: "Existing payment reused" });
+      }
     }
 
     const isFree = data.price === "Участие бесплатно, регистрация" || data.price === "Бесплатно" || data.price === "Регистрация";
@@ -260,6 +312,7 @@ export async function POST(request: Request) {
           .insert({
             participant_id: participantId,
             event_id: dbEventId,
+            enrollment_id: enrollmentId,
             amount_rub: 0,
             method: promoCodeId ? "Промокод" : "Без оплаты",
             status: "Оплачен", // Сразу считаем подтвержденным
@@ -383,6 +436,7 @@ export async function POST(request: Request) {
           .insert({
             participant_id: participantId,
             event_id: dbEventId,
+            enrollment_id: enrollmentId,
             amount_rub: priceRub,
             method: "Т-Банк",
             status: "Ждет",

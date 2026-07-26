@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { updateEnrollmentStatus, transferParticipant, markEnrollmentPaid } from "@/app/crm/actions";
+import { cancelEnrollment, transferParticipant, markEnrollmentPaid } from "@/app/crm/actions";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TransferEventOption = {
+  id: string;
+  title: string;
+  starts_at: string;
+  status: string | null;
+};
+
 export function EnrollmentActions({ 
   enrollmentId, 
   currentEventId, 
@@ -13,55 +19,57 @@ export function EnrollmentActions({
 }: { 
   enrollmentId: string;
   currentEventId?: string;
-  availableEvents: any[];
+  availableEvents: TransferEventOption[];
   paymentStatus?: string;
   onUpdate?: () => void;
 }) {
   const [isTransferring, setIsTransferring] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleCancel = async () => {
-    if (!confirm("Отменить запись?")) return;
+  const runAction = async (action: () => Promise<void>) => {
     setIsUpdating(true);
     try {
-      await updateEnrollmentStatus(enrollmentId, "Отменена");
+      await action();
       if (onUpdate) onUpdate();
-    } catch (e: any) {
-      alert(e.message);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Не удалось выполнить действие";
+        alert(message);
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleCancelWithCredit = async () => {
+    if (!confirm("Отменить запись и сохранить оплату для будущей даты?")) return;
+    await runAction(async () => {
+      await cancelEnrollment(enrollmentId, "credit");
+    });
+  };
+
+  const handleRefund = async () => {
+    if (!confirm("Отменить запись и оформить полный возврат?")) return;
+    await runAction(async () => {
+      await cancelEnrollment(enrollmentId, "refund");
+    });
   };
 
   const handleMarkPaid = async () => {
     if (!confirm("Отметить как оплаченное?")) return;
-    setIsUpdating(true);
-    try {
+    await runAction(async () => {
       await markEnrollmentPaid(enrollmentId);
-      if (onUpdate) onUpdate();
-    } catch (e: any) {
-      alert(e.message);
-    } finally {
-      setIsUpdating(false);
-    }
+    });
   };
 
   const handleTransfer = async (newEventId: string) => {
     if (!newEventId) return;
-    setIsUpdating(true);
-    try {
+    await runAction(async () => {
       await transferParticipant(enrollmentId, newEventId);
       setIsTransferring(false);
-      if (onUpdate) onUpdate();
-    } catch (e: any) {
-      alert(e.message);
-    } finally {
-      setIsUpdating(false);
-    }
+    });
   };
 
   return (
-    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+    <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
       {isTransferring ? (
         <div style={{ display: "flex", gap: "4px" }}>
           <select 
@@ -85,7 +93,8 @@ export function EnrollmentActions({
             {paymentStatus?.toLowerCase().includes('paid') || paymentStatus?.toLowerCase().includes('оплач') ? 'Оплачено' : 'Отметить оплату'}
           </button>
           <button className="ghost-button link-button" disabled={isUpdating} onClick={() => setIsTransferring(true)}>Перенести</button>
-          <button className="ghost-button link-button" disabled={isUpdating} style={{ color: "var(--muted)" }} onClick={handleCancel}>Отменить</button>
+          <button className="ghost-button link-button" disabled={isUpdating} style={{ color: "var(--muted)" }} onClick={handleCancelWithCredit}>В депозит</button>
+          <button className="ghost-button link-button" disabled={isUpdating} style={{ color: "var(--brand)" }} onClick={handleRefund}>Возврат</button>
         </>
       )}
     </div>

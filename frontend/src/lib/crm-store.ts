@@ -98,6 +98,7 @@ type EnrollmentJoinedRow = {
   note: string | null;
   participant: {
     full_name: string | null;
+    slug?: string | null;
     telegram: string | null;
     phone: string | null;
     email: string | null;
@@ -115,6 +116,8 @@ type PaymentJoinedRow = {
   method: string | null;
   status: string | null;
   paid_at: string | null;
+  enrollment_id?: string | null;
+  note?: string | null;
   promo_code_id?: string | null;
   source?: string | null;
   discount_amount_rub?: number | null;
@@ -179,6 +182,7 @@ export type ParticipantProfileData = {
 export type TablePageData = {
   metrics: Metric[];
   rows: TableRow[];
+  auditRows?: TableRow[];
 };
 
 export type ClassLoadSummary = {
@@ -483,12 +487,13 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
 }
 
 export async function getPaymentsPageData(): Promise<TablePageData> {
-  const [rows, enrollments] = await Promise.all([loadPayments(), loadEnrollments()]);
+  const [rows, enrollments, auditRows] = await Promise.all([loadPayments(), loadEnrollments(), loadRevenueAudit()]);
 
   if (!rows) {
     return {
       metrics: paymentsMetrics,
       rows: paymentRows,
+      auditRows: [],
     };
   }
 
@@ -519,12 +524,13 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
     rows: rows.map((row) => {
       const key = `${row.participant?.full_name}-${row.event?.title}`;
       const source = sourceMap.get(key) || "Сайт";
+      const purpose = row.event?.title ?? row.note ?? "Депозит / перенос";
       
       return {
         id: row.id,
         date: formatShortDate(row.paid_at),
         participant: row.participant?.full_name ?? "-",
-        purpose: row.event?.title ?? "-",
+        purpose,
         method: row.method ?? "Не указан",
         amount: formatMoney(row.amount_rub),
         promoCode: row.promo_code?.code || "-",
@@ -544,12 +550,22 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
         slug: (row as any).participant?.slug ?? "",
       };
     }),
+    auditRows: (auditRows ?? []).map((row) => ({
+      date: formatShortDate(row.created_at),
+      operation: formatAuditOperation(row.operation_type),
+      direction: formatAuditDirection(row.direction),
+      amount: formatMoney(row.amount_rub),
+      participant: row.participant?.full_name ?? "-",
+      event: row.event?.title ?? "-",
+      reason: row.reason ?? "-",
+    })),
   };
 }
 
 export async function getClassesPageData(): Promise<ClassesPageData> {
   const rows = await loadEvents();
   const priceTiers = await loadEventPriceTiers();
+  const payments = await loadPayments();
 
   if (!rows || !priceTiers) {
     return {
@@ -565,6 +581,22 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     const current = tiersByEventId.get(tier.event_id) ?? [];
     current.push(tier);
     tiersByEventId.set(tier.event_id, current);
+  }
+
+  const revenueByEventId = new Map<string, number>();
+  for (const payment of payments ?? []) {
+    if (!payment.event?.id) {
+      continue;
+    }
+
+    if (!normalize(payment.status).includes("paid") && !normalize(payment.status).includes("оплач")) {
+      continue;
+    }
+
+    revenueByEventId.set(
+      payment.event.id,
+      (revenueByEventId.get(payment.event.id) ?? 0) + (payment.amount_rub ?? 0),
+    );
   }
 
   const activeRows = rows.filter((row) => deriveEventStatus(row) !== "Прошло");
@@ -588,8 +620,6 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     ],
     summaries: activeRows
       .map((row) => {
-      const eventTiers = tiersByEventId.get(row.id) ?? [];
-      const currentPrice = getPriceForNextBooking(row.price_rub, row.booked_count, eventTiers as EventPriceTier[]);
       const capacity = row.capacity ?? 0;
       const booked = row.booked_count ?? 0;
       const paid = row.paid_count ?? 0;
@@ -611,7 +641,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         free,
         waitlist: row.waitlist_count ?? 0,
         canceled: 0, // This needs proper data structure if we track canceled per event, assuming 0 for now
-        revenue: formatMoney(paid * currentPrice),
+        revenue: formatMoney(revenueByEventId.get(row.id) ?? 0),
       };
     }),
     rows: rows.map((row) => {
@@ -632,7 +662,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         paid: String(row.paid_count ?? 0),
         pending: String(row.pending_count ?? 0),
         free: String(Math.max((row.capacity ?? 0) - (row.booked_count ?? 0), 0)),
-        revenue: formatMoney((row.paid_count ?? 0) * currentPrice),
+        revenue: formatMoney(revenueByEventId.get(row.id) ?? 0),
         status: deriveEventStatus(row),
         subtitleRaw: row.subtitle ?? "",
         descriptionRaw: row.description ?? "",
@@ -694,8 +724,7 @@ export async function getRecordsPageData(): Promise<RecordsPageData> {
     ],
     rows: enrollments.map((row) => ({
       participant: row.participant?.full_name ?? "-",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      slug: (row.participant as any)?.slug ?? null,
+      slug: row.participant?.slug ?? "",
       className: row.event ? `${row.event.title} (${formatShortDate(row.event.starts_at)} ${row.event.starts_at ? new Date(row.event.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) : ''})` : "-",
       payment: row.payment_status ?? "Ждет оплату",
       confirmation: row.confirmation_status ?? "Ожидает",
@@ -1006,7 +1035,7 @@ async function loadEnrollments() {
   const { data, error } = await supabase
     .from("enrollments")
     .select(
-      "id, source, status, payment_status, confirmation_status, note, participant:participants(full_name, telegram, phone, email), event:events(id, title, starts_at)",
+      "id, source, status, payment_status, confirmation_status, note, participant:participants(full_name, slug, telegram, phone, email), event:events(id, title, starts_at)",
     )
     .order("created_at", { ascending: false });
 
@@ -1028,7 +1057,7 @@ async function loadEnrollmentsByParticipantId(participantId: string) {
   const { data, error } = await supabase
     .from("enrollments")
     .select(
-      "id, source, status, payment_status, confirmation_status, note, participant:participants(full_name, telegram, phone, email), event:events(id, title, starts_at)",
+      "id, source, status, payment_status, confirmation_status, note, participant:participants(full_name, slug, telegram, phone, email), event:events(id, title, starts_at)",
     )
     .eq("participant_id", participantId)
     .order("created_at", { ascending: false });
@@ -1050,7 +1079,7 @@ async function loadPayments() {
 
   const { data, error } = await supabase
     .from("payments")
-    .select("id, amount_rub, method, status, paid_at, participant_id, event_id, promo_code_id, participant:participants(id, full_name, slug), event:events(id, title, starts_at), promo_code:promo_codes(id, code), discount_amount_rub")
+    .select("id, amount_rub, method, status, paid_at, participant_id, event_id, enrollment_id, note, promo_code_id, participant:participants(id, full_name, slug), event:events(id, title, starts_at), promo_code:promo_codes(id, code), discount_amount_rub")
     .order("paid_at", { ascending: false });
 
   if (error) {
@@ -1059,6 +1088,53 @@ async function loadPayments() {
   }
 
   return ((data ?? []) as unknown[]).map((row) => normalizePaymentRow(row));
+}
+
+async function loadRevenueAudit() {
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("revenue_audit_log")
+    .select("id, payment_id, participant_id, enrollment_id, event_id, direction, operation_type, amount_rub, reason, created_at, participant:participants(full_name), event:events(title)")
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  if (error) {
+    console.error("Supabase revenue audit query failed", error);
+    return null;
+  }
+
+  return ((data ?? []) as Array<{
+    id: string;
+    payment_id: string | null;
+    participant_id: string | null;
+    enrollment_id: string | null;
+    event_id: string | null;
+    direction: string;
+    operation_type: string;
+    amount_rub: number | null;
+    reason: string | null;
+    created_at: string;
+    participant: { full_name: string | null } | { full_name: string | null }[] | null;
+    event: { title: string | null } | { title: string | null }[] | null;
+  }>).map((row) => ({
+    id: row.id,
+    payment_id: row.payment_id,
+    participant_id: row.participant_id,
+    enrollment_id: row.enrollment_id,
+    event_id: row.event_id,
+    direction: row.direction,
+    operation_type: row.operation_type,
+    amount_rub: row.amount_rub,
+    reason: row.reason,
+    created_at: row.created_at,
+    participant: unwrapRelation(row.participant),
+    event: unwrapRelation(row.event),
+  }));
 }
 
 async function loadExpenses() {
@@ -1106,14 +1182,24 @@ function formatMoney(value: number | null | undefined) {
   return `${new Intl.NumberFormat("ru-RU").format(amount)} Р`;
 }
 
-function formatDebt(value: number | null | undefined) {
-  const amount = value ?? 0;
+function formatAuditOperation(value: string | null | undefined) {
+  const normalized = value ?? "";
 
-  if (amount <= 0) {
-    return "-";
-  }
+  if (normalized === "payment_created") return "Новая оплата";
+  if (normalized === "payment_confirmed") return "Подтверждение оплаты";
+  if (normalized === "payment_reused") return "Повторное использование оплаты";
+  if (normalized === "payment_transferred") return "Перенос оплаты";
+  if (normalized === "refund_issued") return "Возврат";
+  if (normalized === "payment_amount_adjusted") return "Корректировка суммы";
+  if (normalized === "cancellation_credit_retained") return "Отмена с сохранением оплаты";
 
-  return `${new Intl.NumberFormat("ru-RU").format(amount)} Р ждет`;
+  return normalized || "-";
+}
+
+function formatAuditDirection(value: string | null | undefined) {
+  if (value === "plus") return "+";
+  if (value === "minus") return "-";
+  return "0";
 }
 
 function formatShortDate(value: string | null | undefined) {
@@ -1213,7 +1299,7 @@ function isPendingPaymentStatus(value: string | null | undefined) {
   return pendingPaymentStatuses.includes(normalize(value));
 }
 
-function deriveEventStatus(event: any) {
+function deriveEventStatus(event: Pick<EventRow, "status" | "starts_at" | "capacity" | "booked_count">) {
   if (event.status === "Отменено") return "Отменено";
   if (!isFutureDate(event.starts_at)) return "Прошло";
   if (event.status) return event.status;
@@ -1299,12 +1385,14 @@ function normalizeEnrollmentRow(raw: unknown): EnrollmentJoinedRow {
     participant:
       | {
           full_name: string | null;
+          slug?: string | null;
           telegram: string | null;
           phone: string | null;
           email: string | null;
         }
       | {
           full_name: string | null;
+          slug?: string | null;
           telegram: string | null;
           phone: string | null;
           email: string | null;
@@ -1343,6 +1431,8 @@ function normalizePaymentRow(raw: unknown): PaymentJoinedRow {
     method: string | null;
     status: string | null;
     paid_at: string | null;
+    enrollment_id?: string | null;
+    note?: string | null;
     participant_id?: string | null;
     event_id?: string | null;
     promo_code_id?: string | null;
@@ -1383,6 +1473,8 @@ function normalizePaymentRow(raw: unknown): PaymentJoinedRow {
     method: row.method,
     status: row.status,
     paid_at: row.paid_at,
+    enrollment_id: row.enrollment_id ?? null,
+    note: row.note ?? null,
     promo_code_id: row.promo_code_id ?? null,
     participant: unwrapRelation(row.participant),
     event: unwrapRelation(row.event),
