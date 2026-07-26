@@ -512,13 +512,17 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
   const paidRows = rows.filter((row) => normalize(row.status).includes("paid") || normalize(row.status).includes("оплач"));
   const waitingRows = rows.filter((row) => isPendingPaymentStatus(row.status) || normalize(row.status).includes("ожид") || normalize(row.status).includes("ждет"));
   const totalRevenue = paidRows.reduce((sum, row) => sum + (row.amount_rub ?? 0), 0);
+  const monthlyRevenue = paidRows
+    .filter((row) => isCurrentMoscowMonth(row.paid_at))
+    .reduce((sum, row) => sum + (row.amount_rub ?? 0), 0);
   const averageCheck = paidRows.length > 0 ? Math.round(totalRevenue / paidRows.length) : 0;
 
   return {
     metrics: [
       { label: "Оплачено", value: String(paidRows.length), hint: "Платежи подтверждены" },
       { label: "Ожидают сверки", value: String(waitingRows.length), hint: "Нужно проверить вручную" },
-      { label: "Выручка", value: formatMoney(totalRevenue), hint: "По проведенным оплатам" },
+      { label: "Выручка за месяц", value: formatMoney(monthlyRevenue), hint: "По оплатам текущего месяца" },
+      { label: "Выручка всего", value: formatMoney(totalRevenue), hint: "По всем проведенным оплатам" },
       { label: "Средний чек", value: formatMoney(averageCheck), hint: "По подтвержденным платежам" },
     ],
     rows: rows.map((row) => {
@@ -681,9 +685,9 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
 }
 
 export async function getRecordsPageData(): Promise<RecordsPageData> {
-  const [enrollments, events] = await Promise.all([loadEnrollments(), loadEvents()]);
+  const [enrollments, events, payments] = await Promise.all([loadEnrollments(), loadEvents(), loadPayments()]);
 
-  if (!enrollments || !events) {
+  if (!enrollments || !events || !payments) {
     return {
       funnelMetrics: recordMetrics,
       attentionMetrics,
@@ -692,10 +696,16 @@ export async function getRecordsPageData(): Promise<RecordsPageData> {
   }
 
   const pending = enrollments.filter((row) => isPendingPaymentStatus(row.payment_status)).length;
-  const paid = enrollments.filter((row) => normalize(row.payment_status).includes("paid")).length;
-  const confirmed = enrollments.filter((row) => normalize(row.confirmation_status).includes("confirm")).length;
+  const paid = enrollments.filter((row) => isPaidPaymentStatus(row.payment_status)).length;
+  const confirmed = enrollments.filter((row) => {
+    const normalized = normalize(row.confirmation_status);
+    return normalized.includes("confirm") || normalized.includes("подтвержд");
+  }).length;
   const waitlist = enrollments.filter((row) => normalize(row.status).includes("wait")).length;
   const canceled = enrollments.filter((row) => normalize(row.status).includes("cancel")).length;
+  const monthlyRevenue = payments
+    .filter((row) => isPaidPaymentStatus(row.status) && isCurrentMoscowMonth(row.paid_at))
+    .reduce((sum, row) => sum + (row.amount_rub ?? 0), 0);
   const withoutContact = enrollments.filter((row) => {
     const participant = row.participant;
     return !participant?.telegram && !participant?.phone && !participant?.email;
@@ -709,6 +719,7 @@ export async function getRecordsPageData(): Promise<RecordsPageData> {
   return {
     funnelMetrics: [
       { label: "Всего записей", value: String(enrollments.length), hint: "По таблице enrollments" },
+      { label: "Выручка за месяц", value: formatMoney(monthlyRevenue), hint: "По подтвержденным оплатам месяца" },
       { label: "Ждут оплату", value: String(pending), hint: "pending / unpaid / manual_check" },
       { label: "Оплачено", value: String(paid), hint: "Есть подтвержденный платеж" },
       { label: "Подтверждено", value: String(confirmed), hint: "confirmation_status = confirmed" },
@@ -725,6 +736,7 @@ export async function getRecordsPageData(): Promise<RecordsPageData> {
     rows: enrollments.map((row) => ({
       participant: row.participant?.full_name ?? "-",
       slug: row.participant?.slug ?? "",
+      deposit: isDepositEnrollment(row) ? "true" : "",
       className: row.event ? `${row.event.title} (${formatShortDate(row.event.starts_at)} ${row.event.starts_at ? new Date(row.event.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) : ''})` : "-",
       payment: row.payment_status ?? "Ждет оплату",
       confirmation: row.confirmation_status ?? "Ожидает",
@@ -1297,6 +1309,46 @@ function createFallbackClassSummary(row: TableRow, idx: number): ClassLoadSummar
 
 function isPendingPaymentStatus(value: string | null | undefined) {
   return pendingPaymentStatuses.includes(normalize(value));
+}
+
+function isPaidPaymentStatus(value: string | null | undefined) {
+  const normalized = normalize(value);
+  return normalized.includes("paid") || normalized.includes("оплач");
+}
+
+function isRefundPaymentStatus(value: string | null | undefined) {
+  const normalized = normalize(value);
+  return normalized.includes("refund") || normalized.includes("возврат");
+}
+
+function isDepositEnrollment(row: Pick<EnrollmentJoinedRow, "status" | "payment_status">) {
+  return normalize(row.status).includes("отмен") && isPaidPaymentStatus(row.payment_status) && !isRefundPaymentStatus(row.payment_status);
+}
+
+function getMoscowMonthKey(value: string | Date | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    timeZone: "Europe/Moscow",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+
+  return year && month ? `${year}-${month}` : "";
+}
+
+function isCurrentMoscowMonth(value: string | null | undefined) {
+  return getMoscowMonthKey(value) === getMoscowMonthKey(new Date());
 }
 
 function deriveEventStatus(event: Pick<EventRow, "status" | "starts_at" | "capacity" | "booked_count">) {

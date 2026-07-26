@@ -200,6 +200,7 @@ export const classRows: TableRow[] = [
 
 export const recordMetrics: Metric[] = [
   { label: "Всего записей", value: "89", hint: "По всем занятиям июня" },
+  { label: "Выручка за месяц", value: "142 000 Р", hint: "По подтвержденным оплатам месяца" },
   { label: "Ждут оплату", value: "14", hint: "Нужно дожать" },
   { label: "Оплачено", value: "71", hint: "Есть платеж" },
   { label: "Подтверждено", value: "33", hint: "Готовы к занятию" },

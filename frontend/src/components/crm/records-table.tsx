@@ -16,6 +16,8 @@ export function RecordsTable({ initialRows }: { initialRows: TableRow[] }) {
       result = result.filter(r => r.payment?.toString().toLowerCase().includes("жд") || r.payment?.toString().toLowerCase().includes("ожид"));
     } else if (activeFilter === "Подтверждено") {
       result = result.filter(r => r.confirmation?.toString().toLowerCase().includes("подтвержд"));
+    } else if (activeFilter === "Депозит") {
+      result = result.filter(r => r.deposit === "true");
     } else if (activeFilter === "Waitlist") {
       result = result.filter(r => r.payment?.toString().toLowerCase().includes("waitlist"));
     } else if (activeFilter === "Отмены") {
@@ -32,12 +34,12 @@ export function RecordsTable({ initialRows }: { initialRows: TableRow[] }) {
     return result;
   }, [initialRows, activeFilter, searchQuery]);
 
-  const headers = initialRows.length > 0 ? Object.keys(initialRows[0] ?? {}).filter(k => k !== "slug") : [];
+  const headers = initialRows.length > 0 ? Object.keys(initialRows[0] ?? {}).filter(k => k !== "slug" && k !== "deposit") : [];
 
   return (
     <SectionCard title="Все записи" description="Операционная таблица заявок, оплат, посещений и переносов." rightLabel={`${filteredRows.length} записей`}>
       <FilterRow
-        filters={["Все", "Ждут оплату", "Подтверждено", "Waitlist", "Отмены"]}
+        filters={["Все", "Ждут оплату", "Подтверждено", "Депозит", "Waitlist", "Отмены"]}
         searchPlaceholder="Поиск по участнику, занятию, источнику или контакту"
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
