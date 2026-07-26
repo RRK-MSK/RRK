@@ -466,26 +466,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section id="visit" className="site-section visit-section">
-        <div className="visit-copy">
-          <span>Как прийти</span>
-          <h2>Сейчас можно начать с одного посещения и сразу почувствовать среду клуба</h2>
-        </div>
-        <div className="visit-panel">
-          <div className="visit-line">
-            <span>Текущий формат</span>
-            <strong>Разовое посещение</strong>
-          </div>
-          <div className="visit-line">
-            <span>Стоимость</span>
-            <strong>4 400 ₽</strong>
-          </div>
-          <a href="#schedule" className="site-button primary site-button-visit full" style={{textDecoration: 'none'}}>
-            Записаться на посещение
-          </a>
-        </div>
-      </section>
-
       <SiteFooter />
     </main>
   );

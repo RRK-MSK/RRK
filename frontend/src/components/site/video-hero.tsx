@@ -2,7 +2,6 @@
 
 import Hls from "hls.js";
 import { ArrowRight, Menu, X } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -11,7 +10,7 @@ const streamUrl = "https://stream.mux.com/tLkHO1qZoaaQOUeVWo8hEBeGQfySP02EPS02Bm
 const navItems = [
   { href: "#formats", label: "Форматы" },
   { href: "#about", label: "О клубе" },
-  { href: "#visit", label: "Как прийти" },
+  { href: "#schedule", label: "Афиша" },
   { href: "#founders", label: "Основатели" },
 ];
 
