@@ -284,7 +284,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
       participant: row.participant?.full_name ?? "-",
       className: row.event?.title ?? "-",
       payment: row.payment_status ?? "Ждет оплату",
-      confirmation: row.confirmation_status ?? "Ожидает",
+      confirmation: getEnrollmentConfirmationLabel(row),
       contact: row.participant?.telegram ?? row.participant?.phone ?? row.participant?.email ?? "-",
       source: row.source ?? "-",
       status: row.status ?? "Активна",
@@ -706,7 +706,7 @@ export async function getRecordsPageData(): Promise<RecordsPageData> {
   const pending = enrollments.filter((row) => isPendingPaymentStatus(row.payment_status)).length;
   const paid = enrollments.filter((row) => isPaidPaymentStatus(row.payment_status)).length;
   const confirmed = enrollments.filter((row) => {
-    const normalized = normalize(row.confirmation_status);
+    const normalized = normalize(getEnrollmentConfirmationLabel(row));
     return normalized.includes("confirm") || normalized.includes("подтвержд");
   }).length;
   const waitlist = enrollments.filter((row) => normalize(row.status).includes("wait")).length;
@@ -747,7 +747,7 @@ export async function getRecordsPageData(): Promise<RecordsPageData> {
       deposit: isDepositEnrollment(row) ? "true" : "",
       className: row.event ? `${row.event.title} (${formatShortDate(row.event.starts_at)} ${row.event.starts_at ? new Date(row.event.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) : ''})` : "-",
       payment: row.payment_status ?? "Ждет оплату",
-      confirmation: row.confirmation_status ?? "Ожидает",
+      confirmation: getEnrollmentConfirmationLabel(row),
       contact: row.participant?.telegram ?? row.participant?.phone ?? row.participant?.email ?? "-",
       source: row.source ?? "-",
       status: row.status ?? "Активна",
@@ -1309,9 +1309,18 @@ function isCoffeeJamEvent(event: Pick<EventRow, "title" | "category">) {
     || normalizedCategory.includes("кофе джем");
 }
 
+function isFallingChairsEvent(event: Pick<EventRow, "title">) {
+  const normalizedTitle = normalize(event.title);
+  return normalizedTitle.includes("падающими стульями");
+}
+
 function getEventBasePrice(event: Pick<EventRow, "title" | "category" | "price_rub">) {
   if (isCoffeeJamEvent(event)) {
     return Math.max(event.price_rub ?? 0, 770);
+  }
+
+  if (isFallingChairsEvent(event)) {
+    return 2200;
   }
 
   return isBigTrainingEvent(event) ? 5500 : (event.price_rub ?? 0);
@@ -1359,6 +1368,20 @@ function isRefundPaymentStatus(value: string | null | undefined) {
 
 function isDepositEnrollment(row: Pick<EnrollmentJoinedRow, "status" | "payment_status">) {
   return normalize(row.status).includes("отмен") && isPaidPaymentStatus(row.payment_status) && !isRefundPaymentStatus(row.payment_status);
+}
+
+function getEnrollmentConfirmationLabel(
+  row: Pick<EnrollmentJoinedRow, "status" | "payment_status" | "confirmation_status">,
+) {
+  if (normalize(row.status).includes("отмен")) {
+    return row.confirmation_status ?? "Отменена";
+  }
+
+  if (isPaidPaymentStatus(row.payment_status)) {
+    return "Подтверждено";
+  }
+
+  return row.confirmation_status ?? "Ожидает";
 }
 
 function getMoscowMonthKey(value: string | Date | null | undefined) {

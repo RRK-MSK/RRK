@@ -76,12 +76,12 @@ export async function POST(request: Request) {
           if (paymentInfo.enrollment_id) {
             await supabase
               .from('enrollments')
-              .update({ payment_status: 'Оплачен' })
+              .update({ payment_status: 'Оплачен', confirmation_status: 'Подтверждено' })
               .eq('id', paymentInfo.enrollment_id);
           } else {
             await supabase
               .from('enrollments')
-              .update({ payment_status: 'Оплачен' })
+              .update({ payment_status: 'Оплачен', confirmation_status: 'Подтверждено' })
               .eq('participant_id', paymentInfo.participant_id)
               .eq('event_id', paymentInfo.event_id);
           }

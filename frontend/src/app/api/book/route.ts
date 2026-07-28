@@ -30,6 +30,11 @@ function isCoffeeJamBooking(value: string | null | undefined) {
   return normalized.includes("coffee jam") || normalized.includes("кофе джем");
 }
 
+function isFallingChairsBooking(value: string | null | undefined) {
+  const normalized = (value ?? "").toLowerCase();
+  return normalized.includes("падающими стульями");
+}
+
 export async function POST(request: Request) {
   try {
     const data = await request.json();
@@ -74,7 +79,9 @@ export async function POST(request: Request) {
           
         if (events && events.length > 0) {
           dbEventId = events[0].id;
-          priceRub = isBigTrainingBooking(eventTitle)
+          priceRub = isFallingChairsBooking(eventTitle)
+            ? 2200
+            : isBigTrainingBooking(eventTitle)
             ? 5500
             : (isCoffeeJamBooking(eventTitle) ? Math.max(events[0].price_rub ?? 0, 770) : (events[0].price_rub || priceRub));
           bookedCount = events[0].booked_count || 0;
@@ -86,7 +93,9 @@ export async function POST(request: Request) {
           .eq("id", dbEventId)
           .single();
         if (eventRow) {
-          priceRub = isBigTrainingBooking(eventTitle ?? eventId)
+          priceRub = isFallingChairsBooking(eventTitle ?? eventId)
+            ? 2200
+            : isBigTrainingBooking(eventTitle ?? eventId)
             ? 5500
             : (isCoffeeJamBooking(eventTitle ?? eventId) ? Math.max(eventRow.price_rub ?? 0, 770) : (eventRow.price_rub || priceRub));
           bookedCount = eventRow.booked_count || 0;
@@ -117,6 +126,8 @@ export async function POST(request: Request) {
       // Если это тестовое событие (1 рубль)
       if (eventId && eventId.includes("Тестовое")) {
         priceRub = 1;
+      } else if (isFallingChairsBooking(eventTitle ?? eventId)) {
+        priceRub = 2200;
       } else if (isBigTrainingBooking(eventTitle ?? eventId) || (eventId && eventId.includes("5000"))) {
         priceRub = 5500;
       } else if (eventId && eventId.includes("10 000")) {
@@ -219,6 +230,7 @@ export async function POST(request: Request) {
     } else {
       // Фолбек цены, если нет БД
       if (eventId && eventId.includes("Тестовое")) priceRub = 1;
+      else if (isFallingChairsBooking(eventTitle ?? eventId)) priceRub = 2200;
       else if (isBigTrainingBooking(eventTitle ?? eventId) || (eventId && eventId.includes("5000"))) priceRub = 5500;
       else if (eventId && eventId.includes("10 000")) priceRub = 10000;
     }
@@ -253,7 +265,7 @@ export async function POST(request: Request) {
 
         await supabase
           .from("enrollments")
-          .update({ payment_status: "Оплачен" })
+          .update({ payment_status: "Оплачен", confirmation_status: "Подтверждено" })
           .eq("id", enrollmentId);
 
         await supabase.from("revenue_audit_log").insert({
@@ -324,6 +336,11 @@ export async function POST(request: Request) {
     if (isActuallyFree) {
       const freePaymentId = `FREE-${Date.now()}`;
       if (supabase && participantId && dbEventId) {
+        await supabase
+          .from("enrollments")
+          .update({ payment_status: "Оплачен", confirmation_status: "Подтверждено" })
+          .eq("id", enrollmentId);
+
         await supabase
           .from("payments")
           .insert({

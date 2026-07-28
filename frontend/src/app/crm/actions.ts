@@ -154,6 +154,11 @@ function isCoffeeJamEvent(event: { title?: string | null; category?: string | nu
     || normalizedCategory.includes("кофе джем");
 }
 
+function isFallingChairsEvent(event: { title?: string | null }) {
+  const normalizedTitle = normalizeStatus(event.title);
+  return normalizedTitle.includes("падающими стульями");
+}
+
 async function logRevenueAudit(entry: RevenueAuditEntry) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) {
@@ -282,6 +287,9 @@ async function syncPaymentForEnrollment({
     : Math.max(Number(amountRub) || 0, 0);
   const nextMethod = method ?? payment?.method ?? (isPaid ? "Наличные / Перевод" : "Ожидает");
   const nextNote = normalizeText(note) ?? payment?.note ?? null;
+  const enrollmentUpdates = nextStatus === "Оплачен"
+    ? { payment_status: nextStatus, confirmation_status: "Подтверждено" }
+    : { payment_status: nextStatus };
 
   if (payment) {
     const previousPaid = isPaidPaymentStatus(payment.status);
@@ -330,7 +338,7 @@ async function syncPaymentForEnrollment({
 
     await supabase
       .from("enrollments")
-      .update({ payment_status: nextStatus })
+      .update(enrollmentUpdates)
       .eq("id", enrollmentId);
 
     return { paymentId: payment.id, status: nextStatus, reused: Boolean(creditPayment) };
@@ -371,7 +379,7 @@ async function syncPaymentForEnrollment({
 
   await supabase
     .from("enrollments")
-    .update({ payment_status: nextStatus })
+    .update(enrollmentUpdates)
     .eq("id", enrollmentId);
 
   return { paymentId: createdPayment.id, status: nextStatus, reused: false };
@@ -391,6 +399,10 @@ async function getDynamicEventPrice(eventId: string) {
 
   if (eventError || !event) {
     return 0;
+  }
+
+  if (isFallingChairsEvent(event)) {
+    return 2200;
   }
 
   if (!isCoffeeJamEvent(event)) {
