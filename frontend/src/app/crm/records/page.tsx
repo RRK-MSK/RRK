@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { FilterRow, MetricGrid, PageHeader, SectionCard } from "@/components/crm/ui";
+import { MetricGrid, PageHeader, SectionCard } from "@/components/crm/ui";
 import { getRecordsPageData } from "@/lib/crm-store";
 import { AddRecordModal } from "@/components/crm/add-record-modal";
 import { RecordsTable } from "@/components/crm/records-table";
@@ -10,7 +10,7 @@ export default async function RecordsPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Июнь · Москва, Бауманская"
+        eyebrow="Москва, Бауманская"
         title="Записи"
         description="Заявки, оплаты, подтверждения и посещения участников"
         action={<AddRecordModal />}
@@ -19,7 +19,7 @@ export default async function RecordsPage() {
       <SectionCard
         title="Воронка записей"
         description="Кто ждет оплату, кто подтвержден и какие записи требуют сверки."
-        rightLabel="По всем занятиям июня"
+        rightLabel="По всем занятиям"
       >
         <MetricGrid items={funnelMetrics} />
       </SectionCard>

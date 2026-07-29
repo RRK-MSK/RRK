@@ -10,13 +10,13 @@ export default async function DashboardPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Июнь · Москва, Бауманская"
+        eyebrow="Москва, Бауманская"
         title="PPK CRM"
         description="Система записи, оплат и аналитики клуба"
         action={<AddRecordModal />}
       />
 
-      <SectionCard title="Картина июня" description="Быстрый срез по местам, оплатам и ближайшим занятиям.">
+      <SectionCard title="Общая картина" description="Быстрый срез по местам, оплатам и ближайшим занятиям.">
         <MetricGrid items={metrics} />
       </SectionCard>
 
@@ -28,7 +28,7 @@ export default async function DashboardPage() {
 
       <SectionCard
         title="Ближайшие занятия"
-        description="Афиша РРК на июнь: места, оплаты, лист ожидания и текущий статус."
+        description="Афиша РРК: места, оплаты, лист ожидания и текущий статус."
         rightLabel="13 занятий"
       >
         <div className="class-list">

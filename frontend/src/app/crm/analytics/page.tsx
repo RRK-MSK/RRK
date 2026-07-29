@@ -8,7 +8,7 @@ export default async function AnalyticsPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="BI · Июнь"
+        eyebrow="BI"
         title="Аналитика"
         description="Показатели загрузки, продаж, возвратов и эффективности каналов привлечения"
         action={<PrimaryButton>Экспорт отчета</PrimaryButton>}

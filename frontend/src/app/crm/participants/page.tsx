@@ -10,7 +10,7 @@ export default async function ParticipantsPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Июнь · Москва, Бауманская"
+        eyebrow="Москва, Бауманская"
         title="Участники"
         description="База людей, посещений, оплат и повторных касаний РРК"
         action={<AddParticipantModal />}

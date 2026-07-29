@@ -8,7 +8,7 @@ export default async function ExpensesPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Финансы · Июнь"
+        eyebrow="Финансы"
         title="Расходы"
         description="Аренда, продвижение, сервисы и другие операционные затраты"
         action={<PrimaryButton>Добавить расход</PrimaryButton>}

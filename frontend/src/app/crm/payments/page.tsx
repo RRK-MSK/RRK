@@ -39,7 +39,7 @@ export default async function PaymentsPage() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Финансы · Июнь"
+        eyebrow="Финансы"
         title="Оплаты"
         description="Все входящие платежи, сверка ЮKassa и ручные переводы"
         action={
