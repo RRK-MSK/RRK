@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-export function SuccessClient({ eventId }: { eventId: string }) {
+export function SuccessClient({ eventId, orderId }: { eventId: string; orderId?: string }) {
   useEffect(() => {
     try {
       const stored = localStorage.getItem("rrk_booked_events");
@@ -15,6 +15,22 @@ export function SuccessClient({ eventId }: { eventId: string }) {
       console.error("Failed to save booking to local storage", e);
     }
   }, [eventId]);
+
+  useEffect(() => {
+    if (!orderId) {
+      return;
+    }
+
+    void fetch("/api/payment/reconcile", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ orderId }),
+    }).catch((error) => {
+      console.error("Failed to reconcile payment after success redirect", error);
+    });
+  }, [orderId]);
 
   return null;
 }

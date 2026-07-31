@@ -35,6 +35,10 @@ function isFallingChairsBooking(value: string | null | undefined) {
   return normalized.includes("падающими стульями");
 }
 
+function buildPaymentNote(ticketNote: string | null, orderId?: string | null) {
+  return [ticketNote, orderId ? `[order:${orderId}]` : null].filter(Boolean).join(" | ") || null;
+}
+
 export async function POST(request: Request) {
   try {
     const data = await request.json();
@@ -138,6 +142,7 @@ export async function POST(request: Request) {
         const orConditions = [];
         if (phone) orConditions.push(`phone.eq.${phone}`);
         if (telegram) orConditions.push(`telegram.eq.${telegram}`);
+        if (email) orConditions.push(`email.eq.${email}`);
         
         if (orConditions.length > 0) {
           const { data: existingParticipants } = await supabase
@@ -170,6 +175,26 @@ export async function POST(request: Request) {
           if (pError) console.error("Participant insert error:", pError);
           if (newParticipant) participantId = newParticipant.id;
         }
+      } else {
+        const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
+        const actualSource = source === "Telegram Mini App" ? "Telegram Mini App" : "Сайт (Оплата Т-Банк)";
+
+        const { data: newParticipant, error: pError } = await supabase
+          .from("participants")
+          .insert({
+            slug,
+            full_name: `${firstName} ${lastName}`.trim(),
+            phone: phone || null,
+            telegram: telegram || null,
+            email: email || null,
+            status: "Новый",
+            source: actualSource,
+          })
+          .select("id")
+          .single();
+
+        if (pError) console.error("Participant insert error:", pError);
+        if (newParticipant) participantId = newParticipant.id;
       }
 
       // 3. Создаем запись (enrollment)
@@ -207,8 +232,24 @@ export async function POST(request: Request) {
           })
           .select("id")
           .single();
-        if (eError) console.error("Enrollment insert error:", eError);
-        enrollmentId = enrollment?.id ?? null;
+        if (eError) {
+          console.error("Enrollment insert error:", eError);
+
+          const { data: existingEnrollment, error: existingEnrollmentError } = await supabase
+            .from("enrollments")
+            .select("id")
+            .eq("participant_id", participantId)
+            .eq("event_id", dbEventId)
+            .maybeSingle();
+
+          if (existingEnrollmentError) {
+            console.error("Enrollment fetch after insert error:", existingEnrollmentError);
+          }
+
+          enrollmentId = existingEnrollment?.id ?? null;
+        } else {
+          enrollmentId = enrollment?.id ?? null;
+        }
 
         // Обновляем участнику next_event, чтобы было видно в базе
         if (eventTitle) {
@@ -226,6 +267,23 @@ export async function POST(request: Request) {
             })
             .eq("id", participantId);
         }
+      }
+
+      if (!dbEventId || !participantId || !enrollmentId) {
+        console.error("Booking flow stopped before payment init", {
+          dbEventId,
+          participantId,
+          enrollmentId,
+          eventTitle,
+          phone,
+          telegram,
+          email,
+        });
+
+        return NextResponse.json(
+          { success: false, error: "Не удалось подготовить запись к оплате. Попробуйте еще раз." },
+          { status: 500 },
+        );
       }
     } else {
       // Фолбек цены, если нет БД
@@ -434,7 +492,7 @@ export async function POST(request: Request) {
       Amount: amountKopecks,
       Description: `Участие в РРК: ${data.eventId || 'Событие'}`,
       // Эти URL можно настроить на страницы успеха/ошибки
-      SuccessURL: `${baseUrl}/success?event_id=${dbEventId || ''}&event_title=${encodeURIComponent(eventTitle || '')}`,
+      SuccessURL: `${baseUrl}/success?event_id=${dbEventId || ''}&event_title=${encodeURIComponent(eventTitle || '')}&order_id=${encodeURIComponent(orderId)}`,
       FailURL: `${baseUrl}/fail`,
       // Webhook для получения статуса платежа (всегда продакшен, так как локалхост банк не достанет)
       NotificationURL: "https://rrclub.site/api/payment/webhook",
@@ -442,7 +500,13 @@ export async function POST(request: Request) {
       DATA: {
         Email: email || "",
         Phone: phone || "",
-        Source: data.source || "Сайт"
+        Telegram: telegram || "",
+        FullName: `${firstName} ${lastName}`.trim(),
+        Source: data.source || "Сайт",
+        ParticipantId: participantId || "",
+        EnrollmentId: enrollmentId || "",
+        EventId: dbEventId || "",
+        TicketNote: ticketNote || "",
       },
       Receipt: {
         Email: email || "",
@@ -465,7 +529,8 @@ export async function POST(request: Request) {
     if (tbankResponse.Success && tbankResponse.PaymentURL) {
       // 4. Записываем ожидаемый платеж в БД
       if (supabase && participantId && dbEventId) {
-        await supabase
+        const paymentNote = buildPaymentNote(ticketNote, orderId);
+        const { error: paymentInsertError } = await supabase
           .from("payments")
           .insert({
             participant_id: participantId,
@@ -475,9 +540,18 @@ export async function POST(request: Request) {
             method: "Т-Банк",
             status: "Ждет",
             external_payment_id: String(tbankResponse.PaymentId),
+            note: paymentNote,
             promo_code_id: promoCodeId,
             discount_amount_rub: discountAmountRub
           });
+
+        if (paymentInsertError) {
+          console.error("Payment insert error after T-Bank init:", paymentInsertError);
+          return NextResponse.json(
+            { success: false, error: "Не удалось сохранить оплату в системе. Попробуйте еще раз." },
+            { status: 500 },
+          );
+        }
       }
 
       return NextResponse.json({ success: true, paymentUrl: tbankResponse.PaymentURL });

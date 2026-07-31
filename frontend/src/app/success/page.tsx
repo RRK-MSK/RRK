@@ -5,14 +5,15 @@ import { SuccessClient } from "./success-client";
 export default function SuccessPage({
   searchParams,
 }: {
-  searchParams: { event_title?: string; event_id?: string };
+  searchParams: { event_title?: string; event_id?: string; order_id?: string };
 }) {
   const eventTitle = searchParams.event_title;
   const eventId = searchParams.event_id;
+  const orderId = searchParams.order_id;
 
   return (
     <main className="site-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {eventId && <SuccessClient eventId={eventId} />}
+      {eventId && <SuccessClient eventId={eventId} orderId={orderId} />}
       <section 
         className="site-section" 
         style={{ 

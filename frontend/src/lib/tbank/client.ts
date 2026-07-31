@@ -25,6 +25,24 @@ export type TBankInitResponse = {
   PaymentURL: string;
 };
 
+export type TBankGetStateRequest = {
+  PaymentId: string;
+};
+
+export type TBankGetStateResponse = {
+  Success: boolean;
+  ErrorCode: string;
+  Message?: string;
+  Details?: string;
+  TerminalKey?: string;
+  Status?: string;
+  PaymentId?: string;
+  OrderId?: string;
+  Amount?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Data?: Record<string, any>;
+};
+
 export class TBankClient {
   private terminalKey: string;
   private password: string;
@@ -91,6 +109,31 @@ export class TBankClient {
 
     const result = await response.json();
     return result as TBankInitResponse;
+  }
+
+  async getPaymentState(request: TBankGetStateRequest): Promise<TBankGetStateResponse> {
+    const payload = {
+      ...request,
+      TerminalKey: this.terminalKey,
+    };
+
+    const token = this.generateToken(payload);
+
+    const finalPayload = {
+      ...payload,
+      Token: token,
+    };
+
+    const response = await fetch(`${this.baseUrl}/GetState`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(finalPayload),
+    });
+
+    const result = await response.json();
+    return result as TBankGetStateResponse;
   }
 }
 
