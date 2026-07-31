@@ -43,6 +43,9 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     console.log("New booking request:", data);
+    // #region debug-point A:book-entry
+    void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "paid-bookings-missing", runId: "pre-fix", hypothesisId: "A", location: "src/app/api/book/route.ts:POST:start", msg: "[DEBUG] booking request received", data: { eventId: data?.eventId ?? null, paymentMethod: data?.paymentMethod ?? null, hasPhone: Boolean(data?.phone), hasTelegram: Boolean(data?.telegram), hasEmail: Boolean(data?.email) }, ts: Date.now() }) }).catch(() => {});
+    // #endregion
 
     const { firstName, lastName, phone, telegram, email, eventId, paymentMethod, source, promoCode } = data;
     const selectedTicketLabel = typeof data.ticketLabel === "string" ? data.ticketLabel.trim() : "";
@@ -71,6 +74,7 @@ export async function POST(request: Request) {
     let participantId = null;
     let bookedCount = 0;
     let enrollmentId = null;
+    let eventBasePriceRub: number | null = null;
 
     if (supabase) {
       // 1. Ищем событие в БД
@@ -83,6 +87,7 @@ export async function POST(request: Request) {
           
         if (events && events.length > 0) {
           dbEventId = events[0].id;
+          eventBasePriceRub = events[0].price_rub ?? null;
           priceRub = isFallingChairsBooking(eventTitle)
             ? 2200
             : isBigTrainingBooking(eventTitle)
@@ -97,6 +102,7 @@ export async function POST(request: Request) {
           .eq("id", dbEventId)
           .single();
         if (eventRow) {
+          eventBasePriceRub = eventRow.price_rub ?? null;
           priceRub = isFallingChairsBooking(eventTitle ?? eventId)
             ? 2200
             : isBigTrainingBooking(eventTitle ?? eventId)
@@ -270,6 +276,9 @@ export async function POST(request: Request) {
       }
 
       if (!dbEventId || !participantId || !enrollmentId) {
+        // #region debug-point C:book-linking-failed
+        void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "paid-bookings-missing", runId: "pre-fix", hypothesisId: "C", location: "src/app/api/book/route.ts:POST:linking-failed", msg: "[DEBUG] booking flow missing required relations", data: { dbEventId, participantId, enrollmentId, eventTitle }, ts: Date.now() }) }).catch(() => {});
+        // #endregion
         console.error("Booking flow stopped before payment init", {
           dbEventId,
           participantId,
@@ -341,7 +350,10 @@ export async function POST(request: Request) {
       }
     }
 
-    const isFree = data.price === "Участие бесплатно, регистрация" || data.price === "Бесплатно" || data.price === "Регистрация";
+    const isFree = !isFallingChairsBooking(eventTitle ?? eventId)
+      && !isBigTrainingBooking(eventTitle ?? eventId)
+      && selectedTicketPriceRub <= 0
+      && (eventBasePriceRub ?? priceRub) <= 0;
 
     let promoCodeId = null;
     let discountAmountRub = 0;
@@ -475,7 +487,12 @@ export async function POST(request: Request) {
       }
       
       // Перекидываем на Телеграм-админа для регистрации
-      return NextResponse.json({ success: true, paymentUrl: "https://t.me/rrclubadmin", note: "Free event, redirect to admin" });
+      return NextResponse.json({
+        success: true,
+        bookingMode: "free",
+        paymentUrl: "https://t.me/rrclubadmin",
+        note: "Free event, redirect to admin",
+      });
     }
 
     // Генерируем уникальный OrderId для Т-Банка
@@ -546,6 +563,9 @@ export async function POST(request: Request) {
           });
 
         if (paymentInsertError) {
+          // #region debug-point C:payment-row-insert-error
+          void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "paid-bookings-missing", runId: "pre-fix", hypothesisId: "C", location: "src/app/api/book/route.ts:POST:payment-insert-error", msg: "[DEBUG] payment row insert failed after init", data: { participantId, dbEventId, enrollmentId, paymentId: tbankResponse.PaymentId ?? null, orderId }, ts: Date.now() }) }).catch(() => {});
+          // #endregion
           console.error("Payment insert error after T-Bank init:", paymentInsertError);
           return NextResponse.json(
             { success: false, error: "Не удалось сохранить оплату в системе. Попробуйте еще раз." },
@@ -554,8 +574,15 @@ export async function POST(request: Request) {
         }
       }
 
+      // #region debug-point C:book-init-success
+      void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "paid-bookings-missing", runId: "pre-fix", hypothesisId: "C", location: "src/app/api/book/route.ts:POST:init-success", msg: "[DEBUG] payment initialized and stored", data: { participantId, dbEventId, enrollmentId, orderId, paymentId: tbankResponse.PaymentId ?? null, hasPaymentUrl: Boolean(tbankResponse.PaymentURL) }, ts: Date.now() }) }).catch(() => {});
+      // #endregion
+
       return NextResponse.json({ success: true, paymentUrl: tbankResponse.PaymentURL });
     } else {
+      // #region debug-point A:book-init-failed
+      void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "paid-bookings-missing", runId: "pre-fix", hypothesisId: "A", location: "src/app/api/book/route.ts:POST:init-failed", msg: "[DEBUG] tbank init failed and fallback used", data: { orderId, errorCode: tbankResponse?.ErrorCode ?? null, success: tbankResponse?.Success ?? null }, ts: Date.now() }) }).catch(() => {});
+      // #endregion
       console.error("T-Bank init error:", tbankResponse);
       // Если ключи еще не подхватились или ошибка, возвращаем старую заглушку
       const fallbackUrl = "https://qr.nspk.ru/AS1A0035DTF29DBK8M0O7UIQGRBGRG93";

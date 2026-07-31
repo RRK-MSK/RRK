@@ -42,6 +42,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountedPrice, setDiscountedPrice] = useState(0);
   const [successMessage, setSuccessMessage] = useState("");
+  const isFreeSelection = formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация");
 
   if (!isOpen) return null;
 
@@ -106,9 +107,14 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
       });
       
       const result = await response.json();
+      if (!response.ok || !result.success) {
+        alert(result.error || 'Не удалось открыть оплату');
+        return;
+      }
+
       if (result.paymentUrl && result.paymentUrl !== "https://t.me/rrclubadmin") {
         window.location.href = result.paymentUrl;
-      } else if (result.paymentUrl === "https://t.me/rrclubadmin" || formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация")) {
+      } else if (result.bookingMode === "free") {
         // Save free registration to local storage
         try {
           const eventIdParts = formData.eventId.split('::');
@@ -129,6 +135,8 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
         }
         
         setSuccessMessage("Спасибо за регистрацию, всю информацию отправим в тг");
+      } else {
+        alert('Не удалось открыть оплату');
       }
     } catch (err) {
       console.error(err);
@@ -272,7 +280,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
             </div>
           ) : null}
 
-          {!(formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация")) && (
+          {!isFreeSelection && (
             <div className="booking-field">
               <label>Промокод (необязательно)</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -298,7 +306,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
             </div>
           )}
 
-          {!(formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация")) && (
+          {!isFreeSelection && (
             <div className="booking-field">
               <label>Способ оплаты</label>
               <div style={{ display: 'flex', gap: '12px' }}>
@@ -334,7 +342,7 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
           
           <button type="submit" className="site-button primary" disabled={isSubmitting} style={{ width: '100%', justifyContent: 'center' }}>
             {isSubmitting ? "Обработка..." : (
-              formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация") 
+              isFreeSelection
                 ? "Зарегистрироваться" 
                 : (discountPercent > 0 
                     ? `Оплатить ${discountedPrice} ₽ (Скидка ${discountPercent}%)` 
