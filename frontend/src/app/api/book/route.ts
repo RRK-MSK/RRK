@@ -354,6 +354,9 @@ export async function POST(request: Request) {
       && !isBigTrainingBooking(eventTitle ?? eventId)
       && selectedTicketPriceRub <= 0
       && (eventBasePriceRub ?? priceRub) <= 0;
+    // #region debug-point A:free-decision
+    void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "tbank-instant-success", runId: "post-fix", hypothesisId: "A", location: "src/app/api/book/route.ts:POST:free-decision", msg: "[DEBUG] booking api calculated payment mode", data: { eventId: eventId ?? null, dbEventId, eventTitle, selectedTicketLabel: selectedTicketLabel || null, selectedTicketPriceRub, eventBasePriceRub, priceRub, isFree, paymentMethod: paymentMethod ?? null }, ts: Date.now() }) }).catch(() => {});
+    // #endregion
 
     let promoCodeId = null;
     let discountAmountRub = 0;
@@ -404,6 +407,9 @@ export async function POST(request: Request) {
 
     // Если это бесплатное событие (например, COFFEE JAM) или цена стала 0 из-за промокода
     if (isActuallyFree) {
+      // #region debug-point A:free-branch
+      void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "tbank-instant-success", runId: "post-fix", hypothesisId: "A", location: "src/app/api/book/route.ts:POST:free-branch", msg: "[DEBUG] booking api entered free branch", data: { eventId: eventId ?? null, dbEventId, eventTitle, promoCode: promoCode ?? null, priceRub, isFree, isActuallyFree, selectedTicketLabel: selectedTicketLabel || null }, ts: Date.now() }) }).catch(() => {});
+      // #endregion
       const freePaymentId = `FREE-${Date.now()}`;
       if (supabase && participantId && dbEventId) {
         await supabase
@@ -542,6 +548,9 @@ export async function POST(request: Request) {
         ]
       }
     });
+    // #region debug-point C:tbank-init-result
+    void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "tbank-instant-success", runId: "post-fix", hypothesisId: "C", location: "src/app/api/book/route.ts:POST:tbank-init-result", msg: "[DEBUG] booking api received tbank init result", data: { orderId, success: Boolean(tbankResponse?.Success), hasPaymentUrl: Boolean(tbankResponse?.PaymentURL), paymentUrl: tbankResponse?.PaymentURL ?? null, errorCode: tbankResponse?.ErrorCode ?? null, message: tbankResponse?.Message ?? null }, ts: Date.now() }) }).catch(() => {});
+    // #endregion
 
     if (tbankResponse.Success && tbankResponse.PaymentURL) {
       // 4. Записываем ожидаемый платеж в БД
@@ -583,10 +592,17 @@ export async function POST(request: Request) {
       // #region debug-point A:book-init-failed
       void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "paid-bookings-missing", runId: "pre-fix", hypothesisId: "A", location: "src/app/api/book/route.ts:POST:init-failed", msg: "[DEBUG] tbank init failed and fallback used", data: { orderId, errorCode: tbankResponse?.ErrorCode ?? null, success: tbankResponse?.Success ?? null }, ts: Date.now() }) }).catch(() => {});
       // #endregion
+      // #region debug-point C:fallback-return
+      void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "tbank-instant-success", runId: "post-fix", hypothesisId: "C", location: "src/app/api/book/route.ts:POST:fallback-return", msg: "[DEBUG] booking api aborted because tbank init failed", data: { orderId, errorCode: tbankResponse?.ErrorCode ?? null, success: Boolean(tbankResponse?.Success), message: tbankResponse?.Message ?? null }, ts: Date.now() }) }).catch(() => {});
+      // #endregion
       console.error("T-Bank init error:", tbankResponse);
-      // Если ключи еще не подхватились или ошибка, возвращаем старую заглушку
-      const fallbackUrl = "https://qr.nspk.ru/AS1A0035DTF29DBK8M0O7UIQGRBGRG93";
-      return NextResponse.json({ success: true, paymentUrl: fallbackUrl, note: "Fallback to SBP" });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Не удалось открыть оплату через Т-Банк. Попробуйте еще раз чуть позже.",
+        },
+        { status: 502 },
+      );
     }
   } catch (error) {
     console.error("Booking error:", error);

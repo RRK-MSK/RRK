@@ -27,12 +27,12 @@ export default function SuccessPage({
       >
         <div style={{ maxWidth: "600px", padding: "40px", background: "var(--surface-strong)", borderRadius: "24px", border: "1px solid var(--line)" }}>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "42px", color: "var(--brand)", marginBottom: "16px", textTransform: "uppercase", lineHeight: 1.1 }}>
-            Оплата прошла!
+            Проверяем оплату
           </h1>
           {eventTitle ? (
             <div style={{ marginBottom: "24px" }}>
               <p style={{ color: "var(--fg)", fontSize: "20px", marginBottom: "8px", fontWeight: 500 }}>
-                Вы успешно записаны на событие:
+                Проверяем запись на событие:
               </p>
               <p style={{ color: "var(--brand)", fontSize: "24px", fontWeight: "bold", fontFamily: "var(--font-display)", textTransform: "uppercase" }}>
                 {eventTitle}
@@ -40,8 +40,8 @@ export default function SuccessPage({
             </div>
           ) : null}
           <p style={{ color: "var(--muted)", fontSize: "18px", marginBottom: "32px", lineHeight: "1.5" }}>
-            Ждем вас на занятии. Мы скоро свяжемся с вами в Telegram для подтверждения деталей.<br /><br />
-            <span style={{ fontSize: "14px", opacity: 0.8 }}>Обратите внимание: при отмене брони менее чем за 48 часов оплата не возвращается.</span>
+            Если оплата уже списалась, мы подтвердим ее автоматически и свяжемся с вами в Telegram.<br /><br />
+            <span style={{ fontSize: "14px", opacity: 0.8 }}>Если окно оплаты не открывалось или деньги не списались, запись не считается оплаченной.</span>
           </p>
           <Link href="/" className="site-button primary" style={{ display: "inline-flex", justifyContent: "center" }}>
             Вернуться на главную
