@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import https from 'https';
 import path from 'path';
+import { russianTrustedCaBundle } from './russian-ca-bundle';
 
 export type TBankInitRequest = {
   OrderId: string;
@@ -72,16 +73,14 @@ export class TBankClient {
       }
 
       const ca = fs.readFileSync(caBundlePath, 'utf8');
-      if (!ca.trim()) {
-        return undefined;
-      }
-
       return new https.Agent({
-        ca,
+        ca: ca.trim() || russianTrustedCaBundle,
       });
     } catch (error) {
-      console.error('Failed to initialize T-Bank CA bundle:', error);
-      return undefined;
+      console.error('Failed to initialize T-Bank CA bundle from file, using embedded bundle:', error);
+      return new https.Agent({
+        ca: russianTrustedCaBundle,
+      });
     }
   }
 
