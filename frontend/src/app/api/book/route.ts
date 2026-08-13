@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { validateAndNormalizeBooking } from "@/lib/booking-validation";
 import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
 import { tbank } from "@/lib/tbank/client";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
@@ -47,7 +48,22 @@ export async function POST(request: Request) {
     void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "paid-bookings-missing", runId: "pre-fix", hypothesisId: "A", location: "src/app/api/book/route.ts:POST:start", msg: "[DEBUG] booking request received", data: { eventId: data?.eventId ?? null, paymentMethod: data?.paymentMethod ?? null, hasPhone: Boolean(data?.phone), hasTelegram: Boolean(data?.telegram), hasEmail: Boolean(data?.email) }, ts: Date.now() }) }).catch(() => {});
     // #endregion
 
-    const { firstName, lastName, phone, telegram, email, eventId, paymentMethod, source, promoCode } = data;
+    const validation = validateAndNormalizeBooking({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+      telegram: data.telegram,
+      email: data.email,
+      eventId: data.eventId,
+      paymentMethod: data.paymentMethod,
+    });
+
+    if (!validation.ok) {
+      return NextResponse.json({ success: false, error: validation.error }, { status: 400 });
+    }
+
+    const { firstName, lastName, phone, telegram, email, eventId, paymentMethod } = validation.data;
+    const { source, promoCode } = data;
     const selectedTicketLabel = typeof data.ticketLabel === "string" ? data.ticketLabel.trim() : "";
     const selectedTicketPriceRub = Number(data.ticketPriceRub ?? 0);
     const selectedTicketCapacity = Number(data.ticketCapacity ?? 0);

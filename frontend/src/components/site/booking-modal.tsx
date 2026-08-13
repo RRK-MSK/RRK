@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 import type { PosterEvent } from "./poster-calendar";
+import {
+  bookingFieldLimits,
+  formatPhoneDisplay,
+  normalizeTelegram,
+  phoneToE164,
+  validateAndNormalizeBooking,
+} from "@/lib/booking-validation";
 
 type BookingModalProps = {
   events: PosterEvent[];
@@ -42,7 +49,13 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountedPrice, setDiscountedPrice] = useState(0);
   const [successMessage, setSuccessMessage] = useState("");
+  const [formError, setFormError] = useState("");
   const isFreeSelection = formData.price?.toLowerCase().includes("бесплатно") || formData.price?.toLowerCase().includes("регистрация");
+
+  const handlePhoneChange = (value: string) => {
+    setFormData({ ...formData, phone: formatPhoneDisplay(value) });
+    setFormError("");
+  };
 
   if (!isOpen) return null;
 
@@ -58,8 +71,8 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: formData.promoCode, 
-          phone: formData.phone, 
-          telegram: formData.telegram,
+          phone: phoneToE164(formData.phone), 
+          telegram: normalizeTelegram(formData.telegram),
           ticketPriceRub: formData.ticketPriceRub,
         })
       });
@@ -92,12 +105,23 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
     setSuccessMessage("");
     
     try {
+      const validation = validateAndNormalizeBooking({
+        ...formData,
+        isFree: isFreeSelection,
+      });
+
+      if (!validation.ok) {
+        setFormError(validation.error);
+        return;
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const isTelegramApp = typeof window !== "undefined" && !!(window as any).Telegram?.WebApp?.initData;
       
       const payload = {
         ...formData,
-        source: isTelegramApp ? "Telegram Mini App" : "Сайт"
+        ...validation.data,
+        source: isTelegramApp ? "Telegram Mini App" : "Сайт",
       };
 
       const response = await fetch('/api/book', { 
@@ -162,13 +186,22 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
             <p>Заполните данные для бронирования места и оплаты. Если событие бесплатно — мы пришлем всю информацию в Telegram.</p>
             
             <form onSubmit={handleSubmit} className="booking-form">
+          {formError ? (
+            <div style={{ color: "#d32f2f", fontSize: "14px", marginBottom: "12px", fontWeight: 500 }}>
+              {formError}
+            </div>
+          ) : null}
           <div className="booking-field">
             <label>Имя</label>
             <input 
               type="text" 
               required 
               value={formData.firstName}
-              onChange={e => setFormData({...formData, firstName: e.target.value})}
+              maxLength={bookingFieldLimits.nameMax}
+              onChange={e => {
+                setFormData({...formData, firstName: e.target.value});
+                setFormError("");
+              }}
               placeholder="Иван"
             />
           </div>
@@ -179,7 +212,11 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
               type="text" 
               required 
               value={formData.lastName}
-              onChange={e => setFormData({...formData, lastName: e.target.value})}
+              maxLength={bookingFieldLimits.nameMax}
+              onChange={e => {
+                setFormData({...formData, lastName: e.target.value});
+                setFormError("");
+              }}
               placeholder="Иванов"
             />
           </div>
@@ -189,9 +226,11 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
             <input 
               type="tel" 
               required 
+              inputMode="tel"
+              autoComplete="tel"
               value={formData.phone}
-              onChange={e => setFormData({...formData, phone: e.target.value})}
-              placeholder="+7 (999) 000-00-00"
+              onChange={e => handlePhoneChange(e.target.value)}
+              placeholder="+7 (999) 999-99-99"
             />
           </div>
           
@@ -201,7 +240,11 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
               type="text" 
               required 
               value={formData.telegram}
-              onChange={e => setFormData({...formData, telegram: e.target.value})}
+              maxLength={bookingFieldLimits.telegramMax}
+              onChange={e => {
+                setFormData({...formData, telegram: e.target.value});
+                setFormError("");
+              }}
               placeholder="@username"
             />
           </div>
@@ -212,7 +255,11 @@ export function BookingModal({ events, isOpen, onClose }: BookingModalProps) {
               type="email" 
               required 
               value={formData.email}
-              onChange={e => setFormData({...formData, email: e.target.value})}
+              maxLength={bookingFieldLimits.emailMax}
+              onChange={e => {
+                setFormData({...formData, email: e.target.value});
+                setFormError("");
+              }}
               placeholder="hello@example.com"
             />
           </div>
