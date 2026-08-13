@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildParticipantLookupOrFilter } from "@/lib/booking-validation";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -47,28 +48,32 @@ export async function POST(request: Request) {
 
     // 2. Если одноразовый, проверяем, не использовал ли его уже этот пользователь
     if (promoCode.is_single_use && (phone || telegram)) {
-      const orConditions = [];
-      if (phone) orConditions.push(`phone.eq.${phone}`);
-      if (telegram) orConditions.push(`telegram.eq.${telegram}`);
-      
-      const { data: existingParticipants } = await supabase
-        .from("participants")
-        .select("id")
-        .or(orConditions.join(','))
-        .limit(1);
+      const participantLookupFilter = buildParticipantLookupOrFilter(
+        String(phone ?? ""),
+        String(telegram ?? ""),
+        "",
+      );
 
-      if (existingParticipants && existingParticipants.length > 0) {
-        const participantId = existingParticipants[0].id;
-        
-        const { data: usage } = await supabase
-          .from("promo_code_usages")
+      if (participantLookupFilter) {
+        const { data: existingParticipants } = await supabase
+          .from("participants")
           .select("id")
-          .eq("promo_code_id", promoCode.id)
-          .eq("participant_id", participantId)
-          .single();
+          .or(participantLookupFilter)
+          .limit(1);
+
+        if (existingParticipants && existingParticipants.length > 0) {
+          const participantId = existingParticipants[0].id;
           
-        if (usage) {
-          return NextResponse.json({ success: false, error: "Вы уже использовали этот промокод" });
+          const { data: usage } = await supabase
+            .from("promo_code_usages")
+            .select("id")
+            .eq("promo_code_id", promoCode.id)
+            .eq("participant_id", participantId)
+            .single();
+            
+          if (usage) {
+            return NextResponse.json({ success: false, error: "Вы уже использовали этот промокод" });
+          }
         }
       }
     }

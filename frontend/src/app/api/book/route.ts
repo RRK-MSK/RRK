@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { validateAndNormalizeBooking } from "@/lib/booking-validation";
+import { buildParticipantLookupOrFilter, validateAndNormalizeBooking } from "@/lib/booking-validation";
 import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
 import { tbank } from "@/lib/tbank/client";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
@@ -161,43 +161,40 @@ export async function POST(request: Request) {
       }
 
       // 2. Ищем или создаем участника
-        const orConditions = [];
-        if (phone) orConditions.push(`phone.eq.${phone}`);
-        if (telegram) orConditions.push(`telegram.eq.${telegram}`);
-        if (email) orConditions.push(`email.eq.${email}`);
-        
-        if (orConditions.length > 0) {
+        const participantLookupFilter = buildParticipantLookupOrFilter(phone, telegram, email);
+
+        if (participantLookupFilter) {
           const { data: existingParticipants } = await supabase
             .from("participants")
             .select("id")
-            .or(orConditions.join(','))
+            .or(participantLookupFilter)
             .limit(1);
-          
-        if (existingParticipants && existingParticipants.length > 0) {
-          participantId = existingParticipants[0].id;
+
+          if (existingParticipants && existingParticipants.length > 0) {
+            participantId = existingParticipants[0].id;
+          } else {
+            // Создаем нового
+            const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
+            const actualSource = source === "Telegram Mini App" ? "Telegram Mini App" : "Сайт (Оплата Т-Банк)";
+
+            const { data: newParticipant, error: pError } = await supabase
+              .from("participants")
+              .insert({
+                slug,
+                full_name: `${firstName} ${lastName}`.trim(),
+                phone: phone || null,
+                telegram: telegram || null,
+                email: email || null,
+                status: "Новый",
+                source: actualSource,
+              })
+              .select("id")
+              .single();
+
+            if (pError) console.error("Participant insert error:", pError);
+            if (newParticipant) participantId = newParticipant.id;
+          }
         } else {
-          // Создаем нового
-          const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
-          const actualSource = source === "Telegram Mini App" ? "Telegram Mini App" : "Сайт (Оплата Т-Банк)";
-          
-          const { data: newParticipant, error: pError } = await supabase
-            .from("participants")
-            .insert({
-              slug,
-              full_name: `${firstName} ${lastName}`.trim(),
-              phone: phone || null,
-              telegram: telegram || null,
-              email: email || null,
-              status: "Новый",
-              source: actualSource,
-            })
-            .select("id")
-            .single();
-            
-          if (pError) console.error("Participant insert error:", pError);
-          if (newParticipant) participantId = newParticipant.id;
-        }
-      } else {
         const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
         const actualSource = source === "Telegram Mini App" ? "Telegram Mini App" : "Сайт (Оплата Т-Банк)";
 

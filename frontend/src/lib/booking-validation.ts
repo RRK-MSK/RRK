@@ -52,6 +52,15 @@ export function phoneToE164(raw: string): string {
   return `+${digits}`;
 }
 
+function isTelegramUsername(value: string): boolean {
+  if (!TELEGRAM_USERNAME_PATTERN.test(value)) {
+    return false;
+  }
+
+  const username = value.startsWith("@") ? value.slice(1) : value;
+  return !/^\d+$/.test(username);
+}
+
 export function normalizeTelegram(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return "";
@@ -60,12 +69,93 @@ export function normalizeTelegram(raw: string): string {
     return trimmed;
   }
 
+  if (isTelegramUsername(trimmed)) {
+    return `@${trimmed}`;
+  }
+
   const digits = trimmed.replace(/\D/g, "");
   if (digits.length >= 10) {
-    return phoneToE164(trimmed) || trimmed;
+    if (
+      digits.length === 10 ||
+      (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8")))
+    ) {
+      const e164 = phoneToE164(trimmed);
+      if (e164) return e164;
+    }
+
+    return `+${digits}`;
   }
 
   return `@${trimmed}`;
+}
+
+function escapeSupabaseFilterValue(value: string): string {
+  if (/[,\s()]/.test(value) || value.includes('"')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+export function getPhoneLookupValues(normalizedPhone: string): string[] {
+  if (!normalizedPhone) return [];
+
+  const digits = normalizedPhone.replace(/\D/g, "");
+  const values = new Set<string>([normalizedPhone]);
+
+  if (digits) {
+    values.add(digits);
+    values.add(`+${digits}`);
+  }
+
+  if (digits.length === 11 && digits.startsWith("7")) {
+    const national = digits.slice(1);
+    values.add(`8${national}`);
+    values.add(national);
+    values.add(formatPhoneDisplay(normalizedPhone));
+  }
+
+  return [...values];
+}
+
+export function getTelegramLookupValues(normalizedTelegram: string): string[] {
+  if (!normalizedTelegram) return [];
+
+  const values = new Set<string>([normalizedTelegram]);
+
+  if (normalizedTelegram.startsWith("@")) {
+    const withoutAt = normalizedTelegram.slice(1);
+    values.add(withoutAt);
+    values.add(normalizedTelegram.toLowerCase());
+    values.add(withoutAt.toLowerCase());
+  } else if (normalizedTelegram.startsWith("+")) {
+    for (const value of getPhoneLookupValues(normalizedTelegram)) {
+      values.add(value);
+    }
+  } else {
+    values.add(`@${normalizedTelegram}`);
+  }
+
+  return [...values];
+}
+
+export function buildParticipantLookupOrFilter(
+  phone: string,
+  telegram: string,
+  email: string,
+): string {
+  const conditions: string[] = [];
+
+  for (const value of getPhoneLookupValues(phone)) {
+    conditions.push(`phone.eq.${escapeSupabaseFilterValue(value)}`);
+  }
+  for (const value of getTelegramLookupValues(telegram)) {
+    conditions.push(`telegram.eq.${escapeSupabaseFilterValue(value)}`);
+  }
+  if (email) {
+    conditions.push(`email.ilike.${escapeSupabaseFilterValue(email)}`);
+  }
+
+  return conditions.join(",");
 }
 
 function validateName(value: string, label: string): string | null {
@@ -113,7 +203,7 @@ function validateTelegram(value: string): string | null {
     return "Telegram обязателен";
   }
 
-  if (TELEGRAM_USERNAME_PATTERN.test(trimmed)) {
+  if (isTelegramUsername(trimmed)) {
     const username = trimmed.startsWith("@") ? trimmed.slice(1) : trimmed;
     if (username.length >= TELEGRAM_MIN && username.length <= TELEGRAM_MAX) {
       return null;
