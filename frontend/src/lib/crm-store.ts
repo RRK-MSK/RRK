@@ -24,6 +24,12 @@ import {
 } from "@/lib/crm-data";
 import type { ClassCard, Metric, ParticipantRow, TableRow } from "@/lib/crm-data";
 import { coffeeJamDefaultPriceTiers, formatPriceTierSummary, getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import {
+  formatEnrollmentTariffLabel,
+  pickDefaultTariffNote,
+  resolveEventTariffOptions,
+  type EventTariffOption,
+} from "@/lib/event-tariffs";
 import { hasSupabasePublicEnv, hasSupabaseServiceRoleEnv } from "@/lib/supabase/env";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -176,7 +182,13 @@ export type ParticipantProfileData = {
   profile: typeof participantProfile & { id: string };
   finance: Metric[];
   history: (TableRow & { id: string; event_id?: string })[];
-  availableEvents: { id: string; title: string; starts_at: string; status: string | null }[];
+  availableEvents: {
+    id: string;
+    title: string;
+    starts_at: string;
+    status: string | null;
+    tariffOptions?: EventTariffOption[];
+  }[];
 };
 
 export type TablePageData = {
@@ -201,6 +213,7 @@ export type ClassLoadSummary = {
   waitlist: number;
   canceled: number;
   revenue: string;
+  tariffOptions?: EventTariffOption[];
 };
 
 export type ClassesPageData = {
@@ -226,6 +239,35 @@ export type SettingsPageData = {
 
 const pendingPaymentStatuses = ["pending", "waiting_payment", "unpaid", "manual_check"];
 
+function indexPriceTiersByEventId(priceTiers: EventPriceTierRow[]) {
+  const tiersByEventId = new Map<string, EventPriceTierRow[]>();
+
+  for (const tier of priceTiers) {
+    const current = tiersByEventId.get(tier.event_id) ?? [];
+    current.push(tier);
+    tiersByEventId.set(tier.event_id, current);
+  }
+
+  return tiersByEventId;
+}
+
+function indexEnrollmentsByEventId(enrollments: EnrollmentJoinedRow[]) {
+  const enrollmentsByEventId = new Map<string, EnrollmentJoinedRow[]>();
+
+  for (const enrollment of enrollments) {
+    const eventId = enrollment.event?.id;
+    if (!eventId) {
+      continue;
+    }
+
+    const current = enrollmentsByEventId.get(eventId) ?? [];
+    current.push(enrollment);
+    enrollmentsByEventId.set(eventId, current);
+  }
+
+  return enrollmentsByEventId;
+}
+
 export function getSupabaseConnectionStatus() {
   return {
     publicConfigured: hasSupabasePublicEnv(),
@@ -244,11 +286,12 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
     };
   }
 
-  const [events, participantsData, enrollments, payments] = await Promise.all([
+  const [events, participantsData, enrollments, payments, priceTiers] = await Promise.all([
     loadEvents(),
     loadParticipants(),
     loadEnrollments(),
     loadPayments(),
+    loadEventPriceTiers(),
   ]);
 
   if (!events || !participantsData || !enrollments || !payments) {
@@ -291,6 +334,9 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
       action: "Открыть",
     }));
 
+  const tiersByEventId = indexPriceTiersByEventId(priceTiers ?? []);
+  const enrollmentsByEventId = indexEnrollmentsByEventId(enrollments);
+
   return {
     metrics: [
       { label: "Выручка", value: formatMoney(totalRevenue), hint: "По подтвержденным платежам" },
@@ -315,8 +361,57 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
         time: formatTimeRange(event.starts_at, event.ends_at),
         host: event.host ?? "Команда РРК",
         price: formatMoney(getEventBasePrice(event)),
+        tariffOptions: resolveEventTariffOptions(
+          event,
+          tiersByEventId.get(event.id) ?? [],
+          enrollmentsByEventId.get(event.id),
+        ),
       })),
     unpaidRecords,
+  };
+}
+
+export async function getCrmEnrollmentFormData(): Promise<{
+  events: { id: string; title: string; starts_at: string }[];
+  tariffsByEventId: Record<string, EventTariffOption[]>;
+}> {
+  const [events, priceTiers, enrollments] = await Promise.all([
+    loadEvents(),
+    loadEventPriceTiers(),
+    loadEnrollments(),
+  ]);
+
+  if (!events) {
+    return { events: [], tariffsByEventId: {} };
+  }
+
+  const tiersByEventId = indexPriceTiersByEventId(priceTiers ?? []);
+  const enrollmentsByEventId = indexEnrollmentsByEventId(enrollments ?? []);
+  const futureEvents = events
+    .filter((event) => isFutureDate(event.starts_at))
+    .sort((left, right) => sortByDateAsc(left.starts_at, right.starts_at));
+
+  const tariffsByEventId: Record<string, EventTariffOption[]> = {};
+
+  for (const event of futureEvents) {
+    const options = resolveEventTariffOptions(
+      event,
+      tiersByEventId.get(event.id) ?? [],
+      enrollmentsByEventId.get(event.id),
+    );
+
+    if (options.length > 0) {
+      tariffsByEventId[event.id] = options;
+    }
+  }
+
+  return {
+    events: futureEvents.map((event) => ({
+      id: event.id,
+      title: event.title,
+      starts_at: event.starts_at,
+    })),
+    tariffsByEventId,
   };
 }
 
@@ -412,7 +507,14 @@ export async function getParticipantsPageData(): Promise<ParticipantsPageData> {
 export async function getParticipantProfileData(slug: string): Promise<ParticipantProfileData> {
   const participant = await loadParticipantBySlug(slug);
 
-  const availableEvents = (await loadEvents())?.filter(e => isFutureDate(e.starts_at)) || [];
+  const [availableEvents, priceTiers, allEnrollments] = await Promise.all([
+    loadEvents(),
+    loadEventPriceTiers(),
+    loadEnrollments(),
+  ]);
+  const futureEvents = availableEvents?.filter((event) => isFutureDate(event.starts_at)) || [];
+  const tiersByEventId = indexPriceTiersByEventId(priceTiers ?? []);
+  const enrollmentsByEventId = indexEnrollmentsByEventId(allEnrollments ?? []);
 
   if (!participant) {
     return {
@@ -473,15 +575,21 @@ export async function getParticipantProfileData(slug: string): Promise<Participa
             className: row.event?.title ?? "Без названия",
             payment: row.payment_status ?? "Не указано",
             status: row.status ?? "Активна",
-            note: row.note ?? "-",
+            tariff: formatEnrollmentTariffLabel(row.note),
+            tariffNote: row.note?.trim().startsWith("Тариф: ") ? row.note.trim() : null,
           }))
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         : (participantHistory as any),
-    availableEvents: availableEvents.map(e => ({
-      id: e.id,
-      title: e.title,
-      starts_at: e.starts_at,
-      status: e.status
+    availableEvents: futureEvents.map((event) => ({
+      id: event.id,
+      title: event.title,
+      starts_at: event.starts_at,
+      status: event.status,
+      tariffOptions: resolveEventTariffOptions(
+        event,
+        tiersByEventId.get(event.id) ?? [],
+        enrollmentsByEventId.get(event.id),
+      ),
     })),
   };
 }
@@ -567,9 +675,12 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
 }
 
 export async function getClassesPageData(): Promise<ClassesPageData> {
-  const rows = await loadEvents();
-  const priceTiers = await loadEventPriceTiers();
-  const payments = await loadPayments();
+  const [rows, priceTiers, payments, enrollments] = await Promise.all([
+    loadEvents(),
+    loadEventPriceTiers(),
+    loadPayments(),
+    loadEnrollments(),
+  ]);
 
   if (!rows || !priceTiers) {
     return {
@@ -580,6 +691,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
   }
 
   const tiersByEventId = new Map<string, EventPriceTierRow[]>();
+  const enrollmentsByEventId = indexEnrollmentsByEventId(enrollments ?? []);
 
   for (const tier of priceTiers) {
     const current = tiersByEventId.get(tier.event_id) ?? [];
@@ -646,6 +758,11 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         waitlist: row.waitlist_count ?? 0,
         canceled: 0, // This needs proper data structure if we track canceled per event, assuming 0 for now
         revenue: formatMoney(revenueByEventId.get(row.id) ?? 0),
+        tariffOptions: resolveEventTariffOptions(
+          row,
+          tiersByEventId.get(row.id) ?? [],
+          enrollmentsByEventId.get(row.id),
+        ),
       };
     }),
     rows: rows.map((row) => {
@@ -746,6 +863,7 @@ export async function getRecordsPageData(): Promise<RecordsPageData> {
       slug: row.participant?.slug ?? "",
       deposit: isDepositEnrollment(row) ? "true" : "",
       className: row.event ? `${row.event.title} (${formatShortDate(row.event.starts_at)} ${row.event.starts_at ? new Date(row.event.starts_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }) : ''})` : "-",
+      tariff: formatEnrollmentTariffLabel(row.note),
       payment: row.payment_status ?? "Ждет оплату",
       confirmation: getEnrollmentConfirmationLabel(row),
       contact: row.participant?.telegram ?? row.participant?.phone ?? row.participant?.email ?? "-",
@@ -1349,6 +1467,7 @@ function createFallbackClassSummary(row: TableRow, idx: number): ClassLoadSummar
     waitlist: 0,
     canceled: 0,
     revenue: row.revenue,
+    tariffOptions: [],
   };
 }
 

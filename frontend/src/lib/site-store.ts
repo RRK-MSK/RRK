@@ -3,6 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import { buildEventTariffOptions } from "@/lib/event-tariffs";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/supabase/env";
 
@@ -109,13 +110,14 @@ export async function getSitePosterEvents() {
     : { data: [] as EnrollmentRow[] };
 
   const tiersByEventId = new Map<string, EventPriceTierRow[]>();
-  const tariffUsageByEventId = new Map<string, Map<string, number>>();
 
   for (const tier of ((priceTiers ?? []) as EventPriceTierRow[])) {
     const current = tiersByEventId.get(tier.event_id) ?? [];
     current.push(tier);
     tiersByEventId.set(tier.event_id, current);
   }
+
+  const tariffUsageByEventId = new Map<string, Map<string, number>>();
 
   for (const enrollment of ((enrollments ?? []) as EnrollmentRow[])) {
     const normalizedStatus = (enrollment.status ?? "").toLowerCase();
@@ -190,53 +192,18 @@ function buildBookingOptions(
   tiers: EventPriceTierRow[],
   usageByTariff: Map<string, number> | undefined,
 ) {
-  if (!isAugustCommunityEvent(event) || tiers.length < 2) {
+  const options = buildEventTariffOptions(event, tiers, usageByTariff);
+  if (!options) {
     return undefined;
   }
 
-  const normalizedTiers = [...tiers].sort((left, right) => left.seat_from - right.seat_from);
-  const speakerTier = normalizedTiers[0];
-  const viewerTier = normalizedTiers[1];
-
-  const options = [
-    { label: "Быть спикером", note: "Тариф: Быть спикером", tier: speakerTier },
-    { label: "Зритель", note: "Тариф: Зритель", tier: viewerTier },
-  ];
-
-  return options.map((option) => {
-    const maxSeat = option.tier.seat_to ?? (event.capacity ?? option.tier.seat_from);
-    const capacity = Math.max(maxSeat - option.tier.seat_from + 1, 0);
-    const used = usageByTariff?.get(option.note) ?? 0;
-    const seatsLeft = Math.max(capacity - used, 0);
-
-    return {
-      label: option.label,
-      price: formatPrice(option.tier.price_rub),
-      priceRub: option.tier.price_rub,
-      capacity,
-      seatsLeft,
-    };
-  });
-}
-
-function isAugustCommunityEvent(event: EventRow) {
-  if (!event.starts_at) {
-    return false;
-  }
-
-  const normalizedTitle = (event.title ?? "").toLowerCase();
-  if (!normalizedTitle.includes("реально разговорный клуб")) {
-    return false;
-  }
-
-  const moscowDate = new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: "Europe/Moscow",
-  }).format(new Date(event.starts_at));
-
-  return moscowDate === "2026-08-26";
+  return options.map((option) => ({
+    label: option.label,
+    price: formatPrice(option.priceRub),
+    priceRub: option.priceRub,
+    capacity: option.capacity,
+    seatsLeft: option.seatsLeft,
+  }));
 }
 
 function isAugustPicnicEvent(event: EventRow) {

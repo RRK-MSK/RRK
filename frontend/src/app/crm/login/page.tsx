@@ -1,5 +1,4 @@
-export const dynamic = 'force-dynamic';
-import { DEMO_LOGIN, DEMO_PASSWORD } from "@/lib/auth";
+export const dynamic = "force-dynamic";
 
 export default async function LoginPage({
   searchParams,
@@ -7,7 +6,14 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
-  const hasError = params.error === "1";
+  const errorMessage =
+    params.error === "forbidden"
+      ? "У этого аккаунта нет доступа к CRM."
+      : params.error === "config"
+        ? "Supabase Auth не настроен. Проверьте переменные окружения."
+        : params.error === "1"
+          ? "Неверный email или пароль."
+          : null;
 
   return (
     <div className="login-page">
@@ -21,19 +27,26 @@ export default async function LoginPage({
 
         <form action="/api/crm/login" method="post" className="login-form">
           <label>
-            Логин
-            <input name="login" placeholder="Введите логин" required />
+            Email
+            <input
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="admin@example.com"
+              required
+            />
           </label>
           <label>
             Пароль
             <input
               name="password"
               type="password"
+              autoComplete="current-password"
               placeholder="Введите пароль"
               required
             />
           </label>
-          {hasError ? <div className="login-error">Неверный логин или пароль.</div> : null}
+          {errorMessage ? <div className="login-error">{errorMessage}</div> : null}
           <button type="submit" className="primary-button login-submit">
             Войти
           </button>

@@ -1,9 +1,10 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE } from "./src/lib/auth";
+import { isCrmAuthBypassEnabled, isCrmEmailAllowed } from "./src/lib/crm-auth-config";
+import { createSupabaseMiddlewareClient } from "./src/lib/supabase/middleware-client";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isCrmRoute = pathname === "/crm" || pathname.startsWith("/crm/");
 
@@ -11,21 +12,46 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isLoginRoute = pathname === "/crm/login";
-  const hasSession = request.cookies.get(AUTH_COOKIE_NAME)?.value === AUTH_COOKIE_VALUE;
+  if (isCrmAuthBypassEnabled()) {
+    return NextResponse.next();
+  }
 
-  if (!hasSession && !isLoginRoute) {
-    if (process.env.NODE_ENV === "development") {
-      return NextResponse.next();
+  const isLoginRoute = pathname === "/crm/login";
+  const { supabase, supabaseResponse } = await createSupabaseMiddlewareClient(request);
+
+  if (!supabase) {
+    if (isLoginRoute) {
+      return supabaseResponse;
     }
+
+    return NextResponse.redirect(new URL("/crm/login?error=config", request.url));
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    if (isLoginRoute) {
+      return supabaseResponse;
+    }
+
     return NextResponse.redirect(new URL("/crm/login", request.url));
   }
 
-  if (hasSession && (pathname === "/crm" || isLoginRoute)) {
+  if (!isCrmEmailAllowed(user.email)) {
+    if (isLoginRoute) {
+      return supabaseResponse;
+    }
+
+    return NextResponse.redirect(new URL("/crm/login?error=forbidden", request.url));
+  }
+
+  if (pathname === "/crm" || isLoginRoute) {
     return NextResponse.redirect(new URL("/crm/dashboard", request.url));
   }
 
-  return NextResponse.next();
+  return supabaseResponse;
 }
 
 export const config = {

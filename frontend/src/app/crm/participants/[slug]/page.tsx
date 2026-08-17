@@ -107,13 +107,17 @@ export default async function ParticipantProfilePage({
                   <tr>
                     <th>Дата</th>
                     <th>Занятие</th>
+                    <th>Тариф</th>
                     <th>Оплата</th>
                     <th>Статус</th>
                     <th>Действие</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((row, idx) => (
+                  {history.map((row, idx) => {
+                    const eventTariffOptions = availableEvents.find((event) => event.id === row.event_id)?.tariffOptions ?? [];
+
+                    return (
                     <tr key={row.id || idx}>
                       <td>{row.date}</td>
                       <td>
@@ -122,6 +126,7 @@ export default async function ParticipantProfilePage({
                           {row.time && <span style={{ fontSize: "12px", color: "var(--muted)" }}>{row.time}</span>}
                         </div>
                       </td>
+                      <td>{row.tariff ?? "-"}</td>
                       <td><StatusBadge value={row.payment} /></td>
                       <td><StatusBadge value={row.status} /></td>
                       <td>
@@ -131,14 +136,18 @@ export default async function ParticipantProfilePage({
                             currentEventId={row.event_id} 
                             availableEvents={availableEvents}
                             paymentStatus={row.payment}
+                            tariffOptions={eventTariffOptions}
+                            currentTariffNote={row.tariffNote}
+                            enrollmentStatus={row.status}
                           />
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {history.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: "center", color: "var(--muted)" }}>Нет записей</td>
+                      <td colSpan={6} style={{ textAlign: "center", color: "var(--muted)" }}>Нет записей</td>
                     </tr>
                   )}
                 </tbody>

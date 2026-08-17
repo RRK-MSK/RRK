@@ -1,27 +1,47 @@
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE, isValidCredentials } from "@/lib/auth";
+import { isCrmEmailAllowed } from "@/lib/crm-auth-config";
+import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/supabase/env";
 
 export async function POST(request: Request) {
+  if (!hasSupabasePublicEnv()) {
+    return NextResponse.redirect(new URL("/crm/login?error=config", request.url), 303);
+  }
+
   const formData = await request.formData();
-  const login = String(formData.get("login") ?? "");
+  const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  if (!isValidCredentials(login, password)) {
+  if (!email || !password) {
     return NextResponse.redirect(new URL("/crm/login?error=1", request.url), 303);
   }
 
-  // Для Telegram Mini App и мобильных браузеров, которые блокируют cross-site cookies,
-  // нам нужно обеспечить максимально лояльную политику cookie.
-  // Vercel иногда проксирует запросы, поэтому лучше жестко установить lax для надежности.
-  const response = NextResponse.redirect(new URL("/crm/dashboard", request.url), 303);
-  response.cookies.set(AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+  const cookieStore = await cookies();
+  const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          cookieStore.set(name, value, options);
+        });
+      },
+    },
   });
 
-  return response;
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error || !data.user) {
+    return NextResponse.redirect(new URL("/crm/login?error=1", request.url), 303);
+  }
+
+  if (!isCrmEmailAllowed(data.user.email)) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(new URL("/crm/login?error=forbidden", request.url), 303);
+  }
+
+  return NextResponse.redirect(new URL("/crm/dashboard", request.url), 303);
 }

@@ -51,7 +51,7 @@ export function RecordsTable({ initialRows }: { initialRows: TableRow[] }) {
           <thead>
             <tr>
               {headers.map((header) => (
-                <th key={header}>{header === 'className' ? 'Занятие' : header === 'participant' ? 'Участник' : header === 'payment' ? 'Оплата' : header === 'confirmation' ? 'Подтверждение' : header === 'contact' ? 'Контакт' : header === 'source' ? 'Источник' : header === 'status' ? 'Статус' : header === 'action' ? 'Действие' : header}</th>
+                <th key={header}>{header === 'className' ? 'Занятие' : header === 'participant' ? 'Участник' : header === 'tariff' ? 'Тариф' : header === 'payment' ? 'Оплата' : header === 'confirmation' ? 'Подтверждение' : header === 'contact' ? 'Контакт' : header === 'source' ? 'Источник' : header === 'status' ? 'Статус' : header === 'action' ? 'Действие' : header}</th>
               ))}
             </tr>
           </thead>

@@ -19,6 +19,7 @@ export type ClassCard = {
   time: string;
   host: string;
   price: string;
+  tariffOptions?: import("@/lib/event-tariffs").EventTariffOption[];
 };
 
 export type ParticipantRow = {

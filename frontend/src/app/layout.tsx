@@ -39,11 +39,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru">
+    <html lang="ru" suppressHydrationWarning>
       <head>
-        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
       </head>
-      <body className={`${inter.variable} ${plusJakartaSans.variable} ${anton.variable} ${instrumentSerif.variable}`}>
+      <body
+        className={`${inter.variable} ${plusJakartaSans.variable} ${anton.variable} ${instrumentSerif.variable}`}
+        suppressHydrationWarning
+      >
         <ScrollReset />
         <AppFrame>{children}</AppFrame>
         <BottomNav />

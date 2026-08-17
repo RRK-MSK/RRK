@@ -1,7 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireCrmUser } from "@/lib/crm-auth";
+import { getCrmEnrollmentFormData as loadCrmEnrollmentFormData } from "@/lib/crm-store";
 import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import {
+  buildEventTariffOptions,
+  buildTariffUsageMap,
+  findEventTariffOption,
+  formatEnrollmentTariffLabel,
+  type EventTariffOption,
+} from "@/lib/event-tariffs";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 type EventTierInput = {
@@ -422,7 +431,83 @@ async function getDynamicEventPrice(eventId: string) {
   );
 }
 
+async function loadEventTariffOptions(eventId: string): Promise<EventTariffOption[]> {
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    return [];
+  }
+
+  const [{ data: event, error: eventError }, { data: tiers, error: tiersError }, { data: enrollments, error: enrollmentsError }] =
+    await Promise.all([
+      supabase
+        .from("events")
+        .select("title, starts_at, capacity")
+        .eq("id", eventId)
+        .single(),
+      supabase
+        .from("event_price_tiers")
+        .select("seat_from, seat_to, price_rub")
+        .eq("event_id", eventId)
+        .order("seat_from", { ascending: true }),
+      supabase
+        .from("enrollments")
+        .select("note, status")
+        .eq("event_id", eventId),
+    ]);
+
+  if (eventError || tiersError || enrollmentsError || !event) {
+    return [];
+  }
+
+  return buildEventTariffOptions(
+    event,
+    tiers ?? [],
+    buildTariffUsageMap(enrollments ?? []),
+  ) ?? [];
+}
+
+async function resolveManualEnrollmentDetails(eventId: string, ticketNote: string | null) {
+  const tariffOptions = await loadEventTariffOptions(eventId);
+
+  if (tariffOptions.length === 0) {
+    return {
+      priceRub: await getDynamicEventPrice(eventId),
+      ticketNote: null as string | null,
+    };
+  }
+
+  const selectedTariff = findEventTariffOption(tariffOptions, ticketNote);
+  if (!selectedTariff) {
+    throw new Error("Выберите тариф");
+  }
+
+  if (selectedTariff.seatsLeft <= 0) {
+    throw new Error(`На тариф «${selectedTariff.label}» мест больше нет`);
+  }
+
+  return {
+    priceRub: selectedTariff.priceRub,
+    ticketNote: selectedTariff.note,
+  };
+}
+
+export async function getEventTariffOptions(eventId: string): Promise<EventTariffOption[]> {
+  await requireCrmUser();
+
+  if (!eventId) {
+    return [];
+  }
+
+  return loadEventTariffOptions(eventId);
+}
+
+export async function getCrmEnrollmentFormData() {
+  await requireCrmUser();
+  return loadCrmEnrollmentFormData();
+}
+
 export async function addParticipant(formData: FormData) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -473,6 +558,7 @@ export async function addParticipant(formData: FormData) {
 }
 
 export async function toggleEventVisibility(eventId: string, isPublished: boolean) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -488,6 +574,7 @@ export async function toggleEventVisibility(eventId: string, isPublished: boolea
 }
 
 export async function updateEventStatus(eventId: string, status: string) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -503,6 +590,7 @@ export async function updateEventStatus(eventId: string, status: string) {
 }
 
 export async function deleteEvent(eventId: string) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -518,6 +606,7 @@ export async function deleteEvent(eventId: string) {
 }
 
 export async function addEvent(formData: FormData) {
+  await requireCrmUser();
   return saveEvent({
     title: String(formData.get("title") ?? ""),
     subtitle: String(formData.get("subtitle") ?? ""),
@@ -536,6 +625,7 @@ export async function addEvent(formData: FormData) {
 }
 
 export async function saveEvent(payload: EventPayload) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -611,6 +701,7 @@ export async function saveEvent(payload: EventPayload) {
 }
 
 export async function savePromoCode(payload: PromoCodePayload) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -655,6 +746,7 @@ export async function savePromoCode(payload: PromoCodePayload) {
 }
 
 export async function deletePromoCode(id: string) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -672,6 +764,7 @@ export async function deletePromoCode(id: string) {
 }
 
 export async function savePayment(payload: PaymentPayload) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) {
     throw new Error("Supabase is not configured");
@@ -807,6 +900,7 @@ export async function savePayment(payload: PaymentPayload) {
 }
 
 export async function updateParticipantStatus(id: string, status: string) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -824,6 +918,7 @@ export async function updateParticipantStatus(id: string, status: string) {
 }
 
 export async function updateParticipantData(id: string, data: { fullName: string, telegram: string, phone: string, email: string }) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -854,6 +949,7 @@ export async function updateParticipantData(id: string, data: { fullName: string
 }
 
 export async function updateParticipantTags(id: string, tags: string[]) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -871,6 +967,7 @@ export async function updateParticipantTags(id: string, tags: string[]) {
 }
 
 export async function addRecord(formData: FormData) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -879,6 +976,8 @@ export async function addRecord(formData: FormData) {
   const phone = formData.get("phone") as string;
   const email = formData.get("email") as string;
   const eventId = formData.get("eventId") as string;
+  const ticketNoteRaw = String(formData.get("ticketNote") ?? "").trim();
+  const ticketNote = ticketNoteRaw || null;
   const isPaid = formData.get("isPaid") === "on";
 
   if (!fullName) throw new Error("Name is required");
@@ -938,7 +1037,7 @@ export async function addRecord(formData: FormData) {
 
   // 2. Получим данные о событии
   const { data: event } = await supabase.from("events").select("title, starts_at").eq("id", eventId).single();
-  const currentPriceRub = await getDynamicEventPrice(eventId);
+  const { priceRub, ticketNote: enrollmentNote } = await resolveManualEnrollmentDetails(eventId, ticketNote);
 
   // 3. Создадим запись
   const { data: enrollment, error: eError } = await supabase
@@ -950,6 +1049,7 @@ export async function addRecord(formData: FormData) {
       status: "Активна",
       payment_status: isPaid ? "Оплачен" : "Ожидает",
       confirmation_status: "Подтверждено",
+      note: enrollmentNote,
     })
     .select("id")
     .single();
@@ -961,9 +1061,9 @@ export async function addRecord(formData: FormData) {
     eventId,
     enrollmentId: enrollment.id,
     isPaid,
-    amountRub: currentPriceRub,
+    amountRub: priceRub,
     method: isPaid ? "Наличные / Перевод" : "Ожидает",
-    note: "CRM: запись из вкладки Записи",
+    note: enrollmentNote ? `CRM: ${enrollmentNote}` : "CRM: запись из вкладки Записи",
     reason: "Новая запись участника в CRM",
   });
 
@@ -983,6 +1083,7 @@ export async function addRecord(formData: FormData) {
 }
 
 export async function markEnrollmentPaid(enrollmentId: string) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -991,7 +1092,9 @@ export async function markEnrollmentPaid(enrollmentId: string) {
     throw new Error("Запись не найдена");
   }
 
-  const currentPriceRub = await getDynamicEventPrice(enrollment.event_id);
+  const tariffOptions = await loadEventTariffOptions(enrollment.event_id);
+  const tariffFromNote = findEventTariffOption(tariffOptions, enrollment.note);
+  const currentPriceRub = tariffFromNote?.priceRub ?? await getDynamicEventPrice(enrollment.event_id);
   await syncPaymentForEnrollment({
     participantId: enrollment.participant_id,
     eventId: enrollment.event_id,
@@ -1007,7 +1110,98 @@ export async function markEnrollmentPaid(enrollmentId: string) {
   return { success: true };
 }
 
+export async function changeEnrollmentTariff(enrollmentId: string, ticketNote: string) {
+  await requireCrmUser();
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error("Supabase is not configured");
+  }
+
+  const enrollment = await getEnrollmentDetails(enrollmentId);
+  if (!enrollment) {
+    throw new Error("Запись не найдена");
+  }
+
+  if (normalizeStatus(enrollment.status).includes("отмен")) {
+    throw new Error("Нельзя менять тариф у отменённой записи");
+  }
+
+  const currentNote = normalizeText(enrollment.note);
+  const nextNote = normalizeText(ticketNote);
+  if (!nextNote) {
+    throw new Error("Выберите тариф");
+  }
+
+  if (currentNote === nextNote) {
+    return { success: true };
+  }
+
+  const tariffOptions = await loadEventTariffOptions(enrollment.event_id);
+  if (tariffOptions.length === 0) {
+    throw new Error("У этого занятия нет тарифов");
+  }
+
+  const selectedTariff = findEventTariffOption(tariffOptions, nextNote);
+  if (!selectedTariff) {
+    throw new Error("Выберите тариф");
+  }
+
+  if (selectedTariff.seatsLeft <= 0) {
+    throw new Error(`На тариф «${selectedTariff.label}» мест больше нет`);
+  }
+
+  const { error: enrollmentError } = await supabase
+    .from("enrollments")
+    .update({ note: nextNote })
+    .eq("id", enrollmentId);
+
+  if (enrollmentError) {
+    throw new Error("Не удалось обновить тариф: " + enrollmentError.message);
+  }
+
+  const payment = await findPaymentForEnrollment(
+    enrollment.participant_id,
+    enrollment.event_id,
+    enrollmentId,
+  );
+
+  if (payment) {
+    const previousAmount = Math.max(Number(payment.amount_rub) || 0, 0);
+    const previousPaid = isPaidPaymentStatus(payment.status);
+    const nextAmount = selectedTariff.priceRub;
+
+    const { error: paymentError } = await supabase
+      .from("payments")
+      .update({
+        amount_rub: nextAmount,
+        note: `CRM: ${nextNote}`,
+      })
+      .eq("id", payment.id);
+
+    if (paymentError) {
+      throw new Error("Не удалось обновить сумму оплаты: " + paymentError.message);
+    }
+
+    if (previousPaid && previousAmount !== nextAmount) {
+      await logRevenueAudit({
+        paymentId: payment.id,
+        participantId: enrollment.participant_id,
+        enrollmentId,
+        eventId: enrollment.event_id,
+        direction: nextAmount > previousAmount ? "plus" : "minus",
+        operationType: "tariff_changed",
+        amountRub: Math.abs(nextAmount - previousAmount),
+        reason: `Смена тарифа: ${formatEnrollmentTariffLabel(currentNote)} → ${selectedTariff.label}`,
+      });
+    }
+  }
+
+  revalidateCrmAndSite();
+  return { success: true };
+}
+
 export async function transferParticipant(enrollmentId: string, newEventId: string) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -1073,6 +1267,7 @@ export async function transferParticipant(enrollmentId: string, newEventId: stri
 }
 
 export async function updateEnrollmentStatus(enrollmentId: string, status: string) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -1088,6 +1283,7 @@ export async function updateEnrollmentStatus(enrollmentId: string, status: strin
 }
 
 export async function cancelEnrollment(enrollmentId: string, mode: CancelEnrollmentMode = "credit") {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -1150,6 +1346,7 @@ export async function cancelEnrollment(enrollmentId: string, mode: CancelEnrollm
 }
 
 export async function updateEnrollment(enrollmentId: string, updates: { event_id?: string, status?: string, payment_status?: string }) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -1189,6 +1386,7 @@ export async function updateEnrollment(enrollmentId: string, updates: { event_id
 }
 
 export async function updateParticipantNote(id: string, note: string) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
@@ -1206,17 +1404,20 @@ export async function updateParticipantNote(id: string, note: string) {
 }
 
 export async function addParticipantEnrollment(formData: FormData) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
   const participantId = formData.get("participantId") as string;
   const eventId = formData.get("eventId") as string;
+  const ticketNoteRaw = String(formData.get("ticketNote") ?? "").trim();
+  const ticketNote = ticketNoteRaw || null;
   const isPaid = formData.get("isPaid") === "on";
 
   if (!participantId || !eventId) throw new Error("Participant and Event are required");
 
   const { data: event } = await supabase.from("events").select("title, starts_at").eq("id", eventId).single();
-  const currentPriceRub = await getDynamicEventPrice(eventId);
+  const { priceRub, ticketNote: enrollmentNote } = await resolveManualEnrollmentDetails(eventId, ticketNote);
 
   const { data: enrollment, error: eError } = await supabase
     .from("enrollments")
@@ -1227,6 +1428,7 @@ export async function addParticipantEnrollment(formData: FormData) {
       status: "Активна",
       payment_status: isPaid ? "Оплачен" : "Ожидает",
       confirmation_status: "Подтверждено",
+      note: enrollmentNote,
     })
     .select("id")
     .single();
@@ -1238,9 +1440,9 @@ export async function addParticipantEnrollment(formData: FormData) {
     eventId,
     enrollmentId: enrollment.id,
     isPaid,
-    amountRub: currentPriceRub,
+    amountRub: priceRub,
     method: isPaid ? "Наличные / Перевод" : "Ожидает",
-    note: "CRM: запись из карточки участника",
+    note: enrollmentNote ? `CRM: ${enrollmentNote}` : "CRM: запись из карточки участника",
     reason: "Новая запись из карточки участника",
   });
 
@@ -1255,6 +1457,7 @@ export async function addParticipantEnrollment(formData: FormData) {
   return { success: true };
 }
 export async function getEventParticipants(eventId: string) {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) return { error: "Supabase client not configured", data: [] };
 
@@ -1264,6 +1467,7 @@ export async function getEventParticipants(eventId: string) {
       id,
       status,
       payment_status,
+      note,
       participant:participants (
         id,
         full_name,
@@ -1282,6 +1486,7 @@ export async function getEventParticipants(eventId: string) {
     id: string;
     status: string | null;
     payment_status: string | null;
+    note: string | null;
     participant:
       | {
           id: string;
@@ -1301,10 +1506,22 @@ export async function getEventParticipants(eventId: string) {
     participant: Array.isArray(row.participant) ? (row.participant[0] ?? null) : row.participant,
   }));
 
-  return { error: null, data: normalizedRows };
+  return { error: null, data: normalizedRows as Array<{
+    id: string;
+    status: string | null;
+    payment_status: string | null;
+    note: string | null;
+    participant: {
+      id: string;
+      full_name: string | null;
+      telegram: string | null;
+      slug: string | null;
+    } | null;
+  }> };
 }
 
 export async function getAvailableEventsForTransfer() {
+  await requireCrmUser();
   const supabase = getSupabaseAdminClient();
   if (!supabase) return { error: "Supabase not configured", data: [] };
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildParticipantLookupOrFilter, validateAndNormalizeBooking } from "@/lib/booking-validation";
 import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import { getTariffNotesForCapacityCheck } from "@/lib/event-tariffs";
 import { tbank } from "@/lib/tbank/client";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { sendTelegramNotification } from "@/lib/telegram";
@@ -219,11 +220,12 @@ export async function POST(request: Request) {
       // 3. Создаем запись (enrollment)
       if (participantId && dbEventId) {
         if (ticketNote && selectedTicketCapacity > 0) {
+          const tariffNotes = getTariffNotesForCapacityCheck(ticketNote);
           const { data: existingTariffBookings, error: tariffError } = await supabase
             .from("enrollments")
             .select("id, status")
             .eq("event_id", dbEventId)
-            .eq("note", ticketNote);
+            .in("note", tariffNotes);
 
           if (tariffError) {
             console.error("Tariff seats check error:", tariffError);

@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { getEventParticipants, getAvailableEventsForTransfer, addRecord } from "@/app/crm/actions";
+import { getEventParticipants, getAvailableEventsForTransfer, addRecord, getEventTariffOptions } from "@/app/crm/actions";
+import { CrmTariffField } from "@/components/crm/crm-tariff-field";
 import { EnrollmentActions } from "@/components/crm/enrollment-actions";
+import { pickDefaultTariffNote, type EventTariffOption } from "@/lib/event-tariffs";
 
 import type { ClassLoadSummary } from "@/lib/crm-store";
+
+function getInitialTariffOptions(item: ClassLoadSummary | { tariffOptions?: EventTariffOption[] }) {
+  return item.tariffOptions ?? [];
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummary | any, variant?: "classes" | "dashboard" }) {
@@ -18,6 +24,13 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
   
   const [isAdding, setIsAdding] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tariffOptions, setTariffOptions] = useState<EventTariffOption[]>(() => getInitialTariffOptions(item));
+  const [selectedTicketNote, setSelectedTicketNote] = useState(() => pickDefaultTariffNote(getInitialTariffOptions(item)));
+
+  const applyTariffOptions = (options: EventTariffOption[]) => {
+    setTariffOptions(options);
+    setSelectedTicketNote(pickDefaultTariffNote(options));
+  };
 
   const handleOpen = async () => {
     setIsOpen(true);
@@ -28,7 +41,7 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
     try {
       const [res, eventsRes] = await Promise.all([
         getEventParticipants(item.id),
-        getAvailableEventsForTransfer()
+        getAvailableEventsForTransfer(),
       ]);
       if (res.error) setErrorMsg(res.error);
       else setParticipants(res.data || []);
@@ -51,9 +64,12 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
       const res = await addRecord(formData);
       if (res.success) {
         setIsAdding(false);
-        // Refresh participants
         const fresh = await getEventParticipants(item.id);
         if (!fresh.error) setParticipants(fresh.data || []);
+        const freshTariffs = await getEventTariffOptions(item.id);
+        if (freshTariffs.length > 0) {
+          applyTariffOptions(freshTariffs);
+        }
       }
     } catch (err: any) {
       alert(err.message || "Ошибка при добавлении");
@@ -160,6 +176,11 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
                 ) : (
                   <form onSubmit={handleAddParticipant} style={{ background: 'var(--surface)', padding: '16px', borderRadius: '8px', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <h3 style={{ margin: 0, fontSize: '14px' }}>Новая запись</h3>
+                    <CrmTariffField
+                      options={tariffOptions}
+                      value={selectedTicketNote}
+                      onChange={setSelectedTicketNote}
+                    />
                     <input name="fullName" placeholder="Имя и Фамилия *" required style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
                     <input name="telegram" placeholder="Telegram (@username)" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--line)', background: 'transparent', color: 'inherit' }} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -218,9 +239,17 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
                           currentEventId={item.id} 
                           availableEvents={availableEvents}
                           paymentStatus={p.payment_status}
+                          tariffOptions={tariffOptions}
+                          currentTariffNote={p.note}
+                          enrollmentStatus={p.status}
+                          compactTariff
                           onUpdate={async () => {
                             const fresh = await getEventParticipants(item.id);
                             if (!fresh.error) setParticipants(fresh.data || []);
+                            const freshTariffs = await getEventTariffOptions(item.id);
+                            if (freshTariffs.length > 0) {
+                              applyTariffOptions(freshTariffs);
+                            }
                           }}
                         />
                       </div>
