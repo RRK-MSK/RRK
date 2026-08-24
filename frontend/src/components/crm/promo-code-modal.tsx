@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { savePromoCode } from "@/app/crm/actions";
+import { formatDateTimeLocalMoscow } from "@/lib/moscow-datetime";
 
 export type PromoCodeInitialData = {
   id?: string;
@@ -39,8 +40,8 @@ export function PromoCodeModal({ triggerLabel, triggerClassName, initialData }: 
     code: initialData?.code ?? "",
     description: initialData?.description ?? "",
     discountPercent: initialData?.discountPercent ?? 10,
-    validFrom: formatDateTimeLocal(initialData?.validFrom),
-    expiresAt: formatDateTimeLocal(initialData?.expiresAt),
+    validFrom: formatDateTimeLocalMoscow(initialData?.validFrom),
+    expiresAt: formatDateTimeLocalMoscow(initialData?.expiresAt),
     usageLimit: initialData?.usageLimit ?? null,
     isSingleUse: initialData?.isSingleUse ?? true,
     isActive: initialData?.isActive ?? true,
@@ -183,28 +184,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function formatDateTimeLocal(value?: string | null) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  const parts = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Moscow",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-
-  const getPart = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
-
-  return `${getPart("year")}-${getPart("month")}-${getPart("day")}T${getPart("hour")}:${getPart("minute")}`;
-}

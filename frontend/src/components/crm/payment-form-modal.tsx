@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 
 import { savePayment } from "@/app/crm/actions";
+import { formatDateTimeLocalMoscow } from "@/lib/moscow-datetime";
 
 export type PaymentFormOption = {
   id: string;
@@ -57,7 +58,7 @@ export function PaymentFormModal({
     amountRub: initialData?.amountRub ?? 0,
     method: initialData?.method ?? "Наличные / Перевод",
     status: initialData?.status ?? "Оплачен",
-    paidAt: formatDateTimeLocal(initialData?.paidAt),
+    paidAt: formatDateTimeLocalMoscow(initialData?.paidAt),
     promoCodeId: initialData?.promoCodeId ?? "",
     discountAmountRub: initialData?.discountAmountRub ?? 0,
   });
@@ -254,25 +255,3 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function formatDateTimeLocal(value?: string) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  const formatter = new Intl.DateTimeFormat("sv-SE", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Moscow",
-  });
-
-  return formatter.format(date).replace(" ", "T");
-}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireCrmUser } from "@/lib/crm-auth";
 import { getCrmEnrollmentFormData as loadCrmEnrollmentFormData } from "@/lib/crm-store";
+import { parseDateTimeLocalMoscow } from "@/lib/moscow-datetime";
 import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
 import {
   buildEventTariffOptions,
@@ -135,11 +136,7 @@ function normalizeText(value?: string | null) {
 }
 
 function normalizeIsoDate(value?: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  return new Date(value).toISOString();
+  return parseDateTimeLocalMoscow(value);
 }
 
 function normalizePricingTiers(tiers: EventTierInput[] = []) {

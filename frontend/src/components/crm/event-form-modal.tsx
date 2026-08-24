@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { saveEvent } from "@/app/crm/actions";
+import { formatDateTimeLocalMoscow } from "@/lib/moscow-datetime";
 
 type PricingTierFormRow = {
   seatFrom: number;
@@ -53,8 +54,8 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
     category: initialData?.category ?? "Обычное",
     city: initialData?.city ?? "Москва",
     host: initialData?.host ?? "",
-    startsAt: formatDateTimeLocal(initialData?.startsAt),
-    endsAt: formatDateTimeLocal(initialData?.endsAt),
+    startsAt: formatDateTimeLocalMoscow(initialData?.startsAt),
+    endsAt: formatDateTimeLocalMoscow(initialData?.endsAt),
     capacity: initialData?.capacity ?? 10,
     price: initialData?.price ?? 4400,
     isPublished: initialData?.isPublished ?? true,
@@ -304,28 +305,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function formatDateTimeLocal(value?: string) {
-  if (!value) {
-    return "";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  const parts = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Moscow",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-
-  const getPart = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
-
-  return `${getPart("year")}-${getPart("month")}-${getPart("day")}T${getPart("hour")}:${getPart("minute")}`;
-}
