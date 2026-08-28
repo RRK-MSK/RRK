@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireCrmUser } from "@/lib/crm-auth";
 import { getCrmEnrollmentFormData as loadCrmEnrollmentFormData } from "@/lib/crm-store";
 import { parseDateTimeLocalMoscow } from "@/lib/moscow-datetime";
-import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import { resolveCoffeeJamPrice, type EventPriceTier } from "@/lib/event-pricing";
 import {
   buildEventTariffOptions,
   buildTariffUsageMap,
@@ -421,10 +421,10 @@ async function getDynamicEventPrice(eventId: string) {
     .eq("event_id", eventId)
     .order("seat_from", { ascending: true });
 
-  return getPriceForNextBooking(
+  return resolveCoffeeJamPrice(
     Math.max(event.price_rub ?? 0, 770),
     event.booked_count,
-    getCoffeeJamPriceTiers((tiers ?? []) as EventPriceTier[]),
+    (tiers ?? []) as EventPriceTier[],
   );
 }
 

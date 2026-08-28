@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildParticipantLookupOrFilter, validateAndNormalizeBooking } from "@/lib/booking-validation";
-import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import { resolveCoffeeJamPrice, type EventPriceTier } from "@/lib/event-pricing";
 import { getTariffNotesForCapacityCheck } from "@/lib/event-tariffs";
 import { tbank } from "@/lib/tbank/client";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
@@ -137,11 +137,10 @@ export async function POST(request: Request) {
           .order("seat_from", { ascending: true });
 
         if (isCoffeeJamBooking(eventTitle ?? eventId)) {
-          const effectivePriceTiers = getCoffeeJamPriceTiers((priceTiers ?? []) as EventPriceTier[]);
-          priceRub = getPriceForNextBooking(
+          priceRub = resolveCoffeeJamPrice(
             priceRub,
             bookedCount,
-            effectivePriceTiers,
+            (priceTiers ?? []) as EventPriceTier[],
           );
         }
       }

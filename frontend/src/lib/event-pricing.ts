@@ -6,18 +6,25 @@ export type EventPriceTier = {
   price_rub: number;
 };
 
-export const coffeeJamDefaultPriceTiers: EventPriceTier[] = [
-  { seat_from: 1, seat_to: 10, price_rub: 770 },
-  { seat_from: 11, seat_to: 50, price_rub: 990 },
-  { seat_from: 51, seat_to: null, price_rub: 1500 },
-];
-
 export function normalizeEventPriceTiers<T extends EventPriceTier>(tiers: T[]) {
   return [...tiers].sort((left, right) => left.seat_from - right.seat_from);
 }
 
 export function getCoffeeJamPriceTiers(tiers: EventPriceTier[]) {
-  return tiers.length > 0 ? normalizeEventPriceTiers(tiers) : coffeeJamDefaultPriceTiers;
+  return normalizeEventPriceTiers(tiers);
+}
+
+export function resolveCoffeeJamPrice(
+  basePriceRub: number | null | undefined,
+  bookedCount: number | null | undefined,
+  tiers: EventPriceTier[],
+) {
+  const normalizedTiers = getCoffeeJamPriceTiers(tiers);
+  if (normalizedTiers.length === 0) {
+    return basePriceRub ?? 0;
+  }
+
+  return getPriceForNextBooking(basePriceRub, bookedCount, normalizedTiers);
 }
 
 export function getPriceForNextBooking(

@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { getCoffeeJamPriceTiers, getPriceForNextBooking, type EventPriceTier } from "@/lib/event-pricing";
+import { resolveCoffeeJamPrice, type EventPriceTier } from "@/lib/event-pricing";
 import { buildEventTariffOptions } from "@/lib/event-tariffs";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/supabase/env";
@@ -143,13 +143,13 @@ export async function getSitePosterEvents() {
     })
     .map((event, index) => {
     const eventTiers = tiersByEventId.get(event.id) ?? [];
-    const effectiveEventTiers = isCoffeeJamEvent(event)
-      ? getCoffeeJamPriceTiers(eventTiers as EventPriceTier[])
-      : eventTiers;
     const basePrice = getEventBasePrice(event);
     const currentPrice = isCoffeeJamEvent(event)
-      ? getPriceForNextBooking(basePrice, event.booked_count, effectiveEventTiers as EventPriceTier[])
+      ? resolveCoffeeJamPrice(basePrice, event.booked_count, eventTiers as EventPriceTier[])
       : basePrice;
+    const minTierPrice = eventTiers.length > 0
+      ? Math.min(...eventTiers.map((tier) => tier.price_rub))
+      : null;
     const capacity = event.capacity ?? 10;
     const booked = Math.max(0, event.booked_count ?? 0);
     const seatsLeft = Math.max(capacity - booked, 0);
@@ -171,7 +171,7 @@ export async function getSitePosterEvents() {
       focus: event.description ?? undefined,
       host: event.host ?? undefined,
       price: formatPrice(currentPrice),
-      displayPrice: isCoffeeJamEvent(event) ? "от 770₽" : undefined,
+      displayPrice: isCoffeeJamEvent(event) && minTierPrice !== null ? `от ${formatPrice(minTierPrice)}` : undefined,
       label: getLabel(event.category),
       capacity,
       booked,
