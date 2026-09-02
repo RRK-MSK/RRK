@@ -2,7 +2,14 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+import {
+  getEventCategoryLabel,
+  getEventCategoryTone,
+  isCoffeeJamCategory,
+} from "@/lib/event-categories";
+import { isUnlimitedCapacity } from "@/lib/event-capacity";
 import { resolveCoffeeJamPrice, type EventPriceTier } from "@/lib/event-pricing";
+import { formatEventPriceDisplay, hasTextOnlyEventPrice } from "@/lib/event-payment";
 import { buildEventTariffOptions } from "@/lib/event-tariffs";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/supabase/env";
@@ -18,6 +25,8 @@ type SitePosterEvent = {
   description?: string;
   focus?: string;
   host?: string;
+  venueAddress?: string;
+  venueMapUrl?: string;
   price: string;
   displayPrice?: string;
   label?: string;
@@ -48,6 +57,9 @@ type EventRow = {
   starts_at: string;
   ends_at: string | null;
   price_rub: number | null;
+  price_label?: string | null;
+  venue_address?: string | null;
+  venue_map_url?: string | null;
   capacity: number | null;
   booked_count: number | null;
   is_published: boolean | null;
@@ -86,7 +98,7 @@ export async function getSitePosterEvents() {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, capacity, booked_count, is_published, status",
+      "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status",
     )
     .eq("is_published", true)
     .order("starts_at", { ascending: true });
@@ -144,7 +156,7 @@ export async function getSitePosterEvents() {
     .map((event, index) => {
     const eventTiers = tiersByEventId.get(event.id) ?? [];
     const basePrice = getEventBasePrice(event);
-    const currentPrice = isCoffeeJamEvent(event)
+    const currentPrice = isCoffeeJamCategory(event.category, event.title)
       ? resolveCoffeeJamPrice(basePrice, event.booked_count, eventTiers as EventPriceTier[])
       : basePrice;
     const minTierPrice = eventTiers.length > 0
@@ -153,16 +165,24 @@ export async function getSitePosterEvents() {
     const capacity = event.capacity ?? 10;
     const booked = Math.max(0, event.booked_count ?? 0);
     const seatsLeft = Math.max(capacity - booked, 0);
-    const hideCapacity = capacity >= 10000 || (event.title ?? "").toLowerCase().includes("coffee jam") || (event.title ?? "").toLowerCase().includes("кофе джем");
+    const hideCapacity = isUnlimitedCapacity(capacity)
+      || isCoffeeJamCategory(event.category, event.title);
     const bookingOptions = buildBookingOptions(
       event,
       eventTiers,
       tariffUsageByEventId.get(event.id),
     );
+    const formattedRubPrice = formatPrice(currentPrice);
+    const price = formatEventPriceDisplay(event.price_rub, event.price_label, formattedRubPrice);
+    const displayPrice = !hasTextOnlyEventPrice(event.price_label)
+      && isCoffeeJamCategory(event.category, event.title)
+      && minTierPrice !== null
+      ? `от ${formatPrice(minTierPrice)}`
+      : undefined;
 
     return {
       id: event.id,
-      tone: getTone(event.category, index),
+      tone: getEventCategoryTone(event.category, event.title, index),
       date: formatSiteDate(event.starts_at),
       time: formatTimeRange(event),
       startsAt: event.starts_at,
@@ -170,9 +190,11 @@ export async function getSitePosterEvents() {
       description: event.subtitle ?? undefined,
       focus: event.description ?? undefined,
       host: event.host ?? undefined,
-      price: formatPrice(currentPrice),
-      displayPrice: isCoffeeJamEvent(event) && minTierPrice !== null ? `от ${formatPrice(minTierPrice)}` : undefined,
-      label: getLabel(event.category),
+      venueAddress: event.venue_address ?? undefined,
+      venueMapUrl: event.venue_map_url ?? undefined,
+      price,
+      displayPrice,
+      label: getEventCategoryLabel(event.category, event.title),
       capacity,
       booked,
       seatsLeft,
@@ -207,36 +229,8 @@ function isFallingChairsEvent(event: Pick<EventRow, "title">) {
   return normalizedTitle.includes("падающими стульями");
 }
 
-function getTone(category: string | null, index: number) {
-  const normalized = (category ?? "").toLowerCase();
-
-  if (normalized.includes("collab") || normalized.includes("коллаб")) {
-    return "highlight";
-  }
-
-  if (normalized.includes("big") || normalized.includes("биг")) {
-    return "solid";
-  }
-
-  return index % 2 === 0 ? "solid" : "soft";
-}
-
-function getLabel(category: string | null) {
-  const normalizedCategory = (category ?? "").toLowerCase();
-
-  if (normalizedCategory.includes("collab") || normalizedCategory.includes("коллаб")) {
-    return "Коллаборация";
-  }
-
-  if (normalizedCategory.includes("big") || normalizedCategory.includes("биг")) {
-    return "Большая тренировка";
-  }
-
-  return undefined;
-}
-
 function getEventBasePrice(event: Pick<EventRow, "title" | "category" | "price_rub">) {
-  if (isCoffeeJamEvent(event)) {
+  if (isCoffeeJamCategory(event.category, event.title)) {
     return Math.max(event.price_rub ?? 0, 770);
   }
 
@@ -244,27 +238,7 @@ function getEventBasePrice(event: Pick<EventRow, "title" | "category" | "price_r
     return 2200;
   }
 
-  return isBigTrainingEvent(event) ? 5500 : (event.price_rub ?? 0);
-}
-
-function isCoffeeJamEvent(event: Pick<EventRow, "title" | "category">) {
-  const normalizedTitle = (event.title ?? "").toLowerCase();
-  const normalizedCategory = (event.category ?? "").toLowerCase();
-
-  return normalizedTitle.includes("coffee jam")
-    || normalizedTitle.includes("кофе джем")
-    || normalizedCategory.includes("coffee jam")
-    || normalizedCategory.includes("кофе джем");
-}
-
-function isBigTrainingEvent(event: Pick<EventRow, "title" | "category">) {
-  const normalizedTitle = (event.title ?? "").toLowerCase();
-  const normalizedCategory = (event.category ?? "").toLowerCase();
-
-  return normalizedTitle.includes("большая тренировка")
-    || normalizedTitle.includes("big тренировка")
-    || normalizedCategory.includes("big")
-    || normalizedCategory.includes("биг");
+  return event.price_rub ?? 0;
 }
 
 function formatSiteDate(value: string) {

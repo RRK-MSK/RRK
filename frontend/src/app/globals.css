@@ -2476,6 +2476,7 @@ th {
 .poster-event-label,
 .poster-event-description,
 .poster-event-focus,
+.poster-event-address,
 .poster-event-host {
   margin: 0;
 }
@@ -2490,13 +2491,25 @@ th {
 
 .poster-event-description,
 .poster-event-focus,
+.poster-event-address,
 .poster-event-host,
 .poster-event-empty p {
   line-height: 1.55;
 }
 
+.poster-event-description,
+.poster-event-focus {
+  white-space: pre-line;
+}
+
 .poster-event-focus {
   opacity: 0.78;
+}
+
+.poster-event-address a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .poster-event-host {

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { buildParticipantLookupOrFilter, validateAndNormalizeBooking } from "@/lib/booking-validation";
 import { resolveCoffeeJamPrice, type EventPriceTier } from "@/lib/event-pricing";
+import { isCoffeeJamCategory } from "@/lib/event-categories";
+import { hasTextOnlyEventPrice } from "@/lib/event-payment";
 import { getTariffNotesForCapacityCheck } from "@/lib/event-tariffs";
 import { tbank } from "@/lib/tbank/client";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
@@ -27,7 +29,11 @@ function isBigTrainingBooking(value: string | null | undefined) {
   return normalized.includes("большая тренировка") || normalized.includes("big тренировка");
 }
 
-function isCoffeeJamBooking(value: string | null | undefined) {
+function isCoffeeJamBooking(value: string | null | undefined, category?: string | null) {
+  if (isCoffeeJamCategory(category, value)) {
+    return true;
+  }
+
   const normalized = (value ?? "").toLowerCase();
   return normalized.includes("coffee jam") || normalized.includes("кофе джем");
 }
@@ -92,51 +98,73 @@ export async function POST(request: Request) {
     let bookedCount = 0;
     let enrollmentId = null;
     let eventBasePriceRub: number | null = null;
+    let eventPriceLabel: string | null = null;
+    let eventCategory: string | null = null;
 
     if (supabase) {
       // 1. Ищем событие в БД
       if (!dbEventId && eventTitle) {
         const { data: events } = await supabase
           .from("events")
-          .select("id, price_rub, booked_count")
+          .select("id, price_rub, price_label, booked_count, category, title")
           .ilike("title", `${eventTitle}%`)
           .limit(1);
           
         if (events && events.length > 0) {
           dbEventId = events[0].id;
-          eventBasePriceRub = events[0].price_rub ?? null;
-          priceRub = isFallingChairsBooking(eventTitle)
-            ? 2200
-            : isBigTrainingBooking(eventTitle)
-            ? 5500
-            : (isCoffeeJamBooking(eventTitle) ? Math.max(events[0].price_rub ?? 0, 770) : (events[0].price_rub || priceRub));
+          eventCategory = events[0].category ?? null;
           bookedCount = events[0].booked_count || 0;
+
+          if (hasTextOnlyEventPrice(events[0].price_label)) {
+            eventPriceLabel = events[0].price_label!.trim();
+            priceRub = 0;
+            eventBasePriceRub = 0;
+          } else {
+            eventBasePriceRub = events[0].price_rub ?? null;
+            priceRub = isFallingChairsBooking(eventTitle)
+              ? 2200
+              : isBigTrainingBooking(eventTitle)
+              ? 5500
+              : (isCoffeeJamBooking(eventTitle, events[0].category)
+                ? Math.max(events[0].price_rub ?? 0, 770)
+                : (events[0].price_rub || priceRub));
+          }
         }
       } else if (dbEventId) {
         const { data: eventRow } = await supabase
           .from("events")
-          .select("price_rub, booked_count")
+          .select("price_rub, price_label, booked_count, category, title")
           .eq("id", dbEventId)
           .single();
         if (eventRow) {
-          eventBasePriceRub = eventRow.price_rub ?? null;
-          priceRub = isFallingChairsBooking(eventTitle ?? eventId)
-            ? 2200
-            : isBigTrainingBooking(eventTitle ?? eventId)
-            ? 5500
-            : (isCoffeeJamBooking(eventTitle ?? eventId) ? Math.max(eventRow.price_rub ?? 0, 770) : (eventRow.price_rub || priceRub));
+          eventCategory = eventRow.category ?? null;
           bookedCount = eventRow.booked_count || 0;
+
+          if (hasTextOnlyEventPrice(eventRow.price_label)) {
+            eventPriceLabel = eventRow.price_label!.trim();
+            priceRub = 0;
+            eventBasePriceRub = 0;
+          } else {
+            eventBasePriceRub = eventRow.price_rub ?? null;
+            priceRub = isFallingChairsBooking(eventTitle ?? eventId)
+              ? 2200
+              : isBigTrainingBooking(eventTitle ?? eventId)
+              ? 5500
+              : (isCoffeeJamBooking(eventTitle ?? eventId, eventRow.category)
+                ? Math.max(eventRow.price_rub ?? 0, 770)
+                : (eventRow.price_rub || priceRub));
+          }
         }
       }
 
-      if (dbEventId) {
+      if (dbEventId && !hasTextOnlyEventPrice(eventPriceLabel)) {
         const { data: priceTiers } = await supabase
           .from("event_price_tiers")
           .select("seat_from, seat_to, price_rub")
           .eq("event_id", dbEventId)
           .order("seat_from", { ascending: true });
 
-        if (isCoffeeJamBooking(eventTitle ?? eventId)) {
+        if (isCoffeeJamBooking(eventTitle ?? eventId, eventCategory)) {
           priceRub = resolveCoffeeJamPrice(
             priceRub,
             bookedCount,
@@ -145,18 +173,18 @@ export async function POST(request: Request) {
         }
       }
 
-      if (selectedTicketPriceRub > 0) {
+      if (selectedTicketPriceRub > 0 && !hasTextOnlyEventPrice(eventPriceLabel)) {
         priceRub = selectedTicketPriceRub;
       }
 
       // Если это тестовое событие (1 рубль)
-      if (eventId && eventId.includes("Тестовое")) {
+      if (!hasTextOnlyEventPrice(eventPriceLabel) && eventId && eventId.includes("Тестовое")) {
         priceRub = 1;
-      } else if (isFallingChairsBooking(eventTitle ?? eventId)) {
+      } else if (!hasTextOnlyEventPrice(eventPriceLabel) && isFallingChairsBooking(eventTitle ?? eventId)) {
         priceRub = 2200;
-      } else if (isBigTrainingBooking(eventTitle ?? eventId) || (eventId && eventId.includes("5000"))) {
+      } else if (!hasTextOnlyEventPrice(eventPriceLabel) && (isBigTrainingBooking(eventTitle ?? eventId) || (eventId && eventId.includes("5000")))) {
         priceRub = 5500;
-      } else if (eventId && eventId.includes("10 000")) {
+      } else if (!hasTextOnlyEventPrice(eventPriceLabel) && eventId && eventId.includes("10 000")) {
         priceRub = 10000;
       }
 
@@ -364,10 +392,11 @@ export async function POST(request: Request) {
       }
     }
 
-    const isFree = !isFallingChairsBooking(eventTitle ?? eventId)
+    const isFree = hasTextOnlyEventPrice(eventPriceLabel)
+      || (!isFallingChairsBooking(eventTitle ?? eventId)
       && !isBigTrainingBooking(eventTitle ?? eventId)
       && selectedTicketPriceRub <= 0
-      && (eventBasePriceRub ?? priceRub) <= 0;
+      && (eventBasePriceRub ?? priceRub) <= 0);
     // #region debug-point A:free-decision
     void fetch("http://127.0.0.1:7777/event", { method: "POST", body: JSON.stringify({ sessionId: "tbank-instant-success", runId: "post-fix", hypothesisId: "A", location: "src/app/api/book/route.ts:POST:free-decision", msg: "[DEBUG] booking api calculated payment mode", data: { eventId: eventId ?? null, dbEventId, eventTitle, selectedTicketLabel: selectedTicketLabel || null, selectedTicketPriceRub, eventBasePriceRub, priceRub, isFree, paymentMethod: paymentMethod ?? null }, ts: Date.now() }) }).catch(() => {});
     // #endregion

@@ -24,6 +24,9 @@ import {
 } from "@/lib/crm-data";
 import type { ClassCard, Metric, ParticipantRow, TableRow } from "@/lib/crm-data";
 import { formatPriceTierSummary, resolveCoffeeJamPrice, type EventPriceTier } from "@/lib/event-pricing";
+import { isCoffeeJamCategory } from "@/lib/event-categories";
+import { formatEventCapacityLabel, isUnlimitedCapacity } from "@/lib/event-capacity";
+import { formatEventPaymentForForm } from "@/lib/event-payment";
 import {
   formatEnrollmentTariffLabel,
   pickDefaultTariffNote,
@@ -45,6 +48,9 @@ type EventRow = {
   starts_at: string;
   ends_at: string | null;
   price_rub: number | null;
+  price_label?: string | null;
+  venue_address?: string | null;
+  venue_map_url?: string | null;
   capacity: number | null;
   booked_count: number | null;
   paid_count: number | null;
@@ -768,9 +774,10 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     rows: rows.map((row) => {
       const eventTiers = tiersByEventId.get(row.id) ?? [];
       const basePrice = getEventBasePrice(row);
-      const currentPrice = isCoffeeJamEvent(row)
+      const currentPrice = isCoffeeJamCategory(row.category, row.title)
         ? resolveCoffeeJamPrice(basePrice, row.booked_count, eventTiers as EventPriceTier[])
         : basePrice;
+      const paymentDisplay = formatEventPaymentForForm(row.price_rub, row.price_label);
 
       return {
         id: row.id,
@@ -780,9 +787,9 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         format: row.category ?? "Практика",
         host: row.host ?? "Команда РРК",
         published: row.is_published ? "На сайте" : "Скрыто",
-        currentPrice: formatMoney(currentPrice),
+        currentPrice: paymentDisplay || formatMoney(currentPrice),
         pricing: eventTiers.length > 0 ? formatPriceTierSummary(eventTiers) : "Базовая цена",
-        enrolled: (row.booked_count ?? 0) >= (row.capacity ?? 0) ? "Мест нет" : `${row.booked_count ?? 0} из ${row.capacity ?? 0}`,
+        enrolled: formatEventCapacityLabel(row.capacity, row.booked_count),
         paid: String(row.paid_count ?? 0),
         pending: String(row.pending_count ?? 0),
         free: String(Math.max((row.capacity ?? 0) - (row.booked_count ?? 0), 0)),
@@ -795,8 +802,12 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         hostRaw: row.host ?? "",
         startsAtRaw: row.starts_at,
         endsAtRaw: row.ends_at ?? "",
-        priceRubRaw: String(basePrice),
+        priceRubRaw: String(row.price_rub ?? 0),
+        priceLabelRaw: row.price_label ?? "",
+        venueAddressRaw: row.venue_address ?? "",
+        venueMapUrlRaw: row.venue_map_url ?? "",
         capacityRaw: String(row.capacity ?? 10),
+        unlimitedCapacityRaw: isUnlimitedCapacity(row.capacity) ? "true" : "false",
         isPublishedRaw: row.is_published ? "true" : "false",
         pricingTiersRaw: JSON.stringify(eventTiers),
       };
@@ -1073,7 +1084,7 @@ async function loadEvents() {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published",
+      "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published",
     )
     .order("starts_at", { ascending: true });
 
@@ -1402,24 +1413,8 @@ function normalize(value: string | null | undefined) {
   return (value ?? "").trim().toLowerCase();
 }
 
-function isBigTrainingEvent(event: Pick<EventRow, "title" | "category">) {
-  const normalizedTitle = normalize(event.title);
-  const normalizedCategory = normalize(event.category);
-
-  return normalizedTitle.includes("большая тренировка")
-    || normalizedTitle.includes("big тренировка")
-    || normalizedCategory.includes("big")
-    || normalizedCategory.includes("биг");
-}
-
 function isCoffeeJamEvent(event: Pick<EventRow, "title" | "category">) {
-  const normalizedTitle = normalize(event.title);
-  const normalizedCategory = normalize(event.category);
-
-  return normalizedTitle.includes("coffee jam")
-    || normalizedTitle.includes("кофе джем")
-    || normalizedCategory.includes("coffee jam")
-    || normalizedCategory.includes("кофе джем");
+  return isCoffeeJamCategory(event.category, event.title);
 }
 
 function isFallingChairsEvent(event: Pick<EventRow, "title">) {
@@ -1436,7 +1431,7 @@ function getEventBasePrice(event: Pick<EventRow, "title" | "category" | "price_r
     return 2200;
   }
 
-  return isBigTrainingEvent(event) ? 5500 : (event.price_rub ?? 0);
+  return event.price_rub ?? 0;
 }
 
 function createFallbackClassSummary(row: TableRow, idx: number): ClassLoadSummary {

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { FilterRow, SectionCard } from "@/components/crm/ui";
 import { deleteEvent, toggleEventVisibility, updateEventStatus } from "@/app/crm/actions";
-import { EventFormModal } from "@/components/crm/event-form-modal";
+import { EventFormModal, buildEventFormInitialFromRow } from "@/components/crm/event-form-modal";
 import type { TableRow } from "@/lib/crm-data";
 
 export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
@@ -133,19 +133,7 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
                       triggerLabel="Редактировать"
                       triggerClassName="ghost-button"
                       initialData={{
-                        id: row.id as string,
-                        title: String(row.title ?? ""),
-                        subtitle: String(row.subtitleRaw ?? ""),
-                        description: String(row.descriptionRaw ?? ""),
-                        category: String(row.categoryRaw ?? ""),
-                        city: String(row.cityRaw ?? "Москва"),
-                        host: String(row.hostRaw ?? ""),
-                        startsAt: String(row.startsAtRaw ?? ""),
-                        endsAt: String(row.endsAtRaw ?? ""),
-                        capacity: Number(row.capacityRaw ?? 10),
-                        price: Number(row.priceRubRaw ?? 0),
-                        isPublished: row.isPublishedRaw === "true",
-                        status: String(row.status ?? "Открыто"),
+                        ...buildEventFormInitialFromRow(row as Record<string, unknown>),
                         pricingTiers: parsePricingTiers(row.pricingTiersRaw),
                       }}
                     />

@@ -5,6 +5,9 @@ import { requireCrmUser } from "@/lib/crm-auth";
 import { getCrmEnrollmentFormData as loadCrmEnrollmentFormData } from "@/lib/crm-store";
 import { parseDateTimeLocalMoscow } from "@/lib/moscow-datetime";
 import { resolveCoffeeJamPrice, type EventPriceTier } from "@/lib/event-pricing";
+import { isCoffeeJamCategory } from "@/lib/event-categories";
+import { UNLIMITED_EVENT_CAPACITY } from "@/lib/event-capacity";
+import { parseEventPaymentInput } from "@/lib/event-payment";
 import {
   buildEventTariffOptions,
   buildTariffUsageMap,
@@ -28,10 +31,14 @@ type EventPayload = {
   category?: string;
   city?: string;
   host?: string;
+  venueAddress?: string;
+  venueMapUrl?: string;
   startsAt: string;
   endsAt: string;
   capacity: number;
-  price: number;
+  unlimitedCapacity?: boolean;
+  paymentInput?: string;
+  price?: number;
   isPublished: boolean;
   status?: string;
   pricingTiers?: EventTierInput[];
@@ -151,13 +158,7 @@ function normalizePricingTiers(tiers: EventTierInput[] = []) {
 }
 
 function isCoffeeJamEvent(event: { title?: string | null; category?: string | null }) {
-  const normalizedTitle = normalizeStatus(event.title);
-  const normalizedCategory = normalizeStatus(event.category);
-
-  return normalizedTitle.includes("coffee jam")
-    || normalizedTitle.includes("кофе джем")
-    || normalizedCategory.includes("coffee jam")
-    || normalizedCategory.includes("кофе джем");
+  return isCoffeeJamCategory(event.category, event.title);
 }
 
 function isFallingChairsEvent(event: { title?: string | null }) {
@@ -630,6 +631,10 @@ export async function saveEvent(payload: EventPayload) {
     throw new Error("Заполните название, дату начала и дату окончания");
   }
 
+  const payment = payload.paymentInput !== undefined
+    ? parseEventPaymentInput(payload.paymentInput)
+    : { priceRub: Math.max(Number(payload.price) || 0, 0), priceLabel: null as string | null };
+
   const normalizedPayload = {
     title: payload.title.trim(),
     subtitle: normalizeText(payload.subtitle),
@@ -637,10 +642,15 @@ export async function saveEvent(payload: EventPayload) {
     category: normalizeText(payload.category),
     city: normalizeText(payload.city) ?? "Москва",
     host: normalizeText(payload.host),
+    venue_address: normalizeText(payload.venueAddress),
+    venue_map_url: normalizeText(payload.venueMapUrl),
     starts_at: normalizeIsoDate(payload.startsAt),
     ends_at: normalizeIsoDate(payload.endsAt),
-    capacity: Math.max(Number(payload.capacity) || 0, 1),
-    price_rub: Math.max(Number(payload.price) || 0, 0),
+    capacity: payload.unlimitedCapacity
+      ? UNLIMITED_EVENT_CAPACITY
+      : Math.max(Number(payload.capacity) || 0, 1),
+    price_rub: payment.priceRub,
+    price_label: payment.priceLabel,
     is_published: payload.isPublished,
     status: normalizeText(payload.status) ?? "Открыто",
   };

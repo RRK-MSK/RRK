@@ -12,6 +12,8 @@ export type PosterEvent = {
   description?: string;
   focus?: string;
   host?: string;
+  venueAddress?: string;
+  venueMapUrl?: string;
   price: string;
   displayPrice?: string;
   label?: string;
@@ -35,7 +37,7 @@ type PosterCalendarProps = {
   events: PosterEvent[];
 };
 
-type DayKind = "standard" | "collab" | "big";
+type DayKind = "standard" | "collab";
 type CalendarMonth = {
   key: string;
   monthIndex: number;
@@ -81,18 +83,8 @@ const splitDateLabel = (date: string) => {
 };
 
 const getDayKind = (dayEvents: PosterEvent[]): DayKind => {
-  if (dayEvents.some((event) => {
-    const title = event.title.toLowerCase();
-    return event.label?.includes("ДК x РРК") || title.includes("coffee jam") || title.includes("кофе джем");
-  })) {
+  if (dayEvents.some((event) => event.label === "КофеДжем" || event.label?.includes("ДК x РРК"))) {
     return "collab";
-  }
-
-  if (dayEvents.some((event) => {
-    const title = event.title.toLowerCase();
-    return title.includes("биг-тренировка") || title.includes("большая тренировка");
-  })) {
-    return "big";
   }
 
   return "standard";
@@ -295,17 +287,12 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                 className={`poster-calendar-legend-item kind-standard ${selectedKind === 'standard' ? 'is-active' : ''}`}
                 style={{ cursor: 'pointer', opacity: selectedKind && selectedKind !== 'standard' ? 0.5 : 1 }}
                 onClick={() => setSelectedKind(selectedKind === 'standard' ? null : 'standard')}
-              >Стандарт</span>
+              >Квартирник</span>
               <span 
                 className={`poster-calendar-legend-item kind-collab ${selectedKind === 'collab' ? 'is-active' : ''}`}
                 style={{ cursor: 'pointer', opacity: selectedKind && selectedKind !== 'collab' ? 0.5 : 1 }}
                 onClick={() => setSelectedKind(selectedKind === 'collab' ? null : 'collab')}
-              >Коллаборация</span>
-              <span 
-                className={`poster-calendar-legend-item kind-big ${selectedKind === 'big' ? 'is-active' : ''}`}
-                style={{ cursor: 'pointer', opacity: selectedKind && selectedKind !== 'big' ? 0.5 : 1 }}
-                onClick={() => setSelectedKind(selectedKind === 'big' ? null : 'big')}
-              >Биг-тренировка</span>
+              >КофеДжем</span>
             </div>
           </div>
           <div className="poster-calendar-note">
@@ -403,7 +390,18 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
                 {event.label ? <p className="poster-event-label">{event.label}</p> : null}
                 <h4>{event.title}</h4>
                 {event.description ? <p className="poster-event-description">{event.description}</p> : null}
-                {event.focus ? <p className="poster-event-focus">({event.focus})</p> : null}
+                {event.focus ? <p className="poster-event-focus">{event.focus}</p> : null}
+                {event.venueAddress ? (
+                  <p className="poster-event-address">
+                    {event.venueMapUrl ? (
+                      <a href={event.venueMapUrl} target="_blank" rel="noreferrer">
+                        {event.venueAddress}
+                      </a>
+                    ) : (
+                      event.venueAddress
+                    )}
+                  </p>
+                ) : null}
                 {event.host ? <p className="poster-event-host">{event.host}</p> : null}
                 {event.bookingOptions?.length ? (
                   <div className="poster-event-tariffs">

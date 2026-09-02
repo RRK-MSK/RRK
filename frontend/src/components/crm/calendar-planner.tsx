@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 
-import { EventFormModal } from "@/components/crm/event-form-modal";
+import { EventFormModal, buildEventFormInitialFromRow } from "@/components/crm/event-form-modal";
+import { EVENT_CATEGORY_KVARTIRNIK } from "@/lib/event-categories";
 import type { TableRow } from "@/lib/crm-data";
 
 type CalendarEvent = {
@@ -247,19 +248,7 @@ export function CrmCalendarPlanner({ rows }: { rows: TableRow[] }) {
                   triggerLabel="Редактировать"
                   triggerClassName="ghost-button"
                   initialData={{
-                    id: event.id,
-                    title: String(event.raw.title ?? ""),
-                    subtitle: String(event.raw.subtitleRaw ?? ""),
-                    description: String(event.raw.descriptionRaw ?? ""),
-                    category: String(event.raw.categoryRaw ?? ""),
-                    city: String(event.raw.cityRaw ?? "Москва"),
-                    host: String(event.raw.hostRaw ?? ""),
-                    startsAt: String(event.raw.startsAtRaw ?? ""),
-                    endsAt: String(event.raw.endsAtRaw ?? ""),
-                    capacity: Number(event.raw.capacityRaw ?? 10),
-                    price: Number(event.raw.priceRubRaw ?? 0),
-                    isPublished: event.raw.isPublishedRaw === "true",
-                    status: String(event.raw.status ?? "Открыто"),
+                    ...buildEventFormInitialFromRow(event.raw as Record<string, unknown>),
                     pricingTiers: parsePricingTiers(event.raw.pricingTiersRaw),
                   }}
                 />
@@ -334,6 +323,7 @@ function buildNewEventInitialData(month: CalendarMonth | undefined, day: number)
   return {
     startsAt: `${month.year}-${monthValue}-${dayValue}T19:00`,
     endsAt: `${month.year}-${monthValue}-${dayValue}T22:00`,
+    category: EVENT_CATEGORY_KVARTIRNIK,
     isPublished: true,
     status: "Открыто",
   };
