@@ -10,6 +10,8 @@ import {
   type HeroCarouselSlide,
 } from "@/lib/hero-carousel-slides";
 
+import { getEventCtaLabel } from "@/lib/event-booking-mode";
+
 import type { PosterEvent } from "./poster-calendar";
 
 const AUTOPLAY_MS = 10_000;
@@ -136,7 +138,7 @@ export function VideoHero({ nearestEvent, slides: slidesProp }: VideoHeroProps) 
                       href={`/events/${nearestEvent.id}`}
                       className="site-button primary rrk-hero-event-buy"
                     >
-                      Купить
+                      {getEventCtaLabel(nearestEvent.bookingMode)}
                     </Link>
                   </article>
                 </div>

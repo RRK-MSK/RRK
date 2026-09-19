@@ -27,6 +27,7 @@ import { formatPriceTierSummary, resolveCoffeeJamPrice, type EventPriceTier } fr
 import { isCoffeeJamCategory } from "@/lib/event-categories";
 import { formatEventCapacityLabel, isUnlimitedCapacity } from "@/lib/event-capacity";
 import { formatEventPaymentForForm } from "@/lib/event-payment";
+import { getEventBookingModeLabel, normalizeEventBookingMode } from "@/lib/event-booking-mode";
 import {
   formatEnrollmentTariffLabel,
   pickDefaultTariffNote,
@@ -57,6 +58,7 @@ type EventRow = {
   pending_count: number | null;
   waitlist_count: number | null;
   is_published: boolean | null;
+  booking_mode?: string | null;
 };
 
 type EventPriceTierRow = {
@@ -785,6 +787,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         time: formatTimeRange(row.starts_at, row.ends_at),
         title: row.title,
         format: row.category ?? "Практика",
+        "Формат записи": getEventBookingModeLabel(row.booking_mode),
         host: row.host ?? "Команда РРК",
         published: row.is_published ? "На сайте" : "Скрыто",
         currentPrice: paymentDisplay || formatMoney(currentPrice),
@@ -809,6 +812,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         capacityRaw: String(row.capacity ?? 10),
         unlimitedCapacityRaw: isUnlimitedCapacity(row.capacity) ? "true" : "false",
         isPublishedRaw: row.is_published ? "true" : "false",
+        bookingModeRaw: normalizeEventBookingMode(row.booking_mode),
         pricingTiersRaw: JSON.stringify(eventTiers),
       };
     }),
@@ -1084,9 +1088,25 @@ async function loadEvents() {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published",
+      "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published, booking_mode",
     )
     .order("starts_at", { ascending: true });
+
+  if (error?.message?.includes("booking_mode")) {
+    const fallback = await supabase
+      .from("events")
+      .select(
+        "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published",
+      )
+      .order("starts_at", { ascending: true });
+
+    if (fallback.error) {
+      console.error("Supabase events query failed", fallback.error);
+      return null;
+    }
+
+    return (fallback.data ?? []) as EventRow[];
+  }
 
   if (error) {
     console.error("Supabase events query failed", error);

@@ -42,6 +42,7 @@ create table if not exists public.events (
   pending_count integer not null default 0,
   waitlist_count integer not null default 0,
   is_published boolean not null default false,
+  booking_mode text not null default 'payment',
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );

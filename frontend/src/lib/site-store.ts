@@ -14,6 +14,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/supabase/env";
 import { defaultHeroCarouselSlides, type HeroCarouselSlide } from "@/lib/hero-carousel-slides";
 import { getSiteMediaItems } from "@/lib/site-media";
+import { normalizeEventBookingMode, type EventBookingMode } from "@/lib/event-booking-mode";
 
 type SitePosterEvent = {
   id?: string;
@@ -39,6 +40,7 @@ type SitePosterEvent = {
   bookingClosed?: boolean;
   bookingClosedMessage?: string;
   bookingLink?: string;
+  bookingMode?: EventBookingMode;
   bookingOptions?: {
     label: string;
     price: string;
@@ -66,6 +68,7 @@ type EventRow = {
   booked_count: number | null;
   is_published: boolean | null;
   status?: string | null;
+  booking_mode?: string | null;
 };
 
 type EventPriceTierRow = {
@@ -97,13 +100,23 @@ export async function getSitePosterEvents() {
     return [] as SitePosterEvent[];
   }
 
-  const { data, error } = await supabase
+  const eventSelect =
+    "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status, booking_mode";
+  let { data, error } = await supabase
     .from("events")
-    .select(
-      "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status",
-    )
+    .select(eventSelect)
     .eq("is_published", true)
     .order("starts_at", { ascending: true });
+
+  if (error?.message?.includes("booking_mode")) {
+    ({ data, error } = await supabase
+      .from("events")
+      .select(
+        "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status",
+      )
+      .eq("is_published", true)
+      .order("starts_at", { ascending: true }));
+  }
 
   if (error) {
     console.error("Supabase public events query failed", error);
@@ -209,6 +222,7 @@ function mapEventRowsToPosterEvents(
       booked,
       seatsLeft,
       hideCapacity,
+      bookingMode: normalizeEventBookingMode(event.booking_mode),
       bookingOptions,
       status: event.status ?? undefined,
     };

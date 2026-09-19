@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { EventRegistrationForm } from "@/components/site/event-registration-form";
+import { getEventCtaLabel, getEventSignupTelegramUrl, isSignupOnlyEvent } from "@/lib/event-booking-mode";
 import { getSiteEventById } from "@/lib/site-store";
 
 type EventPageProps = {
@@ -21,6 +22,8 @@ export default async function EventPage({ params, searchParams }: EventPageProps
     notFound();
   }
 
+  const signupOnly = isSignupOnlyEvent(event.bookingMode);
+
   return (
     <main className="site-page event-page">
       <div className="event-page-bg" aria-hidden="true">
@@ -32,7 +35,7 @@ export default async function EventPage({ params, searchParams }: EventPageProps
           ← К афише
         </Link>
 
-        <div className="event-page-grid">
+        <div className={`event-page-grid${signupOnly ? " is-signup" : ""}`}>
           <div className="event-page-info">
             <h1>{event.title}</h1>
             <div className="event-page-meta">
@@ -66,18 +69,31 @@ export default async function EventPage({ params, searchParams }: EventPageProps
                 ))}
               </div>
             ) : null}
+
+            {signupOnly ? (
+              <a
+                href={getEventSignupTelegramUrl(event.title)}
+                target="_blank"
+                rel="noreferrer"
+                className="site-button primary event-page-signup"
+              >
+                {getEventCtaLabel(event.bookingMode)}
+              </a>
+            ) : null}
           </div>
 
-          <div className="event-page-form-wrap">
-            <div className="event-page-form-head">
-              <h2>Запись и оплата</h2>
-              <p className="event-page-form-lead">
-                Заполните данные. Можно сразу добавить несколько человек — оплата одной суммой.
-                Если вы уже записывались с этого устройства, поля заполнятся сами.
-              </p>
+          {signupOnly ? null : (
+            <div className="event-page-form-wrap">
+              <div className="event-page-form-head">
+                <h2>Запись и оплата</h2>
+                <p className="event-page-form-lead">
+                  Заполните данные. Можно сразу добавить несколько человек — оплата одной суммой.
+                  Если вы уже записывались с этого устройства, поля заполнятся сами.
+                </p>
+              </div>
+              <EventRegistrationForm event={event} initialTicketLabel={ticket} />
             </div>
-            <EventRegistrationForm event={event} initialTicketLabel={ticket} />
-          </div>
+          )}
         </div>
       </section>
     </main>

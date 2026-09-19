@@ -5050,6 +5050,15 @@ body:has(.tma-bottom-nav) .site-page {
   align-items: stretch;
 }
 
+.event-page-grid.is-signup {
+  grid-template-columns: minmax(0, 720px);
+}
+
+.event-page-signup {
+  width: fit-content;
+  margin-top: 8px;
+}
+
 .event-page-info,
 .event-page-form-wrap {
   min-width: 0;

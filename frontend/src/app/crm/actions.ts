@@ -8,6 +8,7 @@ import { resolveCoffeeJamPrice, type EventPriceTier } from "@/lib/event-pricing"
 import { isCoffeeJamCategory } from "@/lib/event-categories";
 import { UNLIMITED_EVENT_CAPACITY } from "@/lib/event-capacity";
 import { parseEventPaymentInput } from "@/lib/event-payment";
+import { normalizeEventBookingMode } from "@/lib/event-booking-mode";
 import {
   buildEventTariffOptions,
   buildTariffUsageMap,
@@ -41,6 +42,7 @@ type EventPayload = {
   price?: number;
   isPublished: boolean;
   status?: string;
+  bookingMode?: string;
   pricingTiers?: EventTierInput[];
 };
 
@@ -653,25 +655,43 @@ export async function saveEvent(payload: EventPayload) {
     price_label: payment.priceLabel,
     is_published: payload.isPublished,
     status: normalizeText(payload.status) ?? "Открыто",
+    booking_mode: normalizeEventBookingMode(payload.bookingMode),
   };
 
   let eventId = payload.id;
 
   if (payload.id) {
-    const { error } = await supabase
+    let { error } = await supabase
       .from("events")
       .update(normalizedPayload)
       .eq("id", payload.id);
+
+    if (error?.message?.includes("booking_mode")) {
+      const { booking_mode: _bookingMode, ...payloadWithoutMode } = normalizedPayload;
+      ({ error } = await supabase
+        .from("events")
+        .update(payloadWithoutMode)
+        .eq("id", payload.id));
+    }
 
     if (error) {
       throw new Error("Не удалось обновить занятие: " + error.message);
     }
   } else {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("events")
       .insert(normalizedPayload)
       .select("id")
       .single();
+
+    if (error?.message?.includes("booking_mode")) {
+      const { booking_mode: _bookingMode, ...payloadWithoutMode } = normalizedPayload;
+      ({ data, error } = await supabase
+        .from("events")
+        .insert(payloadWithoutMode)
+        .select("id")
+        .single());
+    }
 
     if (error || !data) {
       throw new Error("Не удалось создать занятие: " + error?.message);

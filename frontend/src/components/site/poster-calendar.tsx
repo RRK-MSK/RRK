@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { getEventCtaLabel, type EventBookingMode } from "@/lib/event-booking-mode";
+
 export type PosterEvent = {
   id?: string;
   tone: string;
@@ -27,6 +29,7 @@ export type PosterEvent = {
   bookingClosed?: boolean;
   bookingClosedMessage?: string;
   bookingLink?: string;
+  bookingMode?: EventBookingMode;
   bookingOptions?: {
     label: string;
     price: string;
@@ -216,7 +219,7 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
               className="site-button primary poster-event-register"
               onClick={(clickEvent) => clickEvent.stopPropagation()}
             >
-              Купить
+              {getEventCtaLabel(event.bookingMode)}
             </Link>
           ) : null}
         </article>

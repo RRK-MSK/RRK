@@ -69,6 +69,7 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
     "descriptionRaw",
     "format",
     "categoryRaw",
+    "bookingModeRaw",
     "cityRaw",
     "hostRaw",
     "startsAtRaw",

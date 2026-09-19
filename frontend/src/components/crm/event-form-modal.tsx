@@ -9,6 +9,12 @@ import {
 import { isUnlimitedCapacity, UNLIMITED_EVENT_CAPACITY } from "@/lib/event-capacity";
 import { formatDateTimeLocalMoscow } from "@/lib/moscow-datetime";
 import { formatEventPaymentForForm, parseEventPaymentInput } from "@/lib/event-payment";
+import {
+  EVENT_BOOKING_PAYMENT,
+  EVENT_BOOKING_SIGNUP,
+  normalizeEventBookingMode,
+  type EventBookingMode,
+} from "@/lib/event-booking-mode";
 
 type PricingTierFormRow = {
   seatFrom: number;
@@ -35,6 +41,7 @@ export type EventFormInitialData = {
   priceLabel?: string;
   isPublished?: boolean;
   status?: string;
+  bookingMode?: EventBookingMode;
   pricingTiers?: PricingTierFormRow[];
 };
 
@@ -61,6 +68,7 @@ export function buildEventFormInitialFromRow(row: Record<string, unknown>): Even
     priceLabel,
     isPublished: row.isPublishedRaw === "true",
     status: String(row.status ?? "Открыто"),
+    bookingMode: normalizeEventBookingMode(String(row.bookingModeRaw ?? "")),
     pricingTiers: [],
   };
 }
@@ -106,6 +114,7 @@ function buildInitialFormData(initialData?: EventFormInitialData): EventFormInit
     paymentInput,
     isPublished: initialData?.isPublished ?? true,
     status: initialData?.status ?? "Открыто",
+    bookingMode: normalizeEventBookingMode(initialData?.bookingMode),
     pricingTiers: initialData?.pricingTiers?.length ? initialData.pricingTiers : [],
   };
 }
@@ -183,6 +192,7 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
         paymentInput: formData.paymentInput ?? "",
         isPublished: Boolean(formData.isPublished),
         status: formData.status ?? "Открыто",
+        bookingMode: normalizeEventBookingMode(formData.bookingMode),
         pricingTiers: isCoffeeJam
           ? (formData.pricingTiers ?? []).map((row) => ({
               seatFrom: Number(row.seatFrom),
@@ -260,6 +270,19 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                     <option value="SOLD OUT">SOLD OUT</option>
                     <option value="Отменено">Отменено</option>
                   </select>
+                </Field>
+                <Field label="Формат записи">
+                  <select
+                    value={formData.bookingMode ?? EVENT_BOOKING_PAYMENT}
+                    onChange={(e) => updateField("bookingMode", normalizeEventBookingMode(e.target.value))}
+                    style={fieldStyle}
+                  >
+                    <option value={EVENT_BOOKING_PAYMENT}>Под оплату</option>
+                    <option value={EVENT_BOOKING_SIGNUP}>Под запись</option>
+                  </select>
+                  <span style={{ display: "block", marginTop: "4px", fontSize: "12px", color: "var(--muted)" }}>
+                    Под оплату — форма на сайте. Под запись — кнопка «Записаться» в Telegram @rrclubadmin.
+                  </span>
                 </Field>
                 <Field label="Дата и время начала *">
                   <input type="datetime-local" value={formData.startsAt ?? ""} onChange={(e) => updateField("startsAt", e.target.value)} required style={fieldStyle} />
