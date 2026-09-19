@@ -15,6 +15,17 @@ import {
   normalizeEventBookingMode,
   type EventBookingMode,
 } from "@/lib/event-booking-mode";
+import {
+  EVENT_CARD_ANIMATION_BEER,
+  EVENT_CARD_ANIMATION_BUBBLES,
+  EVENT_CARD_ANIMATION_NONE,
+  EVENT_CARD_COLOR_RAINBOW,
+  EVENT_CARD_COLOR_STANDARD,
+  normalizeEventCardAnimation,
+  normalizeEventCardColor,
+  type EventCardAnimation,
+  type EventCardColor,
+} from "@/lib/event-card-style";
 
 type PricingTierFormRow = {
   seatFrom: number;
@@ -42,6 +53,8 @@ export type EventFormInitialData = {
   isPublished?: boolean;
   status?: string;
   bookingMode?: EventBookingMode;
+  cardColor?: EventCardColor;
+  cardAnimation?: EventCardAnimation;
   pricingTiers?: PricingTierFormRow[];
 };
 
@@ -69,6 +82,8 @@ export function buildEventFormInitialFromRow(row: Record<string, unknown>): Even
     isPublished: row.isPublishedRaw === "true",
     status: String(row.status ?? "Открыто"),
     bookingMode: normalizeEventBookingMode(String(row.bookingModeRaw ?? "")),
+    cardColor: normalizeEventCardColor(String(row.cardColorRaw ?? "")),
+    cardAnimation: normalizeEventCardAnimation(String(row.cardAnimationRaw ?? "")),
     pricingTiers: [],
   };
 }
@@ -115,6 +130,8 @@ function buildInitialFormData(initialData?: EventFormInitialData): EventFormInit
     isPublished: initialData?.isPublished ?? true,
     status: initialData?.status ?? "Открыто",
     bookingMode: normalizeEventBookingMode(initialData?.bookingMode),
+    cardColor: normalizeEventCardColor(initialData?.cardColor),
+    cardAnimation: normalizeEventCardAnimation(initialData?.cardAnimation),
     pricingTiers: initialData?.pricingTiers?.length ? initialData.pricingTiers : [],
   };
 }
@@ -193,6 +210,8 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
         isPublished: Boolean(formData.isPublished),
         status: formData.status ?? "Открыто",
         bookingMode: normalizeEventBookingMode(formData.bookingMode),
+        cardColor: normalizeEventCardColor(formData.cardColor),
+        cardAnimation: normalizeEventCardAnimation(formData.cardAnimation),
         pricingTiers: isCoffeeJam
           ? (formData.pricingTiers ?? []).map((row) => ({
               seatFrom: Number(row.seatFrom),
@@ -284,11 +303,38 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                     Под оплату — форма на сайте. Под запись — кнопка «Записаться» в Telegram @rrclubadmin.
                   </span>
                 </Field>
+                <Field label="Цвет карточки">
+                  <select
+                    value={formData.cardColor ?? EVENT_CARD_COLOR_STANDARD}
+                    onChange={(e) => updateField("cardColor", normalizeEventCardColor(e.target.value))}
+                    style={fieldStyle}
+                  >
+                    <option value={EVENT_CARD_COLOR_STANDARD}>Стандарт</option>
+                    <option value={EVENT_CARD_COLOR_RAINBOW}>Радужный</option>
+                  </select>
+                  <span style={{ display: "block", marginTop: "4px", fontSize: "12px", color: "var(--muted)" }}>
+                    Стандарт зависит от типа мероприятия. Радужный — переливающийся градиент.
+                  </span>
+                </Field>
+                <Field label="Анимация">
+                  <select
+                    value={formData.cardAnimation ?? EVENT_CARD_ANIMATION_NONE}
+                    onChange={(e) => updateField("cardAnimation", normalizeEventCardAnimation(e.target.value))}
+                    style={fieldStyle}
+                  >
+                    <option value={EVENT_CARD_ANIMATION_NONE}>Нет</option>
+                    <option value={EVENT_CARD_ANIMATION_BUBBLES}>Пузырьки</option>
+                    <option value={EVENT_CARD_ANIMATION_BEER}>Пиво</option>
+                  </select>
+                </Field>
                 <Field label="Дата и время начала *">
                   <input type="datetime-local" value={formData.startsAt ?? ""} onChange={(e) => updateField("startsAt", e.target.value)} required style={fieldStyle} />
                 </Field>
-                <Field label="Дата и время окончания *">
-                  <input type="datetime-local" value={formData.endsAt ?? ""} onChange={(e) => updateField("endsAt", e.target.value)} required style={fieldStyle} />
+                <Field label="Дата и время окончания">
+                  <input type="datetime-local" value={formData.endsAt ?? ""} onChange={(e) => updateField("endsAt", e.target.value)} style={fieldStyle} />
+                  <span style={{ display: "block", marginTop: "4px", fontSize: "12px", color: "var(--muted)" }}>
+                    Можно оставить пустым, если есть только начало
+                  </span>
                 </Field>
                 <Field label="Вместимость *">
                   <input

@@ -28,6 +28,7 @@ import { isCoffeeJamCategory } from "@/lib/event-categories";
 import { formatEventCapacityLabel, isUnlimitedCapacity } from "@/lib/event-capacity";
 import { formatEventPaymentForForm } from "@/lib/event-payment";
 import { getEventBookingModeLabel, normalizeEventBookingMode } from "@/lib/event-booking-mode";
+import { normalizeEventCardAnimation, normalizeEventCardColor } from "@/lib/event-card-style";
 import {
   formatEnrollmentTariffLabel,
   pickDefaultTariffNote,
@@ -59,6 +60,8 @@ type EventRow = {
   waitlist_count: number | null;
   is_published: boolean | null;
   booking_mode?: string | null;
+  card_color?: string | null;
+  card_animation?: string | null;
 };
 
 type EventPriceTierRow = {
@@ -813,6 +816,8 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         unlimitedCapacityRaw: isUnlimitedCapacity(row.capacity) ? "true" : "false",
         isPublishedRaw: row.is_published ? "true" : "false",
         bookingModeRaw: normalizeEventBookingMode(row.booking_mode),
+        cardColorRaw: normalizeEventCardColor(row.card_color),
+        cardAnimationRaw: normalizeEventCardAnimation(row.card_animation),
         pricingTiersRaw: JSON.stringify(eventTiers),
       };
     }),
@@ -1088,11 +1093,11 @@ async function loadEvents() {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published, booking_mode",
+      "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published, booking_mode, card_color, card_animation",
     )
     .order("starts_at", { ascending: true });
 
-  if (error?.message?.includes("booking_mode")) {
+  if (error?.message && /card_color|card_animation|booking_mode/.test(error.message)) {
     const fallback = await supabase
       .from("events")
       .select(

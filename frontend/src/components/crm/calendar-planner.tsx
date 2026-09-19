@@ -321,7 +321,7 @@ function buildNewEventInitialData(month: CalendarMonth | undefined, day: number)
 
   return {
     startsAt: `${month.year}-${monthValue}-${dayValue}T19:00`,
-    endsAt: `${month.year}-${monthValue}-${dayValue}T22:00`,
+    endsAt: "",
     category: EVENT_CATEGORY_KVARTIRNIK,
     isPublished: true,
     status: "Открыто",

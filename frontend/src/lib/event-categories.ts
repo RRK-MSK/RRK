@@ -51,12 +51,26 @@ export function isCoffeeJamCategory(
   return normalizeEventCategory(category, title) === EVENT_CATEGORY_COFFEE_JAM;
 }
 
+const POSTER_TONES = ["solid", "soft", "highlight"] as const;
+
 export function getEventCategoryTone(
   category: string | null | undefined,
   title: string | null | undefined,
   index: number,
 ): string {
   return isCoffeeJamCategory(category, title) ? "highlight" : (index % 2 === 0 ? "solid" : "soft");
+}
+
+export function resolveAdjacentPosterTone(
+  category: string | null | undefined,
+  title: string | null | undefined,
+  previousTone: string | null,
+): string {
+  if (isCoffeeJamCategory(category, title)) {
+    return "highlight";
+  }
+
+  return POSTER_TONES.find((tone) => tone !== previousTone) ?? "solid";
 }
 
 export function resolveEventCategoryForForm(

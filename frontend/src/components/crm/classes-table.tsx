@@ -70,6 +70,8 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
     "format",
     "categoryRaw",
     "bookingModeRaw",
+    "cardColorRaw",
+    "cardAnimationRaw",
     "cityRaw",
     "hostRaw",
     "startsAtRaw",

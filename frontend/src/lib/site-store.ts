@@ -15,6 +15,12 @@ import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/
 import { defaultHeroCarouselSlides, type HeroCarouselSlide } from "@/lib/hero-carousel-slides";
 import { getSiteMediaItems } from "@/lib/site-media";
 import { normalizeEventBookingMode, type EventBookingMode } from "@/lib/event-booking-mode";
+import {
+  normalizeEventCardAnimation,
+  normalizeEventCardColor,
+  type EventCardAnimation,
+  type EventCardColor,
+} from "@/lib/event-card-style";
 
 type SitePosterEvent = {
   id?: string;
@@ -41,6 +47,8 @@ type SitePosterEvent = {
   bookingClosedMessage?: string;
   bookingLink?: string;
   bookingMode?: EventBookingMode;
+  cardColor?: EventCardColor;
+  cardAnimation?: EventCardAnimation;
   bookingOptions?: {
     label: string;
     price: string;
@@ -69,6 +77,8 @@ type EventRow = {
   is_published: boolean | null;
   status?: string | null;
   booking_mode?: string | null;
+  card_color?: string | null;
+  card_animation?: string | null;
 };
 
 type EventPriceTierRow = {
@@ -100,13 +110,23 @@ export async function getSitePosterEvents() {
     return [] as SitePosterEvent[];
   }
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("events")
     .select(
-      "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status, booking_mode",
+      "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status, booking_mode, card_color, card_animation",
     )
     .eq("is_published", true)
     .order("starts_at", { ascending: true });
+
+  if (error?.message && /card_color|card_animation/.test(error.message)) {
+    ({ data, error } = await supabase
+      .from("events")
+      .select(
+        "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status, booking_mode",
+      )
+      .eq("is_published", true)
+      .order("starts_at", { ascending: true }));
+  }
 
   if (error) {
     console.error("Supabase public events query failed", error);
@@ -213,6 +233,8 @@ function mapEventRowsToPosterEvents(
       seatsLeft,
       hideCapacity,
       bookingMode: normalizeEventBookingMode(event.booking_mode),
+      cardColor: normalizeEventCardColor(event.card_color),
+      cardAnimation: normalizeEventCardAnimation(event.card_animation),
       bookingOptions,
       status: event.status ?? undefined,
     };

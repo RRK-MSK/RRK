@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { getEventCtaLabel, type EventBookingMode } from "@/lib/event-booking-mode";
+import { getPosterEventStyleClass, isBeerCardAnimation, type EventCardAnimation, type EventCardColor } from "@/lib/event-card-style";
+import { resolveAdjacentPosterTone } from "@/lib/event-categories";
+import { PosterBeerFill } from "@/components/site/poster-beer-fill";
 
 export type PosterEvent = {
   id?: string;
@@ -30,6 +33,8 @@ export type PosterEvent = {
   bookingClosedMessage?: string;
   bookingLink?: string;
   bookingMode?: EventBookingMode;
+  cardColor?: EventCardColor;
+  cardAnimation?: EventCardAnimation;
   bookingOptions?: {
     label: string;
     price: string;
@@ -116,7 +121,17 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
   }, []);
 
   const sortedEvents = useMemo(
-    () => [...events].sort((left, right) => getEventSortValue(left) - getEventSortValue(right)),
+    () => {
+      let previousTone: string | null = null;
+
+      return [...events]
+        .sort((left, right) => getEventSortValue(left) - getEventSortValue(right))
+        .map((event) => {
+          const tone = resolveAdjacentPosterTone(undefined, event.title, previousTone);
+          previousTone = tone;
+          return { ...event, tone };
+        });
+    },
     [events],
   );
 
@@ -133,7 +148,12 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
       {sortedEvents.map((event) => (
         <article
           key={`${event.id ?? event.title}-${event.date}-${event.time}`}
-          className={`poster-event-card poster-event-${event.tone}${event.id ? " is-clickable" : ""}`}
+          className={[
+            "poster-event-card",
+            `poster-event-${event.tone}`,
+            getPosterEventStyleClass(event.cardColor, event.cardAnimation),
+            event.id ? "is-clickable" : "",
+          ].filter(Boolean).join(" ")}
           onClick={event.id ? () => router.push(`/events/${event.id}`) : undefined}
           onKeyDown={
             event.id
@@ -148,11 +168,29 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
           role={event.id ? "link" : undefined}
           tabIndex={event.id ? 0 : undefined}
         >
+          {isBeerCardAnimation(event.cardAnimation) ? <PosterBeerFill /> : null}
           {event.id && bookedEventIds.includes(event.id) ? (
             <div className="poster-event-booked">Вы записаны</div>
           ) : null}
           <div className="poster-event-head">
             <h4>{event.title}</h4>
+          </div>
+          <div className="poster-event-when">
+            <p className="poster-event-datetime">
+              <strong>{event.date}</strong>
+              <span>{event.time}</span>
+            </p>
+            {event.venueAddress ? (
+              <p className="poster-event-address">
+                {event.venueMapUrl ? (
+                  <a href={event.venueMapUrl} target="_blank" rel="noreferrer">
+                    {event.venueAddress}
+                  </a>
+                ) : (
+                  event.venueAddress
+                )}
+              </p>
+            ) : null}
           </div>
           {event.description ? <p className="poster-event-description">{event.description}</p> : null}
           {event.focus ? <p className="poster-event-focus">{event.focus}</p> : null}
@@ -180,17 +218,6 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
               )}
             </div>
           )}
-          {event.venueAddress ? (
-            <p className="poster-event-address">
-              {event.venueMapUrl ? (
-                <a href={event.venueMapUrl} target="_blank" rel="noreferrer">
-                  {event.venueAddress}
-                </a>
-              ) : (
-                event.venueAddress
-              )}
-            </p>
-          ) : null}
           {event.host ? <p className="poster-event-host">{event.host}</p> : null}
           {event.bookingOptions?.length ? (
             <div className="poster-event-tariffs">
@@ -205,10 +232,6 @@ export function PosterCalendar({ events }: PosterCalendarProps) {
             </div>
           ) : null}
           <div className="poster-event-meta">
-            <p className="poster-event-datetime">
-              <strong>{event.date}</strong>
-              <span>{event.time}</span>
-            </p>
             <p className={`poster-event-price${event.bookingClosed ? " poster-event-price-note" : ""}`}>
               {event.displayPrice ?? event.price}
             </p>

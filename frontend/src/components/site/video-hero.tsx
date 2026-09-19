@@ -11,6 +11,8 @@ import {
 } from "@/lib/hero-carousel-slides";
 
 import { getEventCtaLabel } from "@/lib/event-booking-mode";
+import { getPosterEventStyleClass, isBeerCardAnimation } from "@/lib/event-card-style";
+import { PosterBeerFill } from "@/components/site/poster-beer-fill";
 
 import type { PosterEvent } from "./poster-calendar";
 
@@ -115,9 +117,26 @@ export function VideoHero({ nearestEvent, slides: slidesProp }: VideoHeroProps) 
               <aside className="rrk-hero-event-side">
                 <div className="rrk-hero-event-feature">
                   <span className="rrk-hero-event-kicker">Ближайшее событие</span>
-                  <article className={`poster-event-card poster-event-${nearestEvent.tone} rrk-hero-event-card`}>
+                  <article
+                    className={[
+                      "poster-event-card",
+                      `poster-event-${nearestEvent.tone}`,
+                      getPosterEventStyleClass(nearestEvent.cardColor, nearestEvent.cardAnimation),
+                      "rrk-hero-event-card",
+                    ].filter(Boolean).join(" ")}
+                  >
+                    {isBeerCardAnimation(nearestEvent.cardAnimation) ? <PosterBeerFill /> : null}
                     <div className="rrk-hero-event-head">
                       <h4>{nearestEvent.title}</h4>
+                    </div>
+                    <div className="rrk-hero-event-when">
+                      <p className="rrk-hero-event-datetime">
+                        <strong>{nearestEvent.date}</strong>
+                        <span>{nearestEvent.time}</span>
+                      </p>
+                      {nearestEvent.venueAddress ? (
+                        <p className="rrk-hero-event-text">{nearestEvent.venueAddress}</p>
+                      ) : null}
                     </div>
                     {nearestEvent.description ? (
                       <p className="rrk-hero-event-text">{nearestEvent.description}</p>
@@ -126,10 +145,6 @@ export function VideoHero({ nearestEvent, slides: slidesProp }: VideoHeroProps) 
                       <p className="rrk-hero-event-text">{nearestEvent.focus}</p>
                     ) : null}
                     <div className="rrk-hero-event-meta">
-                      <p className="rrk-hero-event-datetime">
-                        <strong>{nearestEvent.date}</strong>
-                        <span>{nearestEvent.time}</span>
-                      </p>
                       <p className="rrk-hero-event-price">
                         {nearestEvent.displayPrice ?? nearestEvent.price}
                       </p>

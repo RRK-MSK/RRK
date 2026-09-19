@@ -104,7 +104,6 @@ export default async function HomePage() {
 
       <section id="schedule" className="site-section poster-section">
         <div className="section-heading">
-          <span>Афиша РРК</span>
           <h2>Мероприятия РРК</h2>
         </div>
         <PosterCalendar events={activeLiveEvents} />
@@ -112,7 +111,6 @@ export default async function HomePage() {
 
       <section id="about" className="site-section site-section-light about-section">
         <div className="section-heading">
-          <span>О клубе</span>
           <h2>
             Философия РРК
           </h2>
@@ -156,7 +154,6 @@ export default async function HomePage() {
 
       <section id="gallery" className="site-section gallery-section">
         <div className="section-heading">
-          <span>Атмосфера</span>
           <h2>Как проходят встречи РРК</h2>
         </div>
         <GalleryScroller photos={galleryPhotos} />
@@ -164,7 +161,6 @@ export default async function HomePage() {
 
       <section id="founders" className="site-section founders-section">
         <div className="section-heading">
-          <span>Основатели</span>
           <h2>Три сооснователя, которые формируют культуру, среду и энергию РРК</h2>
         </div>
         <RevealOnView className="founders-grid">
@@ -194,7 +190,6 @@ export default async function HomePage() {
 
       <section id="faq" className="site-section faq-section">
         <div className="section-heading">
-          <span>Частые вопросы</span>
           <h2>Коротко о том, как устроен клуб и зачем люди в него приходят</h2>
         </div>
         <div className="faq-list">

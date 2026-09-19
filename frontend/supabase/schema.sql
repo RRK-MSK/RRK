@@ -43,6 +43,8 @@ create table if not exists public.events (
   waitlist_count integer not null default 0,
   is_published boolean not null default false,
   booking_mode text not null default 'payment',
+  card_color text not null default 'standard',
+  card_animation text not null default 'none',
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );

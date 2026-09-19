@@ -38,26 +38,28 @@ export default async function EventPage({ params, searchParams }: EventPageProps
         <div className={`event-page-grid${signupOnly ? " is-signup" : ""}`}>
           <div className="event-page-info">
             <h1>{event.title}</h1>
-            <div className="event-page-meta">
-              <p className="event-page-date">{event.date}</p>
-              <p className="event-page-time">{event.time}</p>
+            <div className="event-page-when">
+              <div className="event-page-meta">
+                <p className="event-page-date">{event.date}</p>
+                <p className="event-page-time">{event.time}</p>
+              </div>
+              {event.venueAddress ? (
+                <p className="event-page-address">
+                  {event.venueMapUrl ? (
+                    <a href={event.venueMapUrl} target="_blank" rel="noreferrer">
+                      {event.venueAddress}
+                    </a>
+                  ) : (
+                    event.venueAddress
+                  )}
+                </p>
+              ) : null}
             </div>
             <p className="event-page-price">{event.displayPrice ?? event.price}</p>
 
             {event.description ? <p className="event-page-description">{event.description}</p> : null}
             {event.focus ? <p className="event-page-focus">{event.focus}</p> : null}
             {event.host ? <p className="event-page-host">Ведущий: {event.host}</p> : null}
-            {event.venueAddress ? (
-              <p className="event-page-address">
-                {event.venueMapUrl ? (
-                  <a href={event.venueMapUrl} target="_blank" rel="noreferrer">
-                    {event.venueAddress}
-                  </a>
-                ) : (
-                  event.venueAddress
-                )}
-              </p>
-            ) : null}
 
             {event.bookingOptions?.length ? (
               <div className="event-page-tariffs">

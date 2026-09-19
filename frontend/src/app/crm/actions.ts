@@ -9,6 +9,7 @@ import { isCoffeeJamCategory } from "@/lib/event-categories";
 import { UNLIMITED_EVENT_CAPACITY } from "@/lib/event-capacity";
 import { parseEventPaymentInput } from "@/lib/event-payment";
 import { normalizeEventBookingMode } from "@/lib/event-booking-mode";
+import { normalizeEventCardAnimation, normalizeEventCardColor } from "@/lib/event-card-style";
 import {
   buildEventTariffOptions,
   buildTariffUsageMap,
@@ -35,7 +36,7 @@ type EventPayload = {
   venueAddress?: string;
   venueMapUrl?: string;
   startsAt: string;
-  endsAt: string;
+  endsAt?: string;
   capacity: number;
   unlimitedCapacity?: boolean;
   paymentInput?: string;
@@ -43,6 +44,8 @@ type EventPayload = {
   isPublished: boolean;
   status?: string;
   bookingMode?: string;
+  cardColor?: string;
+  cardAnimation?: string;
   pricingTiers?: EventTierInput[];
 };
 
@@ -629,8 +632,8 @@ export async function saveEvent(payload: EventPayload) {
   const supabase = getSupabaseAdminClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  if (!payload.title?.trim() || !payload.startsAt || !payload.endsAt) {
-    throw new Error("Заполните название, дату начала и дату окончания");
+  if (!payload.title?.trim() || !payload.startsAt) {
+    throw new Error("Заполните название и дату начала");
   }
 
   const payment = payload.paymentInput !== undefined
@@ -656,18 +659,30 @@ export async function saveEvent(payload: EventPayload) {
     is_published: payload.isPublished,
     status: normalizeText(payload.status) ?? "Открыто",
     booking_mode: normalizeEventBookingMode(payload.bookingMode),
+    card_color: normalizeEventCardColor(payload.cardColor),
+    card_animation: normalizeEventCardAnimation(payload.cardAnimation),
   };
 
   let eventId = payload.id;
 
   if (payload.id) {
+    let writePayload: Record<string, unknown> = normalizedPayload;
     let { error } = await supabase
       .from("events")
-      .update(normalizedPayload)
+      .update(writePayload)
       .eq("id", payload.id);
 
+    if (error?.message && /card_color|card_animation/.test(error.message)) {
+      const { card_color: _cardColor, card_animation: _cardAnimation, ...payloadWithoutStyle } = writePayload;
+      writePayload = payloadWithoutStyle;
+      ({ error } = await supabase
+        .from("events")
+        .update(writePayload)
+        .eq("id", payload.id));
+    }
+
     if (error?.message?.includes("booking_mode")) {
-      const { booking_mode: _bookingMode, ...payloadWithoutMode } = normalizedPayload;
+      const { booking_mode: _bookingMode, ...payloadWithoutMode } = writePayload;
       ({ error } = await supabase
         .from("events")
         .update(payloadWithoutMode)
@@ -678,14 +693,25 @@ export async function saveEvent(payload: EventPayload) {
       throw new Error("Не удалось обновить занятие: " + error.message);
     }
   } else {
+    let writePayload: Record<string, unknown> = normalizedPayload;
     let { data, error } = await supabase
       .from("events")
-      .insert(normalizedPayload)
+      .insert(writePayload)
       .select("id")
       .single();
 
+    if (error?.message && /card_color|card_animation/.test(error.message)) {
+      const { card_color: _cardColor, card_animation: _cardAnimation, ...payloadWithoutStyle } = writePayload;
+      writePayload = payloadWithoutStyle;
+      ({ data, error } = await supabase
+        .from("events")
+        .insert(writePayload)
+        .select("id")
+        .single());
+    }
+
     if (error?.message?.includes("booking_mode")) {
-      const { booking_mode: _bookingMode, ...payloadWithoutMode } = normalizedPayload;
+      const { booking_mode: _bookingMode, ...payloadWithoutMode } = writePayload;
       ({ data, error } = await supabase
         .from("events")
         .insert(payloadWithoutMode)

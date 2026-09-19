@@ -1109,6 +1109,15 @@ th {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  padding-bottom: 12px;
+}
+
+.rrk-hero-event-when {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
 }
 
 .rrk-hero-event-card .rrk-hero-event-head h4 {
@@ -1153,7 +1162,7 @@ th {
 .rrk-hero-event-datetime {
   display: grid;
   gap: 5px;
-  margin: 0;
+  margin: 0 0 6px;
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1186,9 +1195,9 @@ th {
 }
 
 .poster-event-soft .rrk-hero-event-type {
-  border-color: rgba(43, 23, 17, 0.12);
-  background: rgba(112, 17, 34, 0.08);
-  color: var(--brand);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.14);
+  color: inherit;
 }
 
 .rrk-video-eyebrow {
@@ -2668,9 +2677,191 @@ th {
 
 .poster-event-soft {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0)),
-    linear-gradient(180deg, #fbf7f2 0%, #f3e8db 100%);
-  color: #2b1711;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)),
+    linear-gradient(145deg, #8a1428 0%, #e8323a 52%, #ff9a5c 150%);
+  color: #fff7f4;
+}
+
+.poster-event-card.poster-event-legendary {
+  color: #fff8f0;
+  border-color: rgba(255, 196, 140, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0)),
+    linear-gradient(
+      120deg,
+      #6b1024 0%,
+      #c41840 12%,
+      #e8323a 24%,
+      #f05a22 36%,
+      #f0b428 48%,
+      #d94a2a 60%,
+      #b01848 72%,
+      #e07a20 84%,
+      #6b1024 100%
+    );
+  background-size: 100% 100%, 300% 300%;
+  animation: poster-legendary-shift 5s ease-in-out infinite;
+}
+
+.poster-event-beer {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -40px 50px rgba(80, 36, 6, 0.16);
+}
+
+.poster-event-beer > *:not(.poster-beer-fill) {
+  position: relative;
+  z-index: 1;
+}
+
+.poster-beer-fill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.poster-beer-glass {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16), transparent 18%, transparent 78%, rgba(255, 255, 255, 0.08)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 28%);
+}
+
+.poster-beer-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.poster-beer-bubbles {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255, 245, 210, 0.55) 0 42%, transparent 46%),
+    radial-gradient(circle, rgba(255, 230, 170, 0.4) 0 42%, transparent 46%),
+    radial-gradient(circle, rgba(255, 250, 230, 0.35) 0 42%, transparent 46%),
+    radial-gradient(circle, rgba(255, 236, 180, 0.32) 0 42%, transparent 46%);
+  background-size: 9px 9px, 13px 13px, 7px 7px, 11px 11px;
+  background-repeat: no-repeat;
+  animation: poster-beer-bubbles 6.5s linear infinite;
+}
+
+@keyframes poster-beer-bubbles {
+  0% {
+    background-position: 16% 110%, 42% 130%, 68% 120%, 86% 145%;
+  }
+
+  100% {
+    background-position: 20% 8%, 38% 0%, 72% 12%, 82% 4%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poster-beer-bubbles {
+    animation: none;
+  }
+}
+
+.poster-event-bubbles {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.poster-event-bubbles::before,
+.poster-event-bubbles::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+
+.poster-event-bubbles::before {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.42) 0 46%, transparent 48%),
+    radial-gradient(circle, rgba(255, 236, 190, 0.34) 0 46%, transparent 48%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.28) 0 46%, transparent 48%),
+    radial-gradient(circle, rgba(255, 210, 150, 0.3) 0 46%, transparent 48%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.22) 0 46%, transparent 48%);
+  background-size: 16px 16px, 10px 10px, 22px 22px, 13px 13px, 8px 8px;
+  background-position: 12% 110%, 38% 130%, 64% 120%, 82% 140%, 28% 150%;
+  animation: poster-bubbles-a 7s linear infinite;
+}
+
+.poster-event-bubbles::after {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.36) 0 46%, transparent 48%),
+    radial-gradient(circle, rgba(255, 220, 170, 0.3) 0 46%, transparent 48%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.24) 0 46%, transparent 48%),
+    radial-gradient(circle, rgba(255, 236, 190, 0.26) 0 46%, transparent 48%);
+  background-size: 12px 12px, 18px 18px, 9px 9px, 14px 14px;
+  background-position: 22% 125%, 54% 145%, 74% 115%, 90% 155%;
+  animation: poster-bubbles-b 9s linear infinite;
+}
+
+.poster-event-bubbles > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes poster-legendary-shift {
+  0% {
+    background-position: 0 0, 0% 15%;
+  }
+
+  50% {
+    background-position: 0 0, 100% 85%;
+  }
+
+  100% {
+    background-position: 0 0, 0% 15%;
+  }
+}
+
+@keyframes poster-bubbles-a {
+  0% {
+    background-position: 12% 110%, 38% 130%, 64% 120%, 82% 140%, 28% 150%;
+  }
+
+  100% {
+    background-position: 16% -20%, 34% -15%, 70% -25%, 78% -10%, 24% -18%;
+  }
+}
+
+@keyframes poster-bubbles-b {
+  0% {
+    background-position: 22% 125%, 54% 145%, 74% 115%, 90% 155%;
+  }
+
+  100% {
+    background-position: 18% -18%, 58% -22%, 70% -12%, 86% -16%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poster-event-card.poster-event-legendary,
+  .poster-event-bubbles::before,
+  .poster-event-bubbles::after {
+    animation: none;
+  }
+
+  .poster-event-card.poster-event-legendary {
+    background-position: 0 0, 40% 50%;
+  }
+
+  .poster-event-bubbles::before,
+  .poster-event-bubbles::after {
+    opacity: 0.35;
+  }
 }
 
 .poster-event-highlight {
@@ -2685,6 +2876,21 @@ th {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  padding-bottom: 12px;
+}
+
+.poster-event-when {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  opacity: 0.92;
+}
+
+.poster-event-when .poster-event-datetime,
+.poster-event-when .poster-event-address {
+  opacity: 0.88;
 }
 
 .poster-event-type {
@@ -2702,9 +2908,9 @@ th {
 }
 
 .poster-event-soft .poster-event-type {
-  border-color: rgba(43, 23, 17, 0.12);
-  background: rgba(112, 17, 34, 0.08);
-  color: var(--brand);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.14);
+  color: inherit;
 }
 
 .poster-event-meta {
@@ -2815,8 +3021,7 @@ th {
 
 .poster-event-address a {
   color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
 }
 
 .poster-event-host {
@@ -2850,12 +3055,12 @@ th {
 }
 
 .poster-event-soft .poster-event-spots {
-  background: rgba(122, 19, 37, 0.08);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .poster-event-soft .poster-event-tariff {
-  border-color: rgba(112, 17, 34, 0.14);
-  background: rgba(112, 17, 34, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .crm-class-load-grid {
@@ -5079,10 +5284,19 @@ body:has(.tma-bottom-nav) .site-page {
 
 .event-page-info h1 {
   margin: 0;
+  padding-bottom: 14px;
   font-size: clamp(32px, 4.4vw, 52px);
   line-height: 0.95;
   text-transform: uppercase;
   font-family: var(--font-display), Impact, sans-serif;
+}
+
+.event-page-when {
+  display: grid;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(33, 25, 22, 0.16);
+  border-bottom: 1px solid rgba(33, 25, 22, 0.16);
 }
 
 .event-page-label {
@@ -5134,8 +5348,7 @@ body:has(.tma-bottom-nav) .site-page {
 
 .event-page-address a {
   color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
 }
 
 .event-page-tariffs {
