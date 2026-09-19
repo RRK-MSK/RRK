@@ -100,23 +100,13 @@ export async function getSitePosterEvents() {
     return [] as SitePosterEvent[];
   }
 
-  const eventSelect =
-    "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status, booking_mode";
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("events")
-    .select(eventSelect)
+    .select(
+      "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status, booking_mode",
+    )
     .eq("is_published", true)
     .order("starts_at", { ascending: true });
-
-  if (error?.message?.includes("booking_mode")) {
-    ({ data, error } = await supabase
-      .from("events")
-      .select(
-        "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status",
-      )
-      .eq("is_published", true)
-      .order("starts_at", { ascending: true }));
-  }
 
   if (error) {
     console.error("Supabase public events query failed", error);

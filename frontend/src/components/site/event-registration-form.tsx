@@ -10,7 +10,11 @@ import {
   phoneToE164,
   validateParticipantFields,
 } from "@/lib/booking-validation";
-import { getPrefillProfile, saveParticipantProfile } from "@/lib/participant-storage";
+import {
+  getPrefillProfile,
+  saveParticipantProfile,
+  type ParticipantProfile,
+} from "@/lib/participant-storage";
 
 import type { PosterEvent } from "./poster-calendar";
 
@@ -42,7 +46,7 @@ type EventRegistrationFormProps = {
 
 function createParticipant(
   ticket: TicketSelection,
-  profile?: ReturnType<typeof loadParticipantProfile>,
+  profile?: ParticipantProfile | null,
 ): ParticipantForm {
   return {
     key: `${Date.now()}-${Math.random()}`,
