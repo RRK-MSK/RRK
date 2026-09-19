@@ -281,6 +281,44 @@ export function validateAndNormalizeBooking(
   };
 }
 
+export type NormalizedParticipantFields = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  telegram: string;
+  email: string;
+};
+
+export function validateParticipantFields(
+  input: Pick<BookingValidationInput, "firstName" | "lastName" | "phone" | "telegram" | "email">,
+): { ok: true; data: NormalizedParticipantFields } | { ok: false; error: string } {
+  const firstNameError = validateName(String(input.firstName ?? ""), "Имя");
+  if (firstNameError) return { ok: false, error: firstNameError };
+
+  const lastNameError = validateName(String(input.lastName ?? ""), "Фамилия");
+  if (lastNameError) return { ok: false, error: lastNameError };
+
+  const phoneError = validatePhone(String(input.phone ?? ""));
+  if (phoneError) return { ok: false, error: phoneError };
+
+  const telegramError = validateTelegram(String(input.telegram ?? ""));
+  if (telegramError) return { ok: false, error: telegramError };
+
+  const emailError = validateEmail(String(input.email ?? ""));
+  if (emailError) return { ok: false, error: emailError };
+
+  return {
+    ok: true,
+    data: {
+      firstName: String(input.firstName).trim(),
+      lastName: String(input.lastName).trim(),
+      phone: phoneToE164(String(input.phone ?? "")),
+      telegram: normalizeTelegram(String(input.telegram ?? "")),
+      email: String(input.email).trim().toLowerCase(),
+    },
+  };
+}
+
 export const bookingFieldLimits = {
   nameMax: NAME_MAX,
   emailMax: EMAIL_MAX,

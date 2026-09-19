@@ -1,5 +1,6 @@
 import "server-only";
 
+import { parseEnrollmentsMarker } from "@/lib/booking-notes";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { sendTelegramNotification } from "@/lib/telegram";
 
@@ -21,6 +22,33 @@ function getMetaValue(data: PaymentMetadata | null | undefined, key: string) {
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function resolveEnrollmentIds(
+  paymentNote: string | null | undefined,
+  data: PaymentMetadata | null | undefined,
+  primaryEnrollmentId?: string | null,
+) {
+  const ids = new Set<string>();
+
+  for (const id of parseEnrollmentsMarker(paymentNote)) {
+    ids.add(id);
+  }
+
+  const fromData = getMetaValue(data, "EnrollmentIds");
+  if (fromData) {
+    for (const id of fromData.split(",")) {
+      const trimmed = id.trim();
+      if (trimmed) ids.add(trimmed);
+    }
+  }
+
+  const singleEnrollmentId = getMetaValue(data, "EnrollmentId") ?? primaryEnrollmentId;
+  if (singleEnrollmentId) {
+    ids.add(singleEnrollmentId);
+  }
+
+  return [...ids];
 }
 
 function appendOrderMarker(note: string | null | undefined, orderId?: string | null) {
@@ -244,6 +272,7 @@ export async function confirmTBankPayment({
   const nextParticipantId = participantId ?? paymentInfo.participant_id;
   const nextEventId = eventId ?? paymentInfo.event_id;
   const nextEnrollmentId = enrollmentId ?? paymentInfo.enrollment_id;
+  const enrollmentIds = resolveEnrollmentIds(paymentInfo.note, data, nextEnrollmentId);
 
   await supabase
     .from("payments")
@@ -257,11 +286,11 @@ export async function confirmTBankPayment({
     })
     .eq("id", paymentInfo.id);
 
-  if (nextEnrollmentId) {
+  if (enrollmentIds.length > 0) {
     await supabase
       .from("enrollments")
       .update({ payment_status: "Оплачен", confirmation_status: "Подтверждено" })
-      .eq("id", nextEnrollmentId);
+      .in("id", enrollmentIds);
   } else if (nextParticipantId && nextEventId) {
     await supabase
       .from("enrollments")
@@ -295,7 +324,7 @@ export async function confirmTBankPayment({
     });
   }
 
-  const [{ data: participant }, { data: event }] = await Promise.all([
+  const [{ data: participant }, { data: event }, { data: enrolledParticipants }] = await Promise.all([
     nextParticipantId
       ? supabase
           .from("participants")
@@ -310,7 +339,23 @@ export async function confirmTBankPayment({
           .eq("id", nextEventId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    enrollmentIds.length > 0
+      ? supabase
+          .from("enrollments")
+          .select("participant:participants(full_name, phone, telegram)")
+          .in("id", enrollmentIds)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  const allParticipants = (enrolledParticipants ?? [])
+    .map((row) => {
+      const nested = row.participant as { full_name?: string; phone?: string | null; telegram?: string | null } | { full_name?: string; phone?: string | null; telegram?: string | null }[] | null;
+      if (Array.isArray(nested)) {
+        return nested[0] ?? null;
+      }
+      return nested;
+    })
+    .filter(Boolean);
 
   if (!isAlreadyPaid && participant && event) {
     const spotsLeft = Math.max((event.capacity || 0) - (event.booked_count || 0), 0);
@@ -323,10 +368,14 @@ export async function confirmTBankPayment({
       minute: "2-digit",
     });
 
+    const participantNames = allParticipants.length > 0
+      ? allParticipants.map((item) => item?.full_name).filter(Boolean).join(", ")
+      : participant.full_name;
+
     await sendTelegramNotification({
       eventName: event.title,
       spotsLeft,
-      name: participant.full_name,
+      name: participantNames,
       phone: participant.phone || getMetaValue(data, "Phone") || "",
       telegram: participant.telegram || getMetaValue(data, "Telegram") || "",
       orderNumber: String(orderId || externalPaymentId),
@@ -340,10 +389,17 @@ export async function confirmTBankPayment({
       const { sendEmailNotification } = await import("@/lib/email");
       await sendEmailNotification({
         eventName: event.title,
-        fullName: participant.full_name,
+        fullName: participantNames,
         phone: participant.phone || getMetaValue(data, "Phone") || "",
         telegram: participant.telegram || getMetaValue(data, "Telegram") || "",
         orderId: String(orderId || externalPaymentId),
+        participants: allParticipants.length > 0
+          ? allParticipants.map((item) => ({
+              fullName: item?.full_name ?? "",
+              phone: item?.phone ?? undefined,
+              telegram: item?.telegram ?? undefined,
+            }))
+          : undefined,
       });
     } catch (error) {
       console.error("Failed to send payment confirmation email:", error);

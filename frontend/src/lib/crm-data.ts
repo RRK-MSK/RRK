@@ -40,6 +40,7 @@ export type TableRow = Record<string, string>;
 
 export const crmNavItems: NavItem[] = [
   { label: "Дашборд", href: "/crm/dashboard" },
+  { label: "Контент", href: "/crm/content" },
   { label: "Участники", href: "/crm/participants" },
   { label: "Календарь", href: "/crm/calendar" },
   { label: "Промокоды", href: "/crm/promos" },

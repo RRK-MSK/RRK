@@ -3,7 +3,6 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 import {
-  getEventCategoryLabel,
   getEventCategoryTone,
   isCoffeeJamCategory,
 } from "@/lib/event-categories";
@@ -13,6 +12,8 @@ import { formatEventPriceDisplay, hasTextOnlyEventPrice } from "@/lib/event-paym
 import { buildEventTariffOptions } from "@/lib/event-tariffs";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/supabase/env";
+import { defaultHeroCarouselSlides, type HeroCarouselSlide } from "@/lib/hero-carousel-slides";
+import { getSiteMediaItems } from "@/lib/site-media";
 
 type SitePosterEvent = {
   id?: string;
@@ -28,6 +29,7 @@ type SitePosterEvent = {
   venueAddress?: string;
   venueMapUrl?: string;
   price: string;
+  priceRub?: number;
   displayPrice?: string;
   label?: string;
   capacity?: number;
@@ -147,7 +149,15 @@ export async function getSitePosterEvents() {
     tariffUsageByEventId.set(enrollment.event_id, eventUsage);
   }
 
-  return ((data ?? []) as EventRow[])
+  return mapEventRowsToPosterEvents((data ?? []) as EventRow[], tiersByEventId, tariffUsageByEventId);
+}
+
+function mapEventRowsToPosterEvents(
+  rows: EventRow[],
+  tiersByEventId: Map<string, EventPriceTierRow[]>,
+  tariffUsageByEventId: Map<string, Map<string, number>>,
+) {
+  return rows
     .filter((event) => {
       const isPast = event.starts_at && new Date(event.starts_at).getTime() < Date.now();
       const isCanceled = event.status === "Отменено";
@@ -193,8 +203,8 @@ export async function getSitePosterEvents() {
       venueAddress: event.venue_address ?? undefined,
       venueMapUrl: event.venue_map_url ?? undefined,
       price,
+      priceRub: hasTextOnlyEventPrice(event.price_label) && currentPrice <= 0 ? 0 : currentPrice,
       displayPrice,
-      label: getEventCategoryLabel(event.category, event.title),
       capacity,
       booked,
       seatsLeft,
@@ -204,6 +214,64 @@ export async function getSitePosterEvents() {
     };
   });
 }
+
+export async function getSiteEventById(id: string) {
+  const events = await getSitePosterEvents();
+  return events.find((event) => event.id === id) ?? null;
+}
+
+const fallbackGalleryPhotos = [
+  { src: "/RRK-0001.jpg", alt: "Встреча РРК" },
+  { src: "/RRK-0002.jpg", alt: "Встреча РРК" },
+  { src: "/RRK-0003.jpg", alt: "Встреча РРК" },
+  { src: "/RRK-0005.jpg", alt: "Встреча РРК" },
+  { src: "/IMG_0030.JPG", alt: "Встреча РРК" },
+  { src: "/IMG_0032.JPG", alt: "Встреча РРК" },
+  { src: "/IMG_0034.JPG", alt: "Встреча РРК" },
+  { src: "/IMG_0309.JPG", alt: "Встреча РРК" },
+  { src: "/IMG_0310.JPG", alt: "Встреча РРК" },
+];
+
+export async function getSiteHeroSlides(): Promise<HeroCarouselSlide[]> {
+  const items = await getSiteMediaItems("hero");
+  if (items.length === 0) {
+    return defaultHeroCarouselSlides;
+  }
+
+  return items.map((item) => ({
+    id: item.id,
+    type: item.mediaType,
+    src: item.src,
+    poster: item.poster,
+    sortOrder: item.sortOrder,
+  }));
+}
+
+export async function getSiteGalleryPhotos() {
+  const items = await getSiteMediaItems("gallery");
+  if (items.length === 0) {
+    return fallbackGalleryPhotos;
+  }
+
+  return items
+    .filter((item) => item.mediaType === "image")
+    .map((item) => ({
+      src: item.src,
+      alt: "Встреча РРК",
+    }));
+}
+
+export function getNearestSiteEvent(events: SitePosterEvent[]) {
+  return events
+    .filter((event) => event.id && event.status !== "Отменено")
+    .sort((left, right) => {
+      const leftTime = left.startsAt ? new Date(left.startsAt).getTime() : Number.MAX_SAFE_INTEGER;
+      const rightTime = right.startsAt ? new Date(right.startsAt).getTime() : Number.MAX_SAFE_INTEGER;
+      return leftTime - rightTime;
+    })[0] ?? null;
+}
+
+export type { SitePosterEvent };
 
 function buildBookingOptions(
   event: EventRow,
@@ -266,7 +334,7 @@ function formatTimeRange(event: EventRow) {
   }).format(start);
 
   if (!event.ends_at) {
-    return startTime;
+    return `с ${startTime}`;
   }
 
   const end = new Date(event.ends_at);

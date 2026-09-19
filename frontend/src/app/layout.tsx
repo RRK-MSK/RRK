@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Anton, Instrument_Serif, Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Instrument_Serif, Inter, Oswald, Plus_Jakarta_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 
 import { AppFrame } from "@/components/crm/app-frame";
@@ -19,9 +19,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-ui",
 });
 
-const anton = Anton({
-  subsets: ["latin"],
-  weight: "400",
+const oswald = Oswald({
+  subsets: ["latin", "cyrillic"],
+  weight: "600",
   variable: "--font-display",
 });
 
@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
       </head>
       <body
-        className={`${inter.variable} ${plusJakartaSans.variable} ${anton.variable} ${instrumentSerif.variable}`}
+        className={`${inter.variable} ${plusJakartaSans.variable} ${oswald.variable} ${instrumentSerif.variable}`}
         suppressHydrationWarning
       >
         <ScrollReset />

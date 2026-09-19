@@ -83,7 +83,6 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
       {variant === "classes" ? (
         <article className="crm-class-load-card" onClick={handleOpen} style={{ cursor: "pointer", transition: "transform 0.2s" }}>
           <div className="class-badges">
-            <span className="status-badge tone-gray">{item.format}</span>
             <span className={`status-badge ${item.status === "SOLD OUT" ? "tone-burgundy" : item.status?.includes("Почти") ? "tone-sand" : "tone-green"}`}>
               {item.status}
             </span>
@@ -126,7 +125,6 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
           <div className="class-card-main">
             <div className="class-badges">
               <span className={`status-badge ${item.status === "SOLD OUT" ? "tone-burgundy" : item.status?.includes("Почти") ? "tone-sand" : "tone-green"}`}>{item.status}</span>
-              <span className="status-badge tone-gray">{item.format}</span>
             </div>
             <h3>{item.title}</h3>
             <p>{item.subtitle}</p>

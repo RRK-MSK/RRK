@@ -3,9 +3,7 @@
 import { useMemo, useState } from "react";
 import { saveEvent } from "@/app/crm/actions";
 import {
-  EVENT_CATEGORY_COFFEE_JAM,
-  EVENT_CATEGORY_KVARTIRNIK,
-  EVENT_CATEGORY_OPTIONS,
+  isCoffeeJamCategory,
   resolveEventCategoryForForm,
 } from "@/lib/event-categories";
 import { isUnlimitedCapacity, UNLIMITED_EVENT_CAPACITY } from "@/lib/event-capacity";
@@ -96,7 +94,7 @@ function buildInitialFormData(initialData?: EventFormInitialData): EventFormInit
     title: initialData?.title ?? "",
     subtitle: initialData?.subtitle ?? "",
     description: initialData?.description ?? "",
-    category: resolveEventCategoryForForm(initialData?.category, initialData?.title),
+    category: initialData?.category,
     city: initialData?.city ?? "Москва",
     host: initialData?.host ?? "",
     venueAddress: initialData?.venueAddress ?? "",
@@ -122,7 +120,7 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
     () => formData.pricingTiers ?? [],
     [formData.pricingTiers],
   );
-  const isCoffeeJam = formData.category === EVENT_CATEGORY_COFFEE_JAM;
+  const isCoffeeJam = isCoffeeJamCategory(formData.category, formData.title);
 
   const updateField = <K extends keyof EventFormInitialData>(key: K, value: EventFormInitialData[K]) => {
     setFormData((current) => ({ ...current, [key]: value }));
@@ -173,7 +171,7 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
         title: formData.title ?? "",
         subtitle: formData.subtitle ?? "",
         description: formData.description ?? "",
-        category: formData.category ?? EVENT_CATEGORY_KVARTIRNIK,
+        category: resolveEventCategoryForForm(formData.category, formData.title),
         city: formData.city ?? "",
         host: formData.host ?? "",
         venueAddress: formData.venueAddress ?? "",
@@ -248,17 +246,6 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                 </Field>
                 <Field label="Подзаголовок">
                   <input value={formData.subtitle ?? ""} onChange={(e) => updateField("subtitle", e.target.value)} style={fieldStyle} />
-                </Field>
-                <Field label="Тип мероприятия">
-                  <select
-                    value={formData.category ?? EVENT_CATEGORY_KVARTIRNIK}
-                    onChange={(e) => updateField("category", e.target.value)}
-                    style={fieldStyle}
-                  >
-                    {EVENT_CATEGORY_OPTIONS.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
                 </Field>
                 <Field label="Город">
                   <input value={formData.city ?? ""} onChange={(e) => updateField("city", e.target.value)} style={fieldStyle} />
@@ -358,7 +345,7 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                     <div>
                       <strong>Ценовые пороги</strong>
                       <p style={{ marginTop: "4px", color: "var(--muted)", fontSize: "14px" }}>
-                        Опционально для КофеДжема: 1-10, 11-50 и так далее.
+                        Если цена должна расти по заполненности: 1-10, 11-50 и так далее.
                       </p>
                     </div>
                     <button type="button" className="ghost-button" onClick={addPricingRow}>

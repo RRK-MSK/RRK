@@ -1,81 +1,78 @@
 "use client";
 
-import Hls from "hls.js";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const streamUrl = "https://stream.mux.com/tLkHO1qZoaaQOUeVWo8hEBeGQfySP02EPS02BmnNFyXys.m3u8";
+import { HeroBackgroundLayer } from "@/components/site/hero-background-layer";
+import {
+  defaultHeroCarouselSlides,
+  type HeroCarouselSlide,
+} from "@/lib/hero-carousel-slides";
+
+import type { PosterEvent } from "./poster-calendar";
+
+const AUTOPLAY_MS = 10_000;
 
 const navItems = [
-  { href: "#formats", label: "Форматы" },
-  { href: "#about", label: "О клубе" },
   { href: "#schedule", label: "Афиша" },
+  { href: "#about", label: "О клубе" },
   { href: "#founders", label: "Основатели" },
 ];
 
-export function VideoHero() {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+type VideoHeroProps = {
+  nearestEvent?: PosterEvent | null;
+  slides?: HeroCarouselSlide[];
+};
+
+function modIndex(value: number, length: number) {
+  return ((value % length) + length) % length;
+}
+
+export function VideoHero({ nearestEvent, slides: slidesProp }: VideoHeroProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  const slides = useMemo(
+    () => (slidesProp?.length ? slidesProp : defaultHeroCarouselSlides),
+    [slidesProp],
+  );
 
   useEffect(() => {
-    const video = videoRef.current;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduceMotion(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
-    if (!video) {
+  useEffect(() => {
+    if (slides.length <= 1) {
       return;
     }
 
-    let hls: Hls | null = null;
-
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = streamUrl;
-    } else if (Hls.isSupported()) {
-      hls = new Hls({ enableWorker: false });
-      hls.loadSource(streamUrl);
-      hls.attachMedia(video);
-    } else {
-      video.src = streamUrl;
-    }
-
-    const tryPlay = () => {
-      void video.play().catch(() => {});
-    };
-
-    video.addEventListener("loadedmetadata", tryPlay);
+    const interval = window.setInterval(() => {
+      setActiveSlideIndex((current) => modIndex(current + 1, slides.length));
+    }, AUTOPLAY_MS);
 
     return () => {
-      video.removeEventListener("loadedmetadata", tryPlay);
-      hls?.destroy();
+      window.clearInterval(interval);
     };
-  }, []);
+  }, [slides.length]);
 
   return (
     <section className="rrk-video-hero">
-      <nav className="rrk-video-nav" aria-label="Основная навигация">
-        {navItems.map((item) => (
-          <Link key={item.href} href={item.href} className={item.href === "#formats" ? "is-active" : undefined}>
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
       <div className="rrk-video-shell">
-        <video ref={videoRef} className="rrk-video-media" muted playsInline autoPlay loop />
+        <HeroBackgroundLayer
+          slides={slides}
+          activeIndex={activeSlideIndex}
+          reduceMotion={reduceMotion}
+        />
         <div className="rrk-video-left-gradient" aria-hidden="true" />
         <div className="rrk-video-bottom-gradient" aria-hidden="true" />
-        <div className="rrk-video-waves" aria-hidden="true">
-          <span className="rrk-video-wave rrk-video-wave-a" />
-          <span className="rrk-video-wave rrk-video-wave-b" />
-          <span className="rrk-video-wave rrk-video-wave-c" />
-        </div>
-        <div className="rrk-video-grid" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
 
         <header className="rrk-video-header">
-          <img src="/ррк.webp" alt="РРК" className="rrk-video-logo" style={{ height: '96px', width: 'auto', filter: 'brightness(0) invert(1)', marginLeft: '-16px' }} />
           <button
             type="button"
             className="rrk-video-menu"
@@ -88,44 +85,63 @@ export function VideoHero() {
         </header>
 
         <div className="rrk-video-content">
-          <div className="rrk-video-main">
+          <div className="rrk-video-hero-row">
             <div className="rrk-video-copy">
-              <p className="rrk-video-eyebrow">Речь реакция культура</p>
-              <h1>
-                РУССКИЙ РАЗГОВОРНЫЙ
-                <br />
-                КЛУБ
-                <span>.</span>
-              </h1>
+              <div className="rrk-video-copy-title">
+                <p className="rrk-video-eyebrow">Речь реакция культура</p>
+                <h1>
+                  РУССКИЙ РАЗГОВОРНЫЙ
+                  <br />
+                  КЛУБ
+                  <span>.</span>
+                </h1>
+              </div>
               <p className="rrk-video-description">
                 Место, где ты раскрепощаешься, учишься быстро реагировать, находишь сильное
                 окружение и весело проводишь время.
               </p>
-              <div className="rrk-video-actions">
-                <Link href="#schedule" className="site-button primary rrk-video-cta">
-                  Записаться
-                  <ArrowRight size={18} />
-                </Link>
-              </div>
+              {!nearestEvent?.id ? (
+                <div className="rrk-video-actions">
+                  <Link href="#schedule" className="site-button primary rrk-video-cta">
+                    Купить
+                  </Link>
+                </div>
+              ) : null}
             </div>
-          </div>
 
-          <div className="rrk-video-photo-card">
-            <div className="rrk-video-photo-media">
-              <video
-                src="/встреча.mp4"
-                className="rrk-video-photo-image"
-                autoPlay
-                loop
-                muted
-                playsInline
-                style={{ objectFit: "cover", width: "100%", height: "100%" }}
-              />
-            </div>
-            <div className="rrk-video-photo-copy">
-              <span>Живая атмосфера</span>
-              <p>Круг людей, в котором речь становится свободнее, а контакт сильнее.</p>
-            </div>
+            {nearestEvent?.id ? (
+              <aside className="rrk-hero-event-side">
+                <div className="rrk-hero-event-feature">
+                  <span className="rrk-hero-event-kicker">Ближайшее событие</span>
+                  <article className={`poster-event-card poster-event-${nearestEvent.tone} rrk-hero-event-card`}>
+                    <div className="rrk-hero-event-head">
+                      <h4>{nearestEvent.title}</h4>
+                    </div>
+                    {nearestEvent.description ? (
+                      <p className="rrk-hero-event-text">{nearestEvent.description}</p>
+                    ) : null}
+                    {nearestEvent.focus ? (
+                      <p className="rrk-hero-event-text">{nearestEvent.focus}</p>
+                    ) : null}
+                    <div className="rrk-hero-event-meta">
+                      <p className="rrk-hero-event-datetime">
+                        <strong>{nearestEvent.date}</strong>
+                        <span>{nearestEvent.time}</span>
+                      </p>
+                      <p className="rrk-hero-event-price">
+                        {nearestEvent.displayPrice ?? nearestEvent.price}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/events/${nearestEvent.id}`}
+                      className="site-button primary rrk-hero-event-buy"
+                    >
+                      Купить
+                    </Link>
+                  </article>
+                </div>
+              </aside>
+            ) : null}
           </div>
         </div>
       </div>

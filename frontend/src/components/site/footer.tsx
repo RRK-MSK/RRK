@@ -11,13 +11,13 @@ export function SiteFooter() {
           <span>2026</span>
         </div>
         <div className="site-footer-brand">
-          <h2>Иногда одного вечера достаточно, чтобы начать проявляться по-новому.</h2>
+          <h2>Собираем людей, которым интересно быть с людьми.</h2>
         </div>
         <div className="site-footer-columns">
           <div>
             <span>Навигация</span>
+            <Link href="/#schedule">Афиша</Link>
             <Link href="/#about">О клубе</Link>
-            <Link href="/#formats">Программы</Link>
             <Link href="/#founders">Основатели</Link>
             <Link href="/#faq">FAQ</Link>
           </div>

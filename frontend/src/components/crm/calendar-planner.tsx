@@ -240,7 +240,6 @@ export function CrmCalendarPlanner({ rows }: { rows: TableRow[] }) {
                   <span className="status-badge tone-gray">{event.status}</span>
                 </div>
                 <div className="crm-calendar-event-meta">
-                  <span>{event.format}</span>
                   <span>{event.host}</span>
                 </div>
                 <EventFormModal

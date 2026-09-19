@@ -1,212 +1,14 @@
 import Image from "next/image";
 
 import { SiteFooter } from "@/components/site/footer";
-import { BookingButton } from "@/components/site/booking-button";
+import { GalleryScroller } from "@/components/site/gallery-scroller";
 import { PosterCalendar } from "@/components/site/poster-calendar";
 import { RevealOnView } from "@/components/site/reveal-on-view";
 import { VideoHero } from "@/components/site/video-hero";
-import { getSitePosterEvents } from "@/lib/site-store";
+import { getNearestSiteEvent, getSiteGalleryPhotos, getSiteHeroSlides, getSitePosterEvents } from "@/lib/site-store";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 10; // Кэшируем страницу на 10 секунд для ускорения загрузки
-
-const programs = [
-  {
-    type: "Август",
-    city: "Москва",
-    date: "Месяц комьюнити",
-    title: "АВГУСТ - МЕСЯЦ КОМЬЮНИТИ 🤍",
-    description:
-      "Весь август мы посвящаем людям, которые делают РРК тем самым местом. Больше знакомств, совместных событий, разговоров и поводов проводить время вместе не только на тренингах, но и за их пределами.",
-    status: "Познакомиться ближе",
-  },
-  {
-    type: "Скоро",
-    city: "Москва",
-    date: "Следующий этап",
-    title: "Абонементы и форматы",
-    description:
-      "Позже появятся абонементы, интенсивы и закрытые программы. Сейчас первый вход в среду клуба открыт через разовое посещение.",
-    status: "В разработке",
-  },
-];
-
-const posterEvents = [
-  {
-    tone: "solid",
-    date: "5 июля (вс)",
-    time: "14:30-18:00",
-    title: "Тело говорит раньше слов",
-    focus: "Работа с пластикой, походкой, пространством и внутренним состоянием.",
-    host: "Влас Ибрагимов",
-    price: "4400₽",
-  },
-  {
-    tone: "soft",
-    date: "5 июля (вс)",
-    time: "19:00-22:30",
-    title: "Тело говорит раньше слов",
-    focus: "Работа с пластикой, походкой, пространством и внутренним состоянием.",
-    host: "Влас Ибрагимов",
-    price: "4400₽",
-  },
-  {
-    tone: "highlight",
-    date: "7 июля (вт)",
-    time: "12:00-14:00",
-    label: "ДК x РРК",
-    title: "COFFEE JAM",
-    description: "зарядка для SOFT скиллов",
-    price: "от 770₽",
-    hideCapacity: true,
-  },
-  {
-    tone: "solid",
-    date: "12 июля (вс)",
-    time: "16:00-20:00",
-    title: "BIG ТРЕНИРОВКА В ПИТЕРЕ",
-    focus: "Философия РРК, играем сцены, создаем связи и узнаем себя.",
-    price: "5500₽",
-    capacity: 20,
-  },
-  {
-    tone: "solid",
-    date: "16 июля (чт)",
-    time: "14:30-18:00",
-    title: "Какой я персонаж?",
-    focus: "Каждый день мы играем роли. Пора выбрать свою осознанно.",
-    host: "Влас Ибрагимов",
-    price: "4400₽",
-  },
-  {
-    tone: "soft",
-    date: "16 июля (чт)",
-    time: "19:00-22:30",
-    title: "Какой я персонаж?",
-    focus: "Каждый день мы играем роли. Пора выбрать свою осознанно.",
-    host: "Влас Ибрагимов",
-    price: "4400₽",
-  },
-  {
-    tone: "soft",
-    date: "18 июля (сб)",
-    time: "14:30-18:00",
-    title: "Страх тишины",
-    focus: "Почему пауза делает речь сильнее.",
-    host: "Влас Ибрагимов",
-    price: "4400₽",
-  },
-  {
-    tone: "solid",
-    date: "18 июля (сб)",
-    time: "19:00-22:30",
-    title: "Страх тишины",
-    focus: "Почему пауза делает речь сильнее.",
-    host: "Влас Ибрагимов",
-    price: "4400₽",
-  },
-  {
-    tone: "soft",
-    date: "19 июля (вс)",
-    time: "14:30-18:00",
-    title: "Спокойствие в хаосе",
-    focus: "Что делать, когда разговор идёт не по плану.",
-    host: "Александр Гронский",
-    price: "4400₽",
-  },
-  {
-    tone: "solid",
-    date: "19 июля (вс)",
-    time: "19:00-22:30",
-    title: "Спокойствие в хаосе",
-    focus: "Что делать, когда разговор идёт не по плану.",
-    host: "Александр Гронский",
-    price: "4400₽",
-  },
-  {
-    tone: "highlight",
-    date: "21 июля (вт)",
-    time: "12:00-14:00",
-    label: "ДК x РРК",
-    title: "COFFEE JAM",
-    description: "зарядка для SOFT скиллов",
-    price: "от 770₽",
-    hideCapacity: true,
-  },
-  {
-    tone: "solid",
-    date: "23 июля (чт)",
-    time: "14:30-18:00",
-    title: "Жизнь как сцена",
-    focus: "Мы уже импровизируем каждый день, просто не замечаем этого.",
-    host: "Влас Ибрагимов",
-    price: "4400₽",
-  },
-  {
-    tone: "soft",
-    date: "23 июля (чт)",
-    time: "19:00-22:30",
-    title: "Жизнь как сцена",
-    focus: "Мы уже импровизируем каждый день, просто не замечаем этого.",
-    host: "Влас Ибрагимов",
-    price: "4400₽",
-  },
-  {
-    tone: "solid",
-    date: "24 июля (пт)",
-    time: "18:00-23:00",
-    title: "МАФИЯ В ДУХЕ РРК",
-    focus: "Играем в мафию и учимся искусству «дискуссии».",
-    price: "4400₽",
-    capacity: 15,
-  },
-  {
-    tone: "soft",
-    date: "26 июля (вс)",
-    time: "14:00-22:00",
-    title: "БИГ-ТРЕНИРОВКА",
-    description: "Интенсив от РРК.",
-    focus: "День, который меняет взгляд на жизнь + кофе и диджей.",
-    price: "10 000₽",
-    capacity: 20,
-  },
-  {
-    tone: "solid",
-    date: "28 июля (вт)",
-    time: "14:30-18:00",
-    title: "Обстоятельства решают всё",
-    focus: "Мы не меняем личность — мы меняем обстоятельства.",
-    host: "Влас Ибрагимов",
-    price: "4400₽",
-  },
-  {
-    tone: "soft",
-    date: "28 июля (вт)",
-    time: "19:00-22:30",
-    title: "Обстоятельства решают всё",
-    focus: "Мы не меняем личность — мы меняем обстоятельства.",
-    host: "Влас Ибрагимов",
-    price: "4400₽",
-  },
-  {
-    tone: "solid",
-    date: "30 июля (чт)",
-    time: "14:30-18:00",
-    title: "Речь без воды",
-    focus: "Как говорить просто, понятно и по делу.",
-    host: "Гронский Александр",
-    price: "4400₽",
-  },
-  {
-    tone: "soft",
-    date: "30 июля (чт)",
-    time: "19:00-22:30",
-    title: "Речь без воды",
-    focus: "Как говорить просто, понятно и по делу.",
-    host: "Гронский Александр",
-    price: "4400₽",
-  },
-];
 
 const founders = [
   {
@@ -238,45 +40,52 @@ const founders = [
 
 const faqs = [
   {
-    question: "Для кого подходит Русский Разговорный Клуб?",
-    answer:
-      "Для людей, которым важно говорить свободнее, глубже чувствовать контакт с другими и расти через сильное окружение. Можно прийти без опыта, если есть интерес к живому общению и внутреннему развитию.",
+    question: "Можно прийти одному?",
+    answer: "Да. Большинство людей именно так и знакомится с РРК.",
   },
   {
-    question: "Что именно дают занятия кроме навыка речи?",
+    question: "Я никого не знаю. Мне будет комфортно?",
     answer:
-      "РРК дает не только более ясную речь, но и уверенность в общении, ощущение опоры в группе, развитие социального влияния и более качественный круг людей рядом.",
+      "Да. Форматы специально устроены так, чтобы люди постепенно знакомились друг с другом.",
   },
   {
-    question: "Нужна ли специальная подготовка перед первой встречей?",
-    answer:
-      "Нет. Достаточно желания прийти в живую среду и быть внутри процесса. Формат устроен так, чтобы человек мог включиться мягко и естественно.",
+    question: "Что выбрать в первый раз?",
+    answer: [
+      "Хочешь познакомиться и провести время — Coffee Jam или неформальная встреча.",
+      "Хочешь больше практики и развития — тренинг.",
+    ],
   },
   {
-    question: "Как устроена запись на разовое посещение?",
-    answer:
-      "Сейчас базовый формат входа в РРК - разовое посещение за 4 400 ₽. На следующем этапе здесь будет форма записи, оплата и автоматическая связка с CRM и Telegram.",
+    question: "Нужен опыт?",
+    answer: "Нет. Прийти можно без подготовки — достаточно желания включиться.",
+  },
+  {
+    question: "Какой возраст участников?",
+    answer: "От 18 лет. Чаще всего участникам от 20 до 40.",
+  },
+  {
+    question: "Где проходят встречи?",
+    answer: "Москва. Конкретный адрес указан в карточке каждого события.",
   },
   {
     question: "Можно ли прийти, если есть зажатость или страх общения?",
     answer:
-      "Да. Для многих это и есть причина прийти в клуб. Здесь важно не изображать уверенность, а постепенно наращивать ее через практику, внимание и живой контакт.",
-  },
-  {
-    question: "Когда появятся другие форматы и мерч?",
-    answer:
-      "Позже на сайте появятся полноценные карточки программ, дропы мерча, размеры, наличие и покупка. Сейчас мы закладываем структуру и визуальную подачу этих направлений.",
+      "Да. Для многих это и есть причина прийти. Здесь важно не изображать уверенность, а постепенно наращивать её через практику и живой контакт.",
   },
 ];
 
 export default async function HomePage() {
-  const livePosterEvents = await getSitePosterEvents();
+  const [livePosterEvents, heroSlides, galleryPhotos] = await Promise.all([
+    getSitePosterEvents(),
+    getSiteHeroSlides(),
+    getSiteGalleryPhotos(),
+  ]);
   const activeLiveEvents = livePosterEvents.filter((event) => event.status !== "Отменено");
-  const calendarEvents = activeLiveEvents.length > 0 ? activeLiveEvents : posterEvents;
+  const nearestEvent = getNearestSiteEvent(activeLiveEvents);
 
   return (
     <main className="site-page">
-      <VideoHero />
+      <VideoHero nearestEvent={nearestEvent} slides={heroSlides} />
 
       <section className="site-runner" aria-label="Бегущая строка">
         <div className="site-runner-track">
@@ -293,40 +102,23 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section id="schedule" className="site-section poster-section">
+        <div className="section-heading">
+          <span>Афиша РРК</span>
+          <h2>Мероприятия РРК</h2>
+        </div>
+        <PosterCalendar events={activeLiveEvents} />
+      </section>
+
       <section id="about" className="site-section site-section-light about-section">
         <div className="section-heading">
           <span>О клубе</span>
           <h2>
-            РУССКИЙ РАЗГОВОРНЫЙ КЛУБ
-            <br />
-            БЕЗОПАСНОЕ ПРОСТРАНСТВО ДЛЯ ТРЕНИРОВКИ НАВЫКОВ ПРОЯВЛЕНИЯ СЕБЯ В МИР
+            Философия РРК
           </h2>
         </div>
-        <div className="about-layout">
-          <RevealOnView className="feature-grid">
-            <article className="feature-card">
-              <span>01.</span>
-              <h3>Безопасно ошибаться</h3>
-              <p>У нас кринжа не существует. Поэтому здесь легко начать.</p>
-            </article>
-            <article className="feature-card accent">
-              <span>02.</span>
-              <h3>Учимся через практику</h3>
-              <p>
-                Никакой теории - только живые упражнения и постоянное взаимодействие с
-                людьми.
-              </p>
-            </article>
-            <article className="feature-card">
-              <span>03.</span>
-              <h3>Переносим в реальную жизнь</h3>
-              <p>
-                Знакомства, свидания, работа, переговоры, выступления, дружба - все
-                становится проще, когда ты перестаешь бояться проявляться.
-              </p>
-            </article>
-          </RevealOnView>
-          <aside className="about-manifesto">
+        <RevealOnView className="about-layout">
+          <div className="about-manifesto">
             <span>Философия РРК</span>
             <h3>Эти три правила работают в жизни, в Русском Разговорном и на планете Земля.</h3>
             <div className="about-manifesto-rules">
@@ -358,41 +150,16 @@ export default async function HomePage() {
                 </p>
               </div>
             </div>
-          </aside>
-        </div>
+          </div>
+        </RevealOnView>
       </section>
 
-      <section id="formats" className="site-section programs-section">
+      <section id="gallery" className="site-section gallery-section">
         <div className="section-heading">
-          <span>Формат участия</span>
+          <span>Атмосфера</span>
+          <h2>Как проходят встречи РРК</h2>
         </div>
-        <div className="programs-grid">
-          {programs.map((program) => (
-            <article key={program.title} className="program-card">
-              <div className="program-meta">
-                <span>{program.type}</span>
-                <span>{program.city}</span>
-              </div>
-              <p className="program-date">{program.date}</p>
-              <h3>{program.title}</h3>
-              <p>{program.description}</p>
-              <a href="#schedule" className="program-status" style={{textDecoration: 'none'}}>{program.status}</a>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="schedule" className="site-section poster-section">
-        <div className="section-heading">
-          <span>Афиша РРК</span>
-          <h2>Ближайшие тренировки, коллаборации и большие встречи клуба</h2>
-        </div>
-        <PosterCalendar events={calendarEvents} />
-        <div className="poster-footer">
-          <BookingButton events={calendarEvents} className="site-button primary">
-            Записаться
-          </BookingButton>
-        </div>
+        <GalleryScroller photos={galleryPhotos} />
       </section>
 
       <section id="founders" className="site-section founders-section">
@@ -425,26 +192,6 @@ export default async function HomePage() {
         </RevealOnView>
       </section>
 
-      <section id="gallery" className="site-section gallery-section">
-        <div className="section-heading">
-          <span>Атмосфера</span>
-          <h2>Как проходят встречи РРК</h2>
-        </div>
-        <RevealOnView className="gallery-scroll-container">
-          <div className="gallery-scroll-track">
-            <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0001.jpg)' }} />
-            <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0002.jpg)' }} />
-            <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0003.jpg)' }} />
-            <div className="gallery-photo" style={{ backgroundImage: 'url(/RRK-0005.jpg)' }} />
-            <div className="gallery-photo" style={{ backgroundImage: 'url(/IMG_0030.JPG)' }} />
-            <div className="gallery-photo" style={{ backgroundImage: 'url(/IMG_0032.JPG)' }} />
-            <div className="gallery-photo" style={{ backgroundImage: 'url(/IMG_0034.JPG)' }} />
-            <div className="gallery-photo" style={{ backgroundImage: 'url(/IMG_0309.JPG)' }} />
-            <div className="gallery-photo" style={{ backgroundImage: 'url(/IMG_0310.JPG)' }} />
-          </div>
-        </RevealOnView>
-      </section>
-
       <section id="faq" className="site-section faq-section">
         <div className="section-heading">
           <span>Частые вопросы</span>
@@ -460,7 +207,11 @@ export default async function HomePage() {
                 </span>
               </summary>
               <div className="faq-answer">
-                <p>{faq.answer}</p>
+                {Array.isArray(faq.answer) ? (
+                  faq.answer.map((paragraph) => <p key={paragraph}>{paragraph}</p>)
+                ) : (
+                  <p>{faq.answer}</p>
+                )}
               </div>
             </details>
           ))}

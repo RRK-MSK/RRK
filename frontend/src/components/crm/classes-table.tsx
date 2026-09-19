@@ -67,6 +67,7 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
     "id",
     "subtitleRaw",
     "descriptionRaw",
+    "format",
     "categoryRaw",
     "cityRaw",
     "hostRaw",
@@ -87,7 +88,7 @@ export function ClassesTable({ initialRows }: { initialRows: TableRow[] }) {
     >
       <FilterRow
         filters={["Все", "Открыто", "Почти заполнено", "SOLD OUT", "Архив"]}
-        searchPlaceholder="Поиск по названию, ведущему, формату или дате"
+        searchPlaceholder="Поиск по названию, ведущему или дате"
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
         searchQuery={searchQuery}

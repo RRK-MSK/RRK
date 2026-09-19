@@ -1541,3 +1541,239 @@ export async function getAvailableEventsForTransfer() {
   if (error) return { error: error.message, data: [] };
   return { error: null, data: (data ?? []) as Array<{ id: string; title: string; starts_at: string; status: string | null }> };
 }
+
+const IMAGE_MAX_BYTES = 20 * 1024 * 1024;
+const VIDEO_MAX_BYTES = 40 * 1024 * 1024;
+const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+
+function revalidateSiteContent() {
+  revalidatePath("/crm/content");
+  revalidatePath("/");
+}
+
+function randomId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+async function compressSiteImage(buffer: Buffer) {
+  const sharp = (await import("sharp")).default;
+  return sharp(buffer)
+    .rotate()
+    .resize({
+      width: 1600,
+      height: 1600,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .webp({ quality: 70 })
+    .toBuffer();
+}
+
+async function uploadSiteContentFile(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
+  section: "hero" | "gallery",
+  file: File,
+  kind: "image" | "video" | "poster",
+) {
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const mime = file.type;
+  const isImage = IMAGE_MIME_TYPES.has(mime) || mime.startsWith("image/");
+  const isVideo = VIDEO_MIME_TYPES.has(mime);
+
+  if (kind === "video") {
+    if (!isVideo) {
+      throw new Error("Для шапки можно загрузить mp4 или webm");
+    }
+    if (bytes.length > VIDEO_MAX_BYTES) {
+      throw new Error("Видео больше 40 МБ");
+    }
+
+    const extension = mime.includes("webm") ? "webm" : mime.includes("quicktime") ? "mov" : "mp4";
+    const path = `${section}/${randomId()}.${extension}`;
+    const { error } = await supabase.storage.from("site-content").upload(path, bytes, {
+      contentType: mime || "video/mp4",
+      cacheControl: "31536000",
+      upsert: false,
+    });
+    if (error) {
+      throw new Error("Не удалось загрузить видео: " + error.message);
+    }
+    return { path, mediaType: "video" as const };
+  }
+
+  if (!isImage) {
+    throw new Error("Нужен файл изображения");
+  }
+  if (bytes.length > IMAGE_MAX_BYTES) {
+    throw new Error("Изображение больше 20 МБ");
+  }
+
+  const compressed = await compressSiteImage(bytes);
+  const path = `${section}/${randomId()}.webp`;
+  const { error } = await supabase.storage.from("site-content").upload(path, compressed, {
+    contentType: "image/webp",
+    cacheControl: "31536000",
+    upsert: false,
+  });
+  if (error) {
+    throw new Error("Не удалось загрузить фото: " + error.message);
+  }
+  return { path, mediaType: "image" as const };
+}
+
+export async function uploadSiteMedia(formData: FormData) {
+  await requireCrmUser();
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error("Supabase is not configured");
+  }
+
+  const section = String(formData.get("section") ?? "") as "hero" | "gallery";
+  if (section !== "hero" && section !== "gallery") {
+    throw new Error("Неизвестная секция");
+  }
+
+  const files = formData.getAll("files").filter((value): value is File => value instanceof File && value.size > 0);
+  const posterFile = formData.get("poster");
+  const poster = posterFile instanceof File && posterFile.size > 0 ? posterFile : null;
+
+  if (files.length === 0) {
+    throw new Error("Выберите файлы");
+  }
+
+  const { ensureSiteContentBucket } = await import("@/lib/site-media");
+  await ensureSiteContentBucket();
+
+  const { data: existing } = await supabase
+    .from("site_media")
+    .select("sort_order")
+    .eq("section", section)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+
+  let nextOrder = ((existing?.[0] as { sort_order?: number } | undefined)?.sort_order ?? -1) + 1;
+
+  for (const file of files) {
+    const isVideo = file.type.startsWith("video/");
+    if (isVideo && section !== "hero") {
+      throw new Error("В галерею можно добавлять только фото");
+    }
+
+    const uploaded = await uploadSiteContentFile(
+      supabase,
+      section,
+      file,
+      isVideo ? "video" : "image",
+    );
+
+    let posterPath: string | null = null;
+    if (uploaded.mediaType === "video" && poster) {
+      const posterUpload = await uploadSiteContentFile(supabase, section, poster, "poster");
+      posterPath = posterUpload.path;
+    }
+
+    const { error } = await supabase.from("site_media").insert({
+      section,
+      media_type: uploaded.mediaType,
+      storage_path: uploaded.path,
+      poster_path: posterPath,
+      sort_order: nextOrder,
+    });
+
+    if (error) {
+      throw new Error("Не удалось сохранить файл в базу: " + error.message);
+    }
+
+    nextOrder += 1;
+  }
+
+  revalidateSiteContent();
+  return { success: true };
+}
+
+export async function deleteSiteMedia(id: string) {
+  await requireCrmUser();
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error("Supabase is not configured");
+  }
+
+  const { data, error } = await supabase
+    .from("site_media")
+    .select("id, storage_path, poster_path")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error("Файл не найден");
+  }
+
+  const paths = [data.storage_path, data.poster_path].filter((value): value is string => Boolean(value));
+  if (paths.length > 0) {
+    await supabase.storage.from("site-content").remove(paths);
+  }
+
+  const { error: deleteError } = await supabase.from("site_media").delete().eq("id", id);
+  if (deleteError) {
+    throw new Error("Не удалось удалить файл: " + deleteError.message);
+  }
+
+  revalidateSiteContent();
+  return { success: true };
+}
+
+export async function reorderSiteMedia(id: string, direction: "up" | "down") {
+  await requireCrmUser();
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) {
+    throw new Error("Supabase is not configured");
+  }
+
+  const { data: current, error } = await supabase
+    .from("site_media")
+    .select("id, section, sort_order")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !current) {
+    throw new Error("Файл не найден");
+  }
+
+  const { data: siblings, error: siblingsError } = await supabase
+    .from("site_media")
+    .select("id, sort_order")
+    .eq("section", current.section)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (siblingsError || !siblings?.length) {
+    throw new Error("Не удалось изменить порядок");
+  }
+
+  const index = siblings.findIndex((row) => row.id === id);
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+  if (index < 0 || targetIndex < 0 || targetIndex >= siblings.length) {
+    return { success: true };
+  }
+
+  const target = siblings[targetIndex];
+  const currentOrder = current.sort_order;
+  const targetOrder = target.sort_order;
+
+  const { error: firstError } = await supabase
+    .from("site_media")
+    .update({ sort_order: targetOrder })
+    .eq("id", current.id);
+  const { error: secondError } = await supabase
+    .from("site_media")
+    .update({ sort_order: currentOrder })
+    .eq("id", target.id);
+
+  if (firstError || secondError) {
+    throw new Error("Не удалось изменить порядок");
+  }
+
+  revalidateSiteContent();
+  return { success: true };
+}
