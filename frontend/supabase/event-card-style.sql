@@ -22,8 +22,3 @@ begin
     check (card_animation in ('none', 'bubbles', 'beer'));
 end;
 $$;
-
-update public.events
-set card_color = 'rainbow'
-where title ilike '%halloween%'
-  and title ilike '%больш%';

@@ -672,7 +672,13 @@ export async function saveEvent(payload: EventPayload) {
       .update(writePayload)
       .eq("id", payload.id);
 
-    if (error?.message && /card_color|card_animation/.test(error.message)) {
+    if (error?.message?.includes("events_card_animation_check")) {
+      throw new Error(
+        "В Supabase ещё старое ограничение анимации. Выполните frontend/supabase/event-card-style.sql в SQL Editor и сохраните занятие снова.",
+      );
+    }
+
+    if (error?.message && /Could not find the 'card_|column.*card_/.test(error.message)) {
       const { card_color: _cardColor, card_animation: _cardAnimation, ...payloadWithoutStyle } = writePayload;
       writePayload = payloadWithoutStyle;
       ({ error } = await supabase
@@ -700,7 +706,13 @@ export async function saveEvent(payload: EventPayload) {
       .select("id")
       .single();
 
-    if (error?.message && /card_color|card_animation/.test(error.message)) {
+    if (error?.message?.includes("events_card_animation_check")) {
+      throw new Error(
+        "В Supabase ещё старое ограничение анимации. Выполните frontend/supabase/event-card-style.sql в SQL Editor и сохраните занятие снова.",
+      );
+    }
+
+    if (error?.message && /Could not find the 'card_|column.*card_/.test(error.message)) {
       const { card_color: _cardColor, card_animation: _cardAnimation, ...payloadWithoutStyle } = writePayload;
       writePayload = payloadWithoutStyle;
       ({ data, error } = await supabase
