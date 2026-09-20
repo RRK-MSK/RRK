@@ -110,7 +110,7 @@ export async function getSitePosterEvents() {
     return [] as SitePosterEvent[];
   }
 
-  let { data, error } = await supabase
+  const firstResult = await supabase
     .from("events")
     .select(
       "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status, booking_mode, card_color, card_animation",
@@ -118,14 +118,20 @@ export async function getSitePosterEvents() {
     .eq("is_published", true)
     .order("starts_at", { ascending: true });
 
+  let data = (firstResult.data ?? []) as EventRow[];
+  let error = firstResult.error;
+
   if (error?.message && /card_color|card_animation/.test(error.message)) {
-    ({ data, error } = await supabase
+    const fallback = await supabase
       .from("events")
       .select(
         "id, title, subtitle, description, category, city, host, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, is_published, status, booking_mode",
       )
       .eq("is_published", true)
-      .order("starts_at", { ascending: true }));
+      .order("starts_at", { ascending: true });
+
+    data = (fallback.data ?? []) as EventRow[];
+    error = fallback.error;
   }
 
   if (error) {
@@ -138,7 +144,7 @@ export async function getSitePosterEvents() {
     .select("event_id, seat_from, seat_to, price_rub")
     .order("seat_from", { ascending: true });
 
-  const eventIds = ((data ?? []) as EventRow[]).map((event) => event.id);
+  const eventIds = data.map((event) => event.id);
   const { data: enrollments } = eventIds.length > 0
     ? await supabase
         .from("enrollments")
@@ -172,7 +178,7 @@ export async function getSitePosterEvents() {
     tariffUsageByEventId.set(enrollment.event_id, eventUsage);
   }
 
-  return mapEventRowsToPosterEvents((data ?? []) as EventRow[], tiersByEventId, tariffUsageByEventId);
+  return mapEventRowsToPosterEvents(data, tiersByEventId, tariffUsageByEventId);
 }
 
 function mapEventRowsToPosterEvents(
