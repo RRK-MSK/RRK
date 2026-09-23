@@ -25,10 +25,14 @@ import {
 } from "@/lib/event-card-style";
 
 type PricingTierFormRow = {
-  seatFrom: number;
-  seatTo: number | null;
-  priceRub: number;
+  seatFrom: number | "";
+  seatTo: number | null | "";
+  priceRub: number | "";
 };
+
+function parseOptionalNumber(value: string) {
+  return value === "" ? "" : Number(value);
+}
 
 export type EventFormInitialData = {
   id?: string;
@@ -165,7 +169,7 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
       ...current,
       pricingTiers: [
         ...(current.pricingTiers ?? []),
-        { seatFrom: nextSeatFrom, seatTo: null, priceRub: basePrice },
+        { seatFrom: nextSeatFrom, seatTo: null, priceRub: basePrice > 0 ? basePrice : "" },
       ],
     }));
   };
@@ -421,12 +425,18 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                         style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: "8px", alignItems: "end" }}
                       >
                         <Field label="Места с">
-                          <input type="number" min={1} value={row.seatFrom} onChange={(e) => updatePricingRow(index, { seatFrom: Number(e.target.value) })} style={fieldStyle} />
+                          <input
+                            type="number"
+                            min={1}
+                            value={row.seatFrom}
+                            onChange={(e) => updatePricingRow(index, { seatFrom: parseOptionalNumber(e.target.value) })}
+                            style={fieldStyle}
+                          />
                         </Field>
                         <Field label="по">
                           <input
                             type="number"
-                            min={row.seatFrom}
+                            min={typeof row.seatFrom === "number" ? row.seatFrom : 1}
                             value={row.seatTo ?? ""}
                             onChange={(e) => updatePricingRow(index, { seatTo: e.target.value ? Number(e.target.value) : null })}
                             placeholder="без лимита"
@@ -434,7 +444,14 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                           />
                         </Field>
                         <Field label="Цена, Р">
-                          <input type="number" min={0} value={row.priceRub} onChange={(e) => updatePricingRow(index, { priceRub: Number(e.target.value) })} style={fieldStyle} />
+                          <input
+                            type="number"
+                            min={0}
+                            value={row.priceRub}
+                            onChange={(e) => updatePricingRow(index, { priceRub: parseOptionalNumber(e.target.value) })}
+                            placeholder="770"
+                            style={fieldStyle}
+                          />
                         </Field>
                         <button type="button" className="ghost-button" onClick={() => removePricingRow(index)}>
                           Удалить
