@@ -34,6 +34,10 @@ function parseOptionalNumber(value: string) {
   return value === "" ? "" : Number(value);
 }
 
+function toSeatNumber(value: number | "" | null | undefined, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
 export type EventFormInitialData = {
   id?: string;
   title?: string;
@@ -160,8 +164,9 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
   };
 
   const addPricingRow = () => {
-    const nextSeatFrom = pricingRows.length > 0
-      ? ((pricingRows[pricingRows.length - 1].seatTo ?? pricingRows[pricingRows.length - 1].seatFrom) + 1)
+    const lastRow = pricingRows[pricingRows.length - 1];
+    const nextSeatFrom = lastRow
+      ? toSeatNumber(lastRow.seatTo, toSeatNumber(lastRow.seatFrom, 0)) + 1
       : 1;
     const basePrice = parseEventPaymentInput(formData.paymentInput ?? "").priceRub;
 
