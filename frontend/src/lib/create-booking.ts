@@ -641,15 +641,16 @@ export async function createBookingRequest(data: Record<string, unknown>, reques
   const url = new URL(request.url);
   const baseUrl = `${url.protocol}//${url.host}`;
   const receiptItems = preparedParticipants.map((participant, index) => {
-    const itemAmountKopecks = itemKopecks[index] ?? 0;
+    const itemAmountKopecks = Math.round(itemKopecks[index] ?? 0);
     return {
       Name: `Участие в РРК: ${resolvedEventTitle || "Событие"}${participant.ticketLabel ? ` (${participant.ticketLabel})` : ""} — ${participant.firstName} ${participant.lastName}`.slice(0, 128),
       Price: itemAmountKopecks,
-      Quantity: 1.0,
+      Quantity: 1,
       Amount: itemAmountKopecks,
       PaymentMethod: "full_prepayment",
       PaymentObject: "service",
       Tax: "none",
+      MeasurementUnit: "шт",
     };
   });
   const receiptSumKopecks = receiptItems.reduce((sum, item) => sum + item.Amount, 0);
@@ -662,6 +663,7 @@ export async function createBookingRequest(data: Record<string, unknown>, reques
     amountKopecks,
     receiptSumKopecks,
     discountAmountRub,
+    itemAmounts: receiptItems.map((item) => item.Amount),
   });
 
   if (receiptSumKopecks !== amountKopecks) {
@@ -700,6 +702,13 @@ export async function createBookingRequest(data: Record<string, unknown>, reques
       Phone: payer.phone || "",
       Taxation: "usn_income",
       Items: receiptItems,
+      Payments: {
+        Electronic: receiptSumKopecks,
+        Cash: 0,
+        AdvancePayment: 0,
+        Credit: 0,
+        Provision: 0,
+      },
     },
   });
 
