@@ -1072,8 +1072,12 @@ export async function addRecord(formData: FormData) {
       })
       .select("id")
       .single();
-    if (pError) throw new Error("Failed to add participant");
+    if (pError || !newParticipant?.id) throw new Error("Failed to add participant");
     participantId = newParticipant.id;
+  }
+
+  if (!participantId) {
+    throw new Error("Failed to resolve participant");
   }
 
   // 2. Получим данные о событии

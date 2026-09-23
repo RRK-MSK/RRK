@@ -61,7 +61,8 @@ export async function findExistingParticipantId(
     const filter = buildOrFilter("telegram", getTelegramLookupValues(telegram));
     if (filter) {
       const { data } = await supabase.from("participants").select("id, full_name, telegram").or(filter).limit(10);
-      const match = (data ?? []).find((row) => !excludeIds.has(row.id));
+      const rows = (data ?? []) as ParticipantLookupRow[];
+      const match = rows.find((row) => !excludeIds.has(row.id));
       if (match) {
         return match.id;
       }
@@ -72,7 +73,8 @@ export async function findExistingParticipantId(
     const filter = buildOrFilter("phone", getPhoneLookupValues(phone));
     if (filter) {
       const { data } = await supabase.from("participants").select("id, full_name, phone").or(filter).limit(20);
-      const match = (data ?? []).find((row) => {
+      const rows = (data ?? []) as ParticipantLookupRow[];
+      const match = rows.find((row) => {
         if (normalizePersonName(row.full_name) !== fullName) {
           return false;
         }
