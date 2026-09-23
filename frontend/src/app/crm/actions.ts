@@ -17,6 +17,7 @@ import {
   formatEnrollmentTariffLabel,
   type EventTariffOption,
 } from "@/lib/event-tariffs";
+import { findExistingParticipantId } from "@/lib/participant-identity";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
 type EventTierInput = {
@@ -417,18 +418,18 @@ async function getDynamicEventPrice(eventId: string) {
     return 2200;
   }
 
-  if (!isCoffeeJamEvent(event)) {
-    return event.price_rub ?? 0;
-  }
-
   const { data: tiers } = await supabase
     .from("event_price_tiers")
     .select("seat_from, seat_to, price_rub")
     .eq("event_id", eventId)
     .order("seat_from", { ascending: true });
 
+  const basePrice = isCoffeeJamEvent(event)
+    ? Math.max(event.price_rub ?? 0, 770)
+    : (event.price_rub ?? 0);
+
   return resolveCoffeeJamPrice(
-    Math.max(event.price_rub ?? 0, 770),
+    basePrice,
     event.booked_count,
     (tiers ?? []) as EventPriceTier[],
   );
@@ -1048,37 +1049,12 @@ export async function addRecord(formData: FormData) {
   if (!fullName) throw new Error("Name is required");
   if (!eventId) throw new Error("Event is required");
 
-  // 1. Убедимся что участник есть
-  let participantId = null;
-  const orConditions = [];
-  if (phone) orConditions.push(`phone.eq.${phone}`);
-  if (telegram) orConditions.push(`telegram.eq.${telegram}`);
-  if (email) orConditions.push(`email.eq.${email}`);
-
-  if (orConditions.length > 0) {
-    const { data: existingParticipants } = await supabase
-      .from("participants")
-      .select("id")
-      .or(orConditions.join(','))
-      .limit(1);
-    
-    if (existingParticipants && existingParticipants.length > 0) {
-      participantId = existingParticipants[0].id;
-    }
-  }
-
-  // Fallback to name if no contact info was provided or matched, to prevent duplicates
-  if (!participantId) {
-    const { data: existingByName } = await supabase
-      .from("participants")
-      .select("id")
-      .ilike("full_name", fullName)
-      .limit(1);
-      
-    if (existingByName && existingByName.length > 0) {
-      participantId = existingByName[0].id;
-    }
-  }
+  let participantId = await findExistingParticipantId(supabase, {
+    fullName,
+    phone,
+    telegram,
+    email,
+  });
 
   const slug = telegram ? telegram.replace('@', '').toLowerCase() : `user-${Date.now()}`;
 

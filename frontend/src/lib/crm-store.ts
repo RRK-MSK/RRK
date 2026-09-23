@@ -23,6 +23,7 @@ import {
   upcomingClasses,
 } from "@/lib/crm-data";
 import type { ClassCard, Metric, ParticipantRow, TableRow } from "@/lib/crm-data";
+import { parseCompanionsMarker, parseEnrollmentsMarker } from "@/lib/booking-notes";
 import { formatPriceTierSummary, resolveCoffeeJamPrice, type EventPriceTier } from "@/lib/event-pricing";
 import { isCoffeeJamCategory } from "@/lib/event-categories";
 import { formatEventCapacityLabel, isUnlimitedCapacity } from "@/lib/event-capacity";
@@ -648,11 +649,24 @@ export async function getPaymentsPageData(): Promise<TablePageData> {
       const key = `${row.participant?.full_name}-${row.event?.title}`;
       const source = sourceMap.get(key) || "Сайт";
       const purpose = row.event?.title ?? row.note ?? "Депозит / перенос";
+      const linkedEnrollmentIds = parseEnrollmentsMarker(row.note);
+      const linkedNames = (enrollments ?? [])
+        .filter((enrollment) => linkedEnrollmentIds.includes(enrollment.id))
+        .map((enrollment) => enrollment.participant?.full_name?.trim())
+        .filter((name): name is string => Boolean(name));
+      const companionNames = parseCompanionsMarker(row.note);
+      const uniqueNames = [...new Set([
+        ...(linkedNames.length > 0 ? linkedNames : [row.participant?.full_name ?? ""].filter(Boolean)),
+        ...companionNames.map((value) => value.replace(/@[\w_]+$/i, "").trim()).filter(Boolean),
+      ])];
+      const participantLabel = uniqueNames.length > 1
+        ? uniqueNames.join(" + ")
+        : (row.participant?.full_name ?? "-");
       
       return {
         id: row.id,
         date: formatShortDate(row.paid_at),
-        participant: row.participant?.full_name ?? "-",
+        participant: participantLabel,
         purpose,
         method: row.method ?? "Не указан",
         amount: formatMoney(row.amount_rub),
@@ -779,7 +793,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
     rows: rows.map((row) => {
       const eventTiers = tiersByEventId.get(row.id) ?? [];
       const basePrice = getEventBasePrice(row);
-      const currentPrice = isCoffeeJamCategory(row.category, row.title)
+      const currentPrice = eventTiers.length > 0
         ? resolveCoffeeJamPrice(basePrice, row.booked_count, eventTiers as EventPriceTier[])
         : basePrice;
       const paymentDisplay = formatEventPaymentForForm(row.price_rub, row.price_label);

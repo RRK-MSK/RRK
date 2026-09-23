@@ -329,7 +329,7 @@ export function EventRegistrationForm({
       const normalizedParticipants = [];
 
       for (const [index, participant] of participants.entries()) {
-        const validation = validateParticipantFields(participant);
+        const validation = validateParticipantFields(participant, { emailRequired: index === 0 });
         if (!validation.ok) {
           setFormError(`Участник ${index + 1}: ${validation.error}`);
           return;
@@ -374,7 +374,14 @@ export function EventRegistrationForm({
       });
 
       if (result.paymentUrl && result.paymentUrl !== "https://t.me/rrclubadmin") {
-        window.location.href = result.paymentUrl;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const telegramWebApp = (window as any).Telegram?.WebApp;
+        if (isTelegramApp && telegramWebApp?.openLink) {
+          telegramWebApp.openLink(result.paymentUrl);
+          return;
+        }
+
+        window.location.assign(result.paymentUrl);
         return;
       }
 
@@ -529,12 +536,14 @@ export function EventRegistrationForm({
           </div>
 
           <div className="booking-field">
-            <label htmlFor={index === 0 ? "booking-email" : undefined}>Email для чека</label>
+            <label htmlFor={index === 0 ? "booking-email" : undefined}>
+              {index === 0 ? "Email для чека" : "Email"}
+            </label>
             <input
               id={index === 0 ? "booking-email" : undefined}
               type="email"
               name={index === 0 ? "email" : undefined}
-              required
+              required={index === 0}
               value={participant.email}
               maxLength={bookingFieldLimits.emailMax}
               autoComplete={index === 0 ? "email" : "off"}

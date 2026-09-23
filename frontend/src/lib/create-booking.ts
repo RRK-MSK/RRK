@@ -5,7 +5,8 @@ import {
   validateAndNormalizeBooking,
   validateParticipantFields,
 } from "@/lib/booking-validation";
-import { buildEnrollmentsMarker, buildPaymentNote } from "@/lib/booking-notes";
+import { buildCompanionsMarker, buildEnrollmentsMarker, buildPaymentNote } from "@/lib/booking-notes";
+import { findExistingParticipantId } from "@/lib/participant-identity";
 import { isCoffeeJamCategory } from "@/lib/event-categories";
 import { hasTextOnlyEventPrice } from "@/lib/event-payment";
 import { resolveCoffeeJamPrice, type EventPriceTier } from "@/lib/event-pricing";
@@ -55,6 +56,32 @@ function isFallingChairsBooking(value: string | null | undefined) {
   return (value ?? "").toLowerCase().includes("падающими стульями");
 }
 
+function toKopecks(amountRub: number) {
+  return Math.round(Number(amountRub) * 100);
+}
+
+function allocateReceiptItemKopecks(itemPricesRub: number[], payableRub: number) {
+  const rawItemKopecks = itemPricesRub.map((price) => toKopecks(Math.max(0, price)));
+  const rawTotalKopecks = rawItemKopecks.reduce((sum, value) => sum + value, 0);
+  const amountKopecks = toKopecks(Math.max(0, payableRub));
+
+  if (rawItemKopecks.length === 0 || rawTotalKopecks <= 0 || amountKopecks === rawTotalKopecks) {
+    return { itemKopecks: rawItemKopecks, amountKopecks };
+  }
+
+  const itemKopecks = rawItemKopecks.map((itemKopecksValue, index) => {
+    if (index === rawItemKopecks.length - 1) {
+      return 0;
+    }
+
+    return Math.max(0, Math.round((itemKopecksValue / rawTotalKopecks) * amountKopecks));
+  });
+  const allocatedKopecks = itemKopecks.slice(0, -1).reduce((sum, value) => sum + value, 0);
+  itemKopecks[itemKopecks.length - 1] = Math.max(0, amountKopecks - allocatedKopecks);
+
+  return { itemKopecks, amountKopecks };
+}
+
 function parseEventReference(eventId: string) {
   if (eventId.includes("::")) {
     const [dbEventId, eventTitle] = eventId.split("::");
@@ -81,7 +108,7 @@ function parseParticipantsPayload(data: Record<string, unknown>, eventId: string
         phone: String(participant.phone ?? ""),
         telegram: String(participant.telegram ?? ""),
         email: String(participant.email ?? ""),
-      });
+      }, { emailRequired: index === 0 });
 
       if (!validation.ok) {
         return { ok: false as const, error: `Участник ${index + 1}: ${validation.error}` };
@@ -202,7 +229,7 @@ async function resolveEventPricing(
       .eq("event_id", resolvedEventId)
       .order("seat_from", { ascending: true });
 
-    if (isCoffeeJamBooking(eventTitle ?? eventId, eventCategory)) {
+    if ((priceTiers ?? []).length > 0) {
       priceRub = resolveCoffeeJamPrice(priceRub, bookedCount, (priceTiers ?? []) as EventPriceTier[]);
     }
   }
@@ -245,50 +272,58 @@ async function ensureParticipant(
   supabase: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
   participant: BookingParticipantInput,
   source: string,
+  usedParticipantIds: string[] = [],
 ) {
   const actualSource = source === "Telegram Mini App" ? "Telegram Mini App" : "Сайт (Оплата Т-Банк)";
-  const participantLookupFilter = buildParticipantLookupOrFilter(
-    participant.phone,
-    participant.telegram,
-    participant.email,
+  const fullName = `${participant.firstName} ${participant.lastName}`.trim();
+  const existingId = await findExistingParticipantId(
+    supabase,
+    {
+      fullName,
+      phone: participant.phone,
+      telegram: participant.telegram,
+      email: participant.email,
+    },
+    { excludeIds: usedParticipantIds },
   );
 
-  if (participantLookupFilter) {
-    const { data: existingParticipants } = await supabase
-      .from("participants")
-      .select("id")
-      .or(participantLookupFilter)
-      .limit(1);
+  if (existingId) {
+    return existingId;
+  }
 
-    if (existingParticipants?.[0]?.id) {
-      return existingParticipants[0].id as string;
+  const telegramSlug = participant.telegram?.replace("@", "").toLowerCase() || "";
+  const slugs = [
+    telegramSlug || `user-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    `${telegramSlug || "user"}-${Date.now().toString().slice(-6)}`,
+  ];
+
+  for (const slug of slugs) {
+    const { data: newParticipant, error } = await supabase
+      .from("participants")
+      .insert({
+        slug,
+        full_name: fullName,
+        phone: participant.phone || null,
+        telegram: participant.telegram || null,
+        email: participant.email || null,
+        status: "Новый",
+        source: actualSource,
+      })
+      .select("id")
+      .single();
+
+    if (!error && newParticipant?.id) {
+      return newParticipant.id as string;
+    }
+
+    if (error && error.code !== "23505") {
+      console.error("Participant insert error:", error);
+      return null;
     }
   }
 
-  const slug = participant.telegram
-    ? participant.telegram.replace("@", "").toLowerCase()
-    : `user-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-  const { data: newParticipant, error } = await supabase
-    .from("participants")
-    .insert({
-      slug,
-      full_name: `${participant.firstName} ${participant.lastName}`.trim(),
-      phone: participant.phone || null,
-      telegram: participant.telegram || null,
-      email: participant.email || null,
-      status: "Новый",
-      source: actualSource,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    console.error("Participant insert error:", error);
-    return null;
-  }
-
-  return newParticipant?.id ?? null;
+  console.error("Participant insert error: slug already exists");
+  return null;
 }
 
 async function ensureEnrollment(
@@ -413,12 +448,15 @@ export async function createBookingRequest(data: Record<string, unknown>, reques
   }
 
   const preparedParticipants: PreparedParticipant[] = [];
+  const usedParticipantIds: string[] = [];
 
   for (const [index, participant] of participants.entries()) {
-    const participantId = await ensureParticipant(supabase, participant, source);
+    const participantId = await ensureParticipant(supabase, participant, source, usedParticipantIds);
     if (!participantId || !dbEventId) {
       return NextResponseLike(false, "Не удалось подготовить запись к оплате. Попробуйте еще раз.", 500);
     }
+
+    usedParticipantIds.push(participantId);
 
     const ticketNote = participant.ticketLabel ? `Тариф: ${participant.ticketLabel}` : null;
     const enrollmentId = await ensureEnrollment(supabase, participantId, dbEventId, ticketNote, source);
@@ -522,7 +560,14 @@ export async function createBookingRequest(data: Record<string, unknown>, reques
         external_payment_id: freePaymentId,
         promo_code_id: promoCodeId,
         discount_amount_rub: discountAmountRub,
-        note: buildPaymentNote([buildEnrollmentsMarker(enrollmentIds), `[order:${freePaymentId}]`]),
+        note: buildPaymentNote([
+          buildEnrollmentsMarker(enrollmentIds),
+          buildCompanionsMarker(preparedParticipants.map((item) => ({
+            fullName: `${item.firstName} ${item.lastName}`.trim(),
+            telegram: item.telegram,
+          }))),
+          `[order:${freePaymentId}]`,
+        ]),
       });
 
       if (promoCodeId) {
@@ -592,33 +637,46 @@ export async function createBookingRequest(data: Record<string, unknown>, reques
   }
 
   const orderId = `RRK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  const amountKopecks = priceRub * 100;
+  const { itemKopecks, amountKopecks } = allocateReceiptItemKopecks(participantPrices, priceRub);
   const url = new URL(request.url);
   const baseUrl = `${url.protocol}//${url.host}`;
   const receiptItems = preparedParticipants.map((participant, index) => {
-    const itemPriceRub = participantPrices[index] ?? 0;
-    const itemKopecks = itemPriceRub * 100;
+    const itemAmountKopecks = itemKopecks[index] ?? 0;
     return {
       Name: `Участие в РРК: ${resolvedEventTitle || "Событие"}${participant.ticketLabel ? ` (${participant.ticketLabel})` : ""} — ${participant.firstName} ${participant.lastName}`.slice(0, 128),
-      Price: itemKopecks,
+      Price: itemAmountKopecks,
       Quantity: 1.0,
-      Amount: itemKopecks,
+      Amount: itemAmountKopecks,
       PaymentMethod: "full_prepayment",
       PaymentObject: "service",
       Tax: "none",
     };
   });
+  const receiptSumKopecks = receiptItems.reduce((sum, item) => sum + item.Amount, 0);
 
   console.log("[tbank-receipt] Fiscal receipt configured", {
     email: payer.email,
     phone: payer.phone,
     items: receiptItems.length,
     orderId,
+    amountKopecks,
+    receiptSumKopecks,
+    discountAmountRub,
   });
+
+  if (receiptSumKopecks !== amountKopecks) {
+    console.error("T-Bank receipt sum mismatch, refusing Init", {
+      amountKopecks,
+      receiptSumKopecks,
+      discountAmountRub,
+      orderId,
+    });
+    return NextResponseLike(false, "Не удалось открыть оплату: не совпала сумма чека. Попробуйте еще раз.", 502);
+  }
 
   const tbankResponse = await tbank.initPayment({
     OrderId: orderId,
-    Amount: amountKopecks,
+    Amount: receiptSumKopecks,
     Description: `Участие в РРК: ${resolvedEventTitle || "Событие"} (${preparedParticipants.length} бил.)`,
     SuccessURL: `${baseUrl}/success?event_id=${dbEventId || ""}&event_title=${encodeURIComponent(resolvedEventTitle || "")}&order_id=${encodeURIComponent(orderId)}`,
     FailURL: `${baseUrl}/fail`,
@@ -654,6 +712,10 @@ export async function createBookingRequest(data: Record<string, unknown>, reques
     const paymentNote = buildPaymentNote([
       preparedParticipants.map((item) => item.ticketNote).filter(Boolean).join("; ") || null,
       buildEnrollmentsMarker(enrollmentIds),
+      buildCompanionsMarker(preparedParticipants.map((item) => ({
+        fullName: `${item.firstName} ${item.lastName}`.trim(),
+        telegram: item.telegram,
+      }))),
       `[order:${orderId}]`,
     ]);
 

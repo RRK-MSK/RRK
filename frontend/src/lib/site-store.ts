@@ -195,7 +195,7 @@ function mapEventRowsToPosterEvents(
     .map((event, index) => {
     const eventTiers = tiersByEventId.get(event.id) ?? [];
     const basePrice = getEventBasePrice(event);
-    const currentPrice = isCoffeeJamCategory(event.category, event.title)
+    const currentPrice = eventTiers.length > 0
       ? resolveCoffeeJamPrice(basePrice, event.booked_count, eventTiers as EventPriceTier[])
       : basePrice;
     const minTierPrice = eventTiers.length > 0
@@ -214,7 +214,6 @@ function mapEventRowsToPosterEvents(
     const formattedRubPrice = formatPrice(currentPrice);
     const price = formatEventPriceDisplay(event.price_rub, event.price_label, formattedRubPrice);
     const displayPrice = !hasTextOnlyEventPrice(event.price_label)
-      && isCoffeeJamCategory(event.category, event.title)
       && minTierPrice !== null
       ? `от ${formatPrice(minTierPrice)}`
       : undefined;

@@ -2,10 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { saveEvent } from "@/app/crm/actions";
-import {
-  isCoffeeJamCategory,
-  resolveEventCategoryForForm,
-} from "@/lib/event-categories";
+import { resolveEventCategoryForForm } from "@/lib/event-categories";
 import { isUnlimitedCapacity, UNLIMITED_EVENT_CAPACITY } from "@/lib/event-capacity";
 import { formatDateTimeLocalMoscow } from "@/lib/moscow-datetime";
 import { formatEventPaymentForForm, parseEventPaymentInput } from "@/lib/event-payment";
@@ -146,8 +143,6 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
     () => formData.pricingTiers ?? [],
     [formData.pricingTiers],
   );
-  const isCoffeeJam = isCoffeeJamCategory(formData.category, formData.title);
-
   const updateField = <K extends keyof EventFormInitialData>(key: K, value: EventFormInitialData[K]) => {
     setFormData((current) => ({ ...current, [key]: value }));
   };
@@ -212,13 +207,11 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
         bookingMode: normalizeEventBookingMode(formData.bookingMode),
         cardColor: normalizeEventCardColor(formData.cardColor),
         cardAnimation: normalizeEventCardAnimation(formData.cardAnimation),
-        pricingTiers: isCoffeeJam
-          ? (formData.pricingTiers ?? []).map((row) => ({
-              seatFrom: Number(row.seatFrom),
-              seatTo: row.seatTo ? Number(row.seatTo) : null,
-              priceRub: Number(row.priceRub),
-            }))
-          : [],
+        pricingTiers: (formData.pricingTiers ?? []).map((row) => ({
+          seatFrom: Number(row.seatFrom),
+          seatTo: row.seatTo ? Number(row.seatTo) : null,
+          priceRub: Number(row.priceRub),
+        })),
       });
 
       setIsOpen(false);
@@ -408,13 +401,12 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                 Публиковать на сайте сразу после сохранения
               </label>
 
-              {isCoffeeJam ? (
-                <div style={{ border: "1px solid var(--line)", borderRadius: "12px", padding: "16px" }}>
+              <div style={{ border: "1px solid var(--line)", borderRadius: "12px", padding: "16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                     <div>
                       <strong>Ценовые пороги</strong>
                       <p style={{ marginTop: "4px", color: "var(--muted)", fontSize: "14px" }}>
-                        Если цена должна расти по заполненности: 1-10, 11-50 и так далее.
+                        Например: 1–10 места по 770, 11–50 по 990, дальше 1500. Пустое «по» — до конца.
                       </p>
                     </div>
                     <button type="button" className="ghost-button" onClick={addPricingRow}>
@@ -455,7 +447,6 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                     )}
                   </div>
                 </div>
-              ) : null}
 
               <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
                 <button type="button" className="ghost-button" style={{ flex: 1 }} onClick={() => setIsOpen(false)}>

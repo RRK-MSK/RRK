@@ -172,10 +172,10 @@ function validateName(value: string, label: string): string | null {
   return null;
 }
 
-function validateEmail(value: string): string | null {
+function validateEmail(value: string, required = true): string | null {
   const trimmed = value.trim();
   if (!trimmed) {
-    return "Email обязателен";
+    return required ? "Email обязателен" : null;
   }
   if (trimmed.length > EMAIL_MAX) {
     return `Email не длиннее ${EMAIL_MAX} символов`;
@@ -291,6 +291,7 @@ export type NormalizedParticipantFields = {
 
 export function validateParticipantFields(
   input: Pick<BookingValidationInput, "firstName" | "lastName" | "phone" | "telegram" | "email">,
+  options?: { emailRequired?: boolean },
 ): { ok: true; data: NormalizedParticipantFields } | { ok: false; error: string } {
   const firstNameError = validateName(String(input.firstName ?? ""), "Имя");
   if (firstNameError) return { ok: false, error: firstNameError };
@@ -304,7 +305,7 @@ export function validateParticipantFields(
   const telegramError = validateTelegram(String(input.telegram ?? ""));
   if (telegramError) return { ok: false, error: telegramError };
 
-  const emailError = validateEmail(String(input.email ?? ""));
+  const emailError = validateEmail(String(input.email ?? ""), options?.emailRequired !== false);
   if (emailError) return { ok: false, error: emailError };
 
   return {
