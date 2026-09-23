@@ -56,6 +56,35 @@ function isFallingChairsBooking(value: string | null | undefined) {
   return (value ?? "").toLowerCase().includes("падающими стульями");
 }
 
+const CANONICAL_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://rrclub.site";
+const PAYMENT_HOSTS = new Set([
+  "rrclub.site",
+  "www.rrclub.site",
+  "rrk-web.vercel.app",
+]);
+
+function resolvePaymentBaseUrl(request: Request) {
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const hostHeader = request.headers.get("host")?.split(",")[0]?.trim();
+  const host = (forwardedHost || hostHeader || "").split(":")[0].toLowerCase();
+  const proto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
+
+  if (host && PAYMENT_HOSTS.has(host)) {
+    return `${proto}://${host}`;
+  }
+
+  try {
+    const url = new URL(request.url);
+    if (PAYMENT_HOSTS.has(url.hostname.toLowerCase())) {
+      return `${url.protocol}//${url.host}`;
+    }
+  } catch {
+    // keep canonical fallback
+  }
+
+  return CANONICAL_SITE_URL.replace(/\/$/, "");
+}
+
 function toKopecks(amountRub: number) {
   return Math.round(Number(amountRub) * 100);
 }
@@ -638,8 +667,7 @@ export async function createBookingRequest(data: Record<string, unknown>, reques
 
   const orderId = `RRK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   const { itemKopecks, amountKopecks } = allocateReceiptItemKopecks(participantPrices, priceRub);
-  const url = new URL(request.url);
-  const baseUrl = `${url.protocol}//${url.host}`;
+  const baseUrl = resolvePaymentBaseUrl(request);
   const receiptItems = preparedParticipants.map((participant, index) => {
     const itemAmountKopecks = Math.round(itemKopecks[index] ?? 0);
     return {
@@ -682,7 +710,7 @@ export async function createBookingRequest(data: Record<string, unknown>, reques
     Description: `Участие в РРК: ${resolvedEventTitle || "Событие"} (${preparedParticipants.length} бил.)`,
     SuccessURL: `${baseUrl}/success?event_id=${dbEventId || ""}&event_title=${encodeURIComponent(resolvedEventTitle || "")}&order_id=${encodeURIComponent(orderId)}`,
     FailURL: `${baseUrl}/fail`,
-    NotificationURL: "https://rrclub.site/api/payment/webhook",
+    NotificationURL: `${baseUrl}/api/payment/webhook`,
     PayType: paymentMethod === "sbp" ? "O" : undefined,
     DATA: {
       Email: payer.email || "",

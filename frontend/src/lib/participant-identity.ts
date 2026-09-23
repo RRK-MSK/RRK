@@ -5,16 +5,6 @@ import {
   phoneToE164,
 } from "@/lib/booking-validation";
 
-type ParticipantLookupClient = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      or: (filter: string) => {
-        limit: (count: number) => Promise<{ data: ParticipantLookupRow[] | null }>;
-      };
-    };
-  };
-};
-
 type ParticipantLookupRow = {
   id: string;
   full_name?: string | null;
@@ -57,7 +47,8 @@ function isTelegramUsername(value: string) {
 }
 
 export async function findExistingParticipantId(
-  supabase: ParticipantLookupClient,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: { from: (table: string) => any },
   input: ParticipantIdentityInput,
   options?: { excludeIds?: string[] },
 ) {
