@@ -1249,6 +1249,10 @@ export async function importEventParticipants(eventId: string, formData: FormDat
         participantId = created.id;
       }
 
+      if (!participantId) {
+        throw new Error("не удалось создать участника");
+      }
+
       const { data: existingEnrollment } = await supabase
         .from("enrollments")
         .select("id")
