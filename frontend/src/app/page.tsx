@@ -118,7 +118,7 @@ export default async function HomePage() {
         <RevealOnView className="about-layout">
           <div className="about-manifesto">
             <span>Философия РРК</span>
-            <h3>Эти три правила работают в жизни, в Русском Разговорном и на планете Земля.</h3>
+            <h3>Эти три правила работают в жизни, в Русском Разговорном Клубе и на планете Земля.</h3>
             <div className="about-manifesto-rules">
               <div className="about-manifesto-rule">
                 <strong>1. Мы все друг другу ученики и учителя</strong>

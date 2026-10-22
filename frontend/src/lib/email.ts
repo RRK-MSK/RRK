@@ -78,3 +78,94 @@ Telegram: ${data.telegram}
     });
   }
 }
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderPurchaseMessageHtml(message: string) {
+  const formatted = escapeHtml(message)
+    .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[\s>])\*([^*\n]+)\*(?=[\s<]|$)/g, "$1<em>$2</em>")
+    .replace(/\n/g, "<br>");
+
+  return `
+    <div style="margin:0;padding:24px;background:#f4efe8;">
+      <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:18px;padding:28px 26px;color:#1c1c1c;font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.55;">
+        ${formatted}
+      </div>
+    </div>
+  `.trim();
+}
+
+function renderPurchaseMessageText(message: string) {
+  return message.replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/(^|[\s])\*([^*\n]+)\*(?=[\s]|$)/g, "$1$2");
+}
+
+export async function sendCustomerPurchaseEmail(data: {
+  recipients: string[];
+  eventName: string;
+  message: string;
+  orderId?: string;
+}) {
+  const message = data.message.trim();
+  const recipients = [...new Set(data.recipients.map((email) => email.trim().toLowerCase()).filter((email) => email.includes("@")))];
+  if (!message || recipients.length === 0) {
+    return { ok: false as const, error: "Нет текста письма или адреса получателя" };
+  }
+
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASSWORD) {
+    console.warn("[email] SMTP credentials not configured — purchase email skipped", {
+      orderId: data.orderId,
+      eventName: data.eventName,
+    });
+    return { ok: false as const, error: "Почта на сервере не настроена" };
+  }
+
+  const port = Number(SMTP_PORT || 465);
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port,
+    secure: port === 465,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASSWORD.replace(/\s/g, ""),
+    },
+  });
+
+  const subject = `РРК — ${data.eventName}`;
+  const text = renderPurchaseMessageText(message);
+  const html = renderPurchaseMessageHtml(message);
+
+  try {
+    await Promise.all(recipients.map(async (recipient) => {
+      await transporter.sendMail({
+        from: `"РРК" <${SMTP_USER}>`,
+        to: recipient,
+        subject,
+        text,
+        html,
+      });
+      console.log("[email] Purchase message sent", {
+        to: recipient,
+        orderId: data.orderId,
+        eventName: data.eventName,
+      });
+    }));
+  } catch (error) {
+    console.error("[email] Failed to send purchase message", {
+      orderId: data.orderId,
+      eventName: data.eventName,
+      error,
+    });
+    const reason = error instanceof Error ? error.message : "Не удалось отправить письмо";
+    return { ok: false as const, error: reason };
+  }
+
+  return { ok: true as const };
+}

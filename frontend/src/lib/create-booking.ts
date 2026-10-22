@@ -640,7 +640,18 @@ export async function createBookingRequest(data: Record<string, unknown>, reques
         });
 
         try {
-          const { sendEmailNotification } = await import("@/lib/email");
+          const { sendEmailNotification, sendCustomerPurchaseEmail } = await import("@/lib/email");
+          const { data: messageRow, error: messageError } = await supabase
+            .from("events")
+            .select("purchase_email_message")
+            .eq("id", dbEventId)
+            .maybeSingle();
+          await sendCustomerPurchaseEmail({
+            recipients: preparedParticipants.map((item) => item.email),
+            eventName: event.title,
+            message: messageError ? "" : (messageRow?.purchase_email_message ?? ""),
+            orderId: freePaymentId,
+          });
           await sendEmailNotification({
             eventName: event.title,
             fullName: preparedParticipants.map((item) => `${item.firstName} ${item.lastName}`.trim()).join(", "),

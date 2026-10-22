@@ -63,6 +63,7 @@ type EventRow = {
   booking_mode?: string | null;
   card_color?: string | null;
   card_animation?: string | null;
+  purchase_email_message?: string | null;
 };
 
 type EventPriceTierRow = {
@@ -832,6 +833,7 @@ export async function getClassesPageData(): Promise<ClassesPageData> {
         bookingModeRaw: normalizeEventBookingMode(row.booking_mode),
         cardColorRaw: normalizeEventCardColor(row.card_color),
         cardAnimationRaw: normalizeEventCardAnimation(row.card_animation),
+        purchaseEmailRaw: row.purchase_email_message ?? "",
         pricingTiersRaw: JSON.stringify(eventTiers),
       };
     }),
@@ -1107,9 +1109,41 @@ async function loadEvents() {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published, booking_mode, card_color, card_animation",
+      "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published, booking_mode, card_color, card_animation, purchase_email_message",
     )
     .order("starts_at", { ascending: true });
+
+  if (error?.message?.includes("purchase_email_message")) {
+    const withoutMessage = await supabase
+      .from("events")
+      .select(
+        "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published, booking_mode, card_color, card_animation",
+      )
+      .order("starts_at", { ascending: true });
+
+    if (!withoutMessage.error) {
+      return (withoutMessage.data ?? []) as EventRow[];
+    }
+
+    if (withoutMessage.error.message && /card_color|card_animation|booking_mode/.test(withoutMessage.error.message)) {
+      const fallback = await supabase
+        .from("events")
+        .select(
+          "id, title, subtitle, description, category, city, host, status, starts_at, ends_at, price_rub, price_label, venue_address, venue_map_url, capacity, booked_count, paid_count, pending_count, waitlist_count, is_published",
+        )
+        .order("starts_at", { ascending: true });
+
+      if (fallback.error) {
+        console.error("Supabase events query failed", fallback.error);
+        return null;
+      }
+
+      return (fallback.data ?? []) as EventRow[];
+    }
+
+    console.error("Supabase events query failed", withoutMessage.error);
+    return null;
+  }
 
   if (error?.message && /card_color|card_animation|booking_mode/.test(error.message)) {
     const fallback = await supabase

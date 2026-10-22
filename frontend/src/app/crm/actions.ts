@@ -17,6 +17,9 @@ import {
   formatEnrollmentTariffLabel,
   type EventTariffOption,
 } from "@/lib/event-tariffs";
+import { normalizeTelegram, phoneToE164 } from "@/lib/booking-validation";
+import { parseParticipantSpreadsheet } from "@/lib/participant-excel";
+import { sendCustomerPurchaseEmail } from "@/lib/email";
 import { findExistingParticipantId } from "@/lib/participant-identity";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -47,6 +50,7 @@ type EventPayload = {
   bookingMode?: string;
   cardColor?: string;
   cardAnimation?: string;
+  purchaseEmailMessage?: string;
   pricingTiers?: EventTierInput[];
 };
 
@@ -628,6 +632,31 @@ export async function addEvent(formData: FormData) {
   });
 }
 
+export async function sendTestPurchaseEmail(eventTitle: string, message: string, recipient: string) {
+  await requireCrmUser();
+
+  const email = recipient.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("Укажите почту");
+  }
+  if (!message.trim()) {
+    throw new Error("Сначала напишите текст письма");
+  }
+
+  const result = await sendCustomerPurchaseEmail({
+    recipients: [email],
+    eventName: eventTitle.trim() || "Проверка",
+    message,
+    orderId: "test",
+  });
+
+  if (!result.ok) {
+    throw new Error(result.error);
+  }
+
+  return { success: true };
+}
+
 export async function saveEvent(payload: EventPayload) {
   await requireCrmUser();
   const supabase = getSupabaseAdminClient();
@@ -662,6 +691,7 @@ export async function saveEvent(payload: EventPayload) {
     booking_mode: normalizeEventBookingMode(payload.bookingMode),
     card_color: normalizeEventCardColor(payload.cardColor),
     card_animation: normalizeEventCardAnimation(payload.cardAnimation),
+    purchase_email_message: normalizeText(payload.purchaseEmailMessage),
   };
 
   let eventId = payload.id;
@@ -694,6 +724,12 @@ export async function saveEvent(payload: EventPayload) {
         .from("events")
         .update(payloadWithoutMode)
         .eq("id", payload.id));
+    }
+
+    if (error?.message?.includes("purchase_email_message")) {
+      throw new Error(
+        "В Supabase нет поля письма после покупки. Выполните frontend/supabase/event-purchase-email.sql в SQL Editor и сохраните занятие снова.",
+      );
     }
 
     if (error) {
@@ -730,6 +766,12 @@ export async function saveEvent(payload: EventPayload) {
         .insert(payloadWithoutMode)
         .select("id")
         .single());
+    }
+
+    if (error?.message?.includes("purchase_email_message")) {
+      throw new Error(
+        "В Supabase нет поля письма после покупки. Выполните frontend/supabase/event-purchase-email.sql в SQL Editor и сохраните занятие снова.",
+      );
     }
 
     if (error || !data) {
@@ -1125,6 +1167,143 @@ export async function addRecord(formData: FormData) {
   revalidatePath("/crm/participants");
   revalidatePath("/");
   return { success: true };
+}
+
+async function allocateParticipantSlug(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
+  telegram: string,
+) {
+  const handle = telegram.replace(/^@/, "").toLowerCase();
+  const base = /^[a-z0-9_]{2,32}$/.test(handle) ? handle : `user-${Date.now()}`;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const slug = attempt === 0 ? base : `${base}-${attempt + 1}`;
+    const { data } = await supabase.from("participants").select("id").eq("slug", slug).maybeSingle();
+    if (!data) {
+      return slug;
+    }
+  }
+
+  return `${base}-${Date.now()}`;
+}
+
+export async function importEventParticipants(eventId: string, formData: FormData) {
+  await requireCrmUser();
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  if (!eventId || eventId.startsWith("fallback")) throw new Error("Занятие не найдено");
+
+  const uploaded = formData.get("file");
+  if (!(uploaded instanceof File) || uploaded.size === 0) {
+    throw new Error("Выберите файл Excel");
+  }
+  if (uploaded.size > 5 * 1024 * 1024) {
+    throw new Error("Файл больше 5 МБ");
+  }
+
+  const parsed = parseParticipantSpreadsheet(uploaded.name, new Uint8Array(await uploaded.arrayBuffer()));
+  const errors = [...parsed.errors];
+  if (parsed.people.length === 0) {
+    return {
+      added: 0,
+      skipped: 0,
+      errors: errors.length > 0 ? errors : ["В таблице нет участников"],
+    };
+  }
+
+  const { data: event } = await supabase.from("events").select("id, title, starts_at").eq("id", eventId).maybeSingle();
+  if (!event) throw new Error("Занятие не найдено");
+
+  const priceRub = await getDynamicEventPrice(eventId);
+  let added = 0;
+  let skipped = 0;
+
+  for (const person of parsed.people) {
+    try {
+      const telegram = normalizeTelegram(person.telegram);
+      const phone = phoneToE164(person.phone) || person.phone.trim();
+      let participantId = await findExistingParticipantId(supabase, {
+        fullName: person.fullName,
+        phone,
+        telegram,
+      });
+
+      if (!participantId) {
+        const slug = await allocateParticipantSlug(supabase, telegram);
+        const { data: created, error: createError } = await supabase
+          .from("participants")
+          .insert({
+            slug,
+            full_name: person.fullName,
+            telegram: telegram || null,
+            phone: phone || null,
+            status: "Новый",
+            source: "Импорт из Excel",
+          })
+          .select("id")
+          .single();
+
+        if (createError || !created?.id) {
+          throw new Error("не удалось создать участника");
+        }
+        participantId = created.id;
+      }
+
+      const { data: existingEnrollment } = await supabase
+        .from("enrollments")
+        .select("id")
+        .eq("participant_id", participantId)
+        .eq("event_id", eventId)
+        .maybeSingle();
+
+      if (existingEnrollment) {
+        skipped += 1;
+        continue;
+      }
+
+      const { data: enrollment, error: enrollmentError } = await supabase
+        .from("enrollments")
+        .insert({
+          participant_id: participantId,
+          event_id: eventId,
+          source: "CRM (Excel)",
+          status: "Активна",
+          payment_status: "Ожидает",
+          confirmation_status: "Подтверждено",
+          note: null,
+        })
+        .select("id")
+        .single();
+
+      if (enrollmentError || !enrollment?.id) {
+        throw new Error("не удалось записать на занятие");
+      }
+
+      await syncPaymentForEnrollment({
+        participantId,
+        eventId,
+        enrollmentId: enrollment.id,
+        isPaid: false,
+        amountRub: priceRub,
+        method: "Ожидает",
+        note: null,
+        reason: "Импорт участников из Excel",
+      });
+
+      await supabase.from("participants").update({
+        next_event_title: event.title,
+        next_event_at: event.starts_at,
+      }).eq("id", participantId);
+
+      added += 1;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "не удалось импортировать";
+      errors.push(`Строка ${person.rowNumber}: ${message}`);
+    }
+  }
+
+  revalidateCrmAndSite();
+  return { added, skipped, errors };
 }
 
 export async function markEnrollmentPaid(enrollmentId: string) {

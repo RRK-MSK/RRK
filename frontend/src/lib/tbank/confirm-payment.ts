@@ -328,7 +328,7 @@ export async function confirmTBankPayment({
     nextParticipantId
       ? supabase
           .from("participants")
-          .select("full_name, phone, telegram, source")
+          .select("full_name, phone, telegram, email, source")
           .eq("id", nextParticipantId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -342,14 +342,14 @@ export async function confirmTBankPayment({
     enrollmentIds.length > 0
       ? supabase
           .from("enrollments")
-          .select("participant:participants(full_name, phone, telegram)")
+          .select("participant:participants(full_name, phone, telegram, email)")
           .in("id", enrollmentIds)
       : Promise.resolve({ data: [] }),
   ]);
 
   const allParticipants = (enrolledParticipants ?? [])
     .map((row) => {
-      const nested = row.participant as { full_name?: string; phone?: string | null; telegram?: string | null } | { full_name?: string; phone?: string | null; telegram?: string | null }[] | null;
+      const nested = row.participant as { full_name?: string; phone?: string | null; telegram?: string | null; email?: string | null } | { full_name?: string; phone?: string | null; telegram?: string | null; email?: string | null }[] | null;
       if (Array.isArray(nested)) {
         return nested[0] ?? null;
       }
@@ -403,6 +403,29 @@ export async function confirmTBankPayment({
       });
     } catch (error) {
       console.error("Failed to send payment confirmation email:", error);
+    }
+
+    if (nextEventId) {
+      try {
+        const { data: messageRow, error: messageError } = await supabase
+          .from("events")
+          .select("purchase_email_message")
+          .eq("id", nextEventId)
+          .maybeSingle();
+        const { sendCustomerPurchaseEmail } = await import("@/lib/email");
+        await sendCustomerPurchaseEmail({
+          recipients: [
+            participant.email,
+            getMetaValue(data, "Email"),
+            ...allParticipants.map((item) => item?.email),
+          ].filter((email): email is string => Boolean(email)),
+          eventName: event.title,
+          message: messageError ? "" : (messageRow?.purchase_email_message ?? ""),
+          orderId: String(orderId || externalPaymentId),
+        });
+      } catch (error) {
+        console.error("Failed to send customer purchase email:", error);
+      }
     }
   }
 

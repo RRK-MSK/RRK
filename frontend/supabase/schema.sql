@@ -45,6 +45,7 @@ create table if not exists public.events (
   booking_mode text not null default 'payment',
   card_color text not null default 'standard',
   card_animation text not null default 'none',
+  purchase_email_message text,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );

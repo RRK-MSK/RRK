@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { saveEvent } from "@/app/crm/actions";
+import { useMemo, useRef, useState } from "react";
+import { saveEvent, sendTestPurchaseEmail } from "@/app/crm/actions";
 import { resolveEventCategoryForForm } from "@/lib/event-categories";
 import { isUnlimitedCapacity, UNLIMITED_EVENT_CAPACITY } from "@/lib/event-capacity";
 import { formatDateTimeLocalMoscow } from "@/lib/moscow-datetime";
@@ -60,6 +60,7 @@ export type EventFormInitialData = {
   bookingMode?: EventBookingMode;
   cardColor?: EventCardColor;
   cardAnimation?: EventCardAnimation;
+  purchaseEmailMessage?: string;
   pricingTiers?: PricingTierFormRow[];
 };
 
@@ -89,6 +90,7 @@ export function buildEventFormInitialFromRow(row: Record<string, unknown>): Even
     bookingMode: normalizeEventBookingMode(String(row.bookingModeRaw ?? "")),
     cardColor: normalizeEventCardColor(String(row.cardColorRaw ?? "")),
     cardAnimation: normalizeEventCardAnimation(String(row.cardAnimationRaw ?? "")),
+    purchaseEmailMessage: String(row.purchaseEmailRaw ?? ""),
     pricingTiers: [],
   };
 }
@@ -137,6 +139,7 @@ function buildInitialFormData(initialData?: EventFormInitialData): EventFormInit
     bookingMode: normalizeEventBookingMode(initialData?.bookingMode),
     cardColor: normalizeEventCardColor(initialData?.cardColor),
     cardAnimation: normalizeEventCardAnimation(initialData?.cardAnimation),
+    purchaseEmailMessage: initialData?.purchaseEmailMessage ?? "",
     pricingTiers: initialData?.pricingTiers?.length ? initialData.pricingTiers : [],
   };
 }
@@ -216,6 +219,7 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
         bookingMode: normalizeEventBookingMode(formData.bookingMode),
         cardColor: normalizeEventCardColor(formData.cardColor),
         cardAnimation: normalizeEventCardAnimation(formData.cardAnimation),
+        purchaseEmailMessage: formData.purchaseEmailMessage ?? "",
         pricingTiers: (formData.pricingTiers ?? []).map((row) => ({
           seatFrom: Number(row.seatFrom),
           seatTo: row.seatTo ? Number(row.seatTo) : null,
@@ -382,6 +386,12 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
                 />
               </Field>
 
+              <PurchaseMessageField
+                value={formData.purchaseEmailMessage ?? ""}
+                eventTitle={formData.title ?? ""}
+                onChange={(value) => updateField("purchaseEmailMessage", value)}
+              />
+
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
                 <Field label="Адрес">
                   <input
@@ -483,6 +493,109 @@ export function EventFormModal({ triggerLabel, triggerClassName, initialData }: 
         </div>
       ) : null}
     </>
+  );
+}
+
+const PURCHASE_EMOJIS = ["🎉", "✨", "🔥", "❤️", "🙌", "👋", "🎟", "📍", "⏰", "☕️"];
+
+function PurchaseMessageField({
+  value,
+  eventTitle,
+  onChange,
+}: {
+  value: string;
+  eventTitle: string;
+  onChange: (value: string) => void;
+}) {
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
+  const [testEmail, setTestEmail] = useState("");
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testNote, setTestNote] = useState<string | null>(null);
+
+  const insert = (before: string, after = "") => {
+    const field = fieldRef.current;
+    if (!field) {
+      onChange(`${value}${before}${after}`);
+      return;
+    }
+
+    const start = field.selectionStart ?? value.length;
+    const end = field.selectionEnd ?? value.length;
+    const selected = value.slice(start, end);
+    const next = `${value.slice(0, start)}${before}${selected}${after}${value.slice(end)}`;
+    const cursor = start + before.length + selected.length + (selected ? after.length : 0);
+    onChange(next);
+    requestAnimationFrame(() => {
+      field.focus();
+      field.setSelectionRange(selected ? cursor : start + before.length, selected ? cursor : start + before.length);
+    });
+  };
+
+  return (
+    <Field label="Письмо после покупки">
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
+        <button type="button" className="ghost-button" style={{ minHeight: "32px", padding: "0 10px" }} onClick={() => insert("**", "**")}>
+          Жирный
+        </button>
+        <button type="button" className="ghost-button" style={{ minHeight: "32px", padding: "0 10px" }} onClick={() => insert("*", "*")}>
+          Курсив
+        </button>
+        {PURCHASE_EMOJIS.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            className="ghost-button"
+            style={{ minHeight: "32px", padding: "0 8px" }}
+            onClick={() => insert(emoji)}
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+      <textarea
+        ref={fieldRef}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={6}
+        placeholder={"Привет!\n\nЖдём тебя **в субботу** 🎉\nАдрес пришлём ближе к встрече."}
+        style={{ ...fieldStyle, resize: "vertical", whiteSpace: "pre-wrap", fontSize: "15px", lineHeight: 1.45 }}
+      />
+      <span style={{ display: "block", marginTop: "4px", fontSize: "12px", color: "var(--muted)" }}>
+        Уходит на почту клиента после оплаты. Если поле пустое, письмо не отправляется. **жирный**, *курсив*, смайлики и новые строки сохраняются.
+      </span>
+      <div style={{ display: "flex", gap: "8px", marginTop: "10px", alignItems: "center" }}>
+        <input
+          type="email"
+          value={testEmail}
+          onChange={(event) => setTestEmail(event.target.value)}
+          placeholder="Куда отправить пробу"
+          style={{ ...fieldStyle, flex: 1 }}
+        />
+        <button
+          type="button"
+          className="ghost-button"
+          style={{ minHeight: "40px", whiteSpace: "nowrap" }}
+          disabled={isSendingTest}
+          onClick={async () => {
+            setIsSendingTest(true);
+            setTestNote(null);
+            try {
+              await sendTestPurchaseEmail(eventTitle, value, testEmail);
+              setTestNote("Проба отправлена. Проверьте входящие и спам.");
+            } catch (error) {
+              setTestNote(error instanceof Error ? error.message : "Не удалось отправить пробу");
+            } finally {
+              setIsSendingTest(false);
+            }
+          }}
+        >
+          {isSendingTest ? "Отправляю..." : "Отправить пробу"}
+        </button>
+      </div>
+      {testNote ? (
+        <span style={{ display: "block", marginTop: "6px", fontSize: "12px", color: "var(--muted)" }}>{testNote}</span>
+      ) : null}
+    </Field>
   );
 }
 
