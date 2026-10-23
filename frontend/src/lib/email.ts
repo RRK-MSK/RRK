@@ -106,6 +106,25 @@ function renderPurchaseMessageText(message: string) {
   return message.replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/(^|[\s])\*([^*\n]+)\*(?=[\s]|$)/g, "$1$2");
 }
 
+function describeMailError(error: unknown) {
+  const message = error instanceof Error ? error.message : "Не удалось отправить письмо";
+  const code = typeof error === "object" && error && "code" in error ? String(error.code ?? "") : "";
+
+  if (code === "EAUTH" || /invalid login|username and password|535|badcredentials/i.test(message)) {
+    return "Gmail не принял пароль. В Vercel в SMTP_PASSWORD должен быть пароль приложения без пробелов.";
+  }
+
+  if (code === "ESOCKET" || code === "ECONNECTION" || code === "ETIMEDOUT" || code === "ECONNRESET") {
+    return "Сервер не смог подключиться к почте. Проверьте SMTP_HOST=smtp.gmail.com и SMTP_PORT=465.";
+  }
+
+  if (/message rejected|550|553|mailbox unavailable/i.test(message)) {
+    return "Почтовый сервер отклонил письмо. Проверьте адрес получателя.";
+  }
+
+  return message;
+}
+
 export async function sendCustomerPurchaseEmail(data: {
   recipients: string[];
   eventName: string;
@@ -163,8 +182,7 @@ export async function sendCustomerPurchaseEmail(data: {
       eventName: data.eventName,
       error,
     });
-    const reason = error instanceof Error ? error.message : "Не удалось отправить письмо";
-    return { ok: false as const, error: reason };
+    return { ok: false as const, error: describeMailError(error) };
   }
 
   return { ok: true as const };

@@ -18,7 +18,7 @@ import {
   type EventTariffOption,
 } from "@/lib/event-tariffs";
 import { normalizeTelegram, phoneToE164 } from "@/lib/booking-validation";
-import { parseParticipantSpreadsheet } from "@/lib/participant-excel";
+import { buildParticipantWorkbook, parseParticipantSpreadsheet } from "@/lib/participant-excel";
 import { sendCustomerPurchaseEmail } from "@/lib/email";
 import { findExistingParticipantId } from "@/lib/participant-identity";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
@@ -633,28 +633,37 @@ export async function addEvent(formData: FormData) {
 }
 
 export async function sendTestPurchaseEmail(eventTitle: string, message: string, recipient: string) {
-  await requireCrmUser();
+  try {
+    await requireCrmUser();
+  } catch {
+    return { ok: false as const, error: "Нет доступа к CRM. Войдите заново." };
+  }
 
   const email = recipient.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw new Error("Укажите почту");
+    return { ok: false as const, error: "Укажите почту" };
   }
   if (!message.trim()) {
-    throw new Error("Сначала напишите текст письма");
+    return { ok: false as const, error: "Сначала напишите текст письма" };
   }
 
-  const result = await sendCustomerPurchaseEmail({
-    recipients: [email],
-    eventName: eventTitle.trim() || "Проверка",
-    message,
-    orderId: "test",
-  });
+  try {
+    const result = await sendCustomerPurchaseEmail({
+      recipients: [email],
+      eventName: eventTitle.trim() || "Проверка",
+      message,
+      orderId: "test",
+    });
 
-  if (!result.ok) {
-    throw new Error(result.error);
+    if (!result.ok) {
+      return { ok: false as const, error: result.error };
+    }
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "Не удалось отправить письмо";
+    return { ok: false as const, error: reason };
   }
 
-  return { success: true };
+  return { ok: true as const };
 }
 
 export async function saveEvent(payload: EventPayload) {
@@ -1684,6 +1693,76 @@ export async function addParticipantEnrollment(formData: FormData) {
   revalidateCrmAndSite();
   return { success: true };
 }
+function splitParticipantName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) {
+    return { lastName: "", firstName: parts[0] ?? "", patronymic: "" };
+  }
+  if (parts.length === 2) {
+    return { lastName: parts[1], firstName: parts[0], patronymic: "" };
+  }
+  return {
+    lastName: parts[parts.length - 1],
+    firstName: parts[0],
+    patronymic: parts.slice(1, -1).join(" "),
+  };
+}
+
+function exportFileName(title: string) {
+  const cleaned = title.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+  return `${cleaned || "участники"}.xlsx`;
+}
+
+export async function exportEventParticipants(eventId: string) {
+  try {
+    await requireCrmUser();
+  } catch {
+    return { ok: false as const, error: "Нет доступа к CRM. Войдите заново." };
+  }
+
+  const supabase = getSupabaseAdminClient();
+  if (!supabase) return { ok: false as const, error: "База не настроена" };
+  if (!eventId || eventId.startsWith("fallback")) return { ok: false as const, error: "Занятие не найдено" };
+
+  const [{ data: event }, { data, error }] = await Promise.all([
+    supabase.from("events").select("title").eq("id", eventId).maybeSingle(),
+    supabase
+      .from("enrollments")
+      .select("status, participant:participants(full_name, telegram, phone)")
+      .eq("event_id", eventId),
+  ]);
+
+  if (error) return { ok: false as const, error: error.message };
+
+  const rows = ((data ?? []) as Array<{
+    status: string | null;
+    participant: { full_name: string | null; telegram: string | null; phone: string | null } | Array<{ full_name: string | null; telegram: string | null; phone: string | null }> | null;
+  }>)
+    .filter((row) => !(row.status ?? "").toLowerCase().includes("отмен"))
+    .map((row) => (Array.isArray(row.participant) ? row.participant[0] : row.participant))
+    .filter((participant): participant is { full_name: string | null; telegram: string | null; phone: string | null } => Boolean(participant))
+    .map((participant) => {
+      const name = splitParticipantName(participant.full_name ?? "");
+      return [name.lastName, name.firstName, name.patronymic, participant.telegram ?? "", participant.phone ?? "", "", ""];
+    })
+    .sort((left, right) => left.join(" ").localeCompare(right.join(" "), "ru"));
+
+  if (rows.length === 0) {
+    return { ok: false as const, error: "На занятие пока никто не записан" };
+  }
+
+  const workbook = buildParticipantWorkbook([
+    ["фамилия", "имя", "отчество", "телеграмм", "номер телефона", "пришел", "комментарий"],
+    ...rows,
+  ]);
+
+  return {
+    ok: true as const,
+    filename: exportFileName(event?.title ?? "участники"),
+    base64: workbook.toString("base64"),
+  };
+}
+
 export async function getEventParticipants(eventId: string) {
   await requireCrmUser();
   const supabase = getSupabaseAdminClient();

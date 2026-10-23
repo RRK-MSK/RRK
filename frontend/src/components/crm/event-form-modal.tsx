@@ -510,7 +510,7 @@ function PurchaseMessageField({
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const [testEmail, setTestEmail] = useState("");
   const [isSendingTest, setIsSendingTest] = useState(false);
-  const [testNote, setTestNote] = useState<string | null>(null);
+  const [testNote, setTestNote] = useState<{ text: string; isError: boolean } | null>(null);
 
   const insert = (before: string, after = "") => {
     const field = fieldRef.current;
@@ -580,10 +580,15 @@ function PurchaseMessageField({
             setIsSendingTest(true);
             setTestNote(null);
             try {
-              await sendTestPurchaseEmail(eventTitle, value, testEmail);
-              setTestNote("Проба отправлена. Проверьте входящие и спам.");
+              const result = await sendTestPurchaseEmail(eventTitle, value, testEmail);
+              setTestNote(result.ok
+                ? { text: "Проба отправлена. Проверьте входящие и спам.", isError: false }
+                : { text: result.error, isError: true });
             } catch (error) {
-              setTestNote(error instanceof Error ? error.message : "Не удалось отправить пробу");
+              setTestNote({
+                text: error instanceof Error ? error.message : "Не удалось отправить пробу",
+                isError: true,
+              });
             } finally {
               setIsSendingTest(false);
             }
@@ -593,7 +598,9 @@ function PurchaseMessageField({
         </button>
       </div>
       {testNote ? (
-        <span style={{ display: "block", marginTop: "6px", fontSize: "12px", color: "var(--muted)" }}>{testNote}</span>
+        <span style={{ display: "block", marginTop: "6px", fontSize: "13px", color: testNote.isError ? "var(--brand)" : "var(--muted)" }}>
+          {testNote.text}
+        </span>
       ) : null}
     </Field>
   );

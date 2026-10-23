@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { getEventParticipants, getAvailableEventsForTransfer, addRecord, getEventTariffOptions, importEventParticipants } from "@/app/crm/actions";
+import { getEventParticipants, getAvailableEventsForTransfer, addRecord, getEventTariffOptions, exportEventParticipants } from "@/app/crm/actions";
 import { CrmTariffField } from "@/components/crm/crm-tariff-field";
 import { EnrollmentActions } from "@/components/crm/enrollment-actions";
 import { pickDefaultTariffNote, type EventTariffOption } from "@/lib/event-tariffs";
@@ -23,9 +23,8 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const [isAdding, setIsAdding] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const [isImportSubmitting, setIsImportSubmitting] = useState(false);
-  const [importSummary, setImportSummary] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportNote, setExportNote] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tariffOptions, setTariffOptions] = useState<EventTariffOption[]>(() => getInitialTariffOptions(item));
   const [selectedTicketNote, setSelectedTicketNote] = useState(() => pickDefaultTariffNote(getInitialTariffOptions(item)));
@@ -39,8 +38,7 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
     setIsOpen(true);
     setErrorMsg(null);
     setIsAdding(false);
-    setIsImporting(false);
-    setImportSummary(null);
+    setExportNote(null);
     if (!item.id || item.id.startsWith("fallback")) return;
     setIsLoading(true);
     try {
@@ -83,29 +81,29 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
     }
   };
 
-  const handleImport = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsImportSubmitting(true);
-    setImportSummary(null);
+  const handleExport = async () => {
+    setIsExporting(true);
+    setExportNote(null);
     try {
-      const formData = new FormData(e.currentTarget);
-      const result = await importEventParticipants(item.id, formData);
-      const lines = [`Добавлено: ${result.added}`];
-      if (result.skipped > 0) lines.push(`Уже были в списке: ${result.skipped}`);
-      if (result.errors.length > 0) {
-        lines.push(...result.errors.slice(0, 5));
-        if (result.errors.length > 5) lines.push(`И ещё ${result.errors.length - 5}`);
+      const result = await exportEventParticipants(item.id);
+      if (!result.ok) {
+        setExportNote(result.error);
+        return;
       }
-      setImportSummary(lines.join("\n"));
-      setIsImporting(false);
-      if (result.added > 0) {
-        const fresh = await getEventParticipants(item.id);
-        if (!fresh.error) setParticipants(fresh.data || []);
-      }
+
+      const bytes = Uint8Array.from(atob(result.base64), (char) => char.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = result.filename;
+      link.click();
+      URL.revokeObjectURL(url);
     } catch (err: any) {
-      setImportSummary(err.message || "Не удалось импортировать файл");
+      setExportNote(err.message || "Не удалось выгрузить таблицу");
     } finally {
-      setIsImportSubmitting(false);
+      setIsExporting(false);
     }
   };
 
@@ -198,35 +196,15 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
             
             {!isLoading && !errorMsg && (
               <div style={{ marginBottom: '16px' }}>
-                {!isAdding && !isImporting ? (
+                {!isAdding ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <button className="primary-button" style={{ width: '100%', padding: '8px' }} onClick={() => setIsAdding(true)}>
                       + Записать участника
                     </button>
-                    <button className="ghost-button" style={{ width: '100%', padding: '8px' }} onClick={() => setIsImporting(true)}>
-                      Импорт из Excel
+                    <button className="ghost-button" style={{ width: '100%', padding: '8px' }} onClick={handleExport} disabled={isExporting}>
+                      {isExporting ? "Готовлю таблицу..." : "Экспорт в Excel"}
                     </button>
                   </div>
-                ) : isImporting ? (
-                  <form onSubmit={handleImport} style={{ background: 'var(--surface)', padding: '16px', borderRadius: '8px', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <h3 style={{ margin: 0, fontSize: '14px' }}>Импорт из Excel</h3>
-                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)', lineHeight: 1.4 }}>
-                      Колонки: фамилия, имя, отчество, телеграм, телефон. «Пришел» и «комментарий» останутся пустыми.
-                    </p>
-                    <input
-                      name="file"
-                      type="file"
-                      accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-                      required
-                      style={{ width: '100%', fontSize: '13px' }}
-                    />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button type="button" className="ghost-button" style={{ flex: 1 }} onClick={() => setIsImporting(false)}>Отмена</button>
-                      <button type="submit" className="primary-button" style={{ flex: 1 }} disabled={isImportSubmitting}>
-                        {isImportSubmitting ? "..." : "Импортировать"}
-                      </button>
-                    </div>
-                  </form>
                 ) : (
                   <form onSubmit={handleAddParticipant} style={{ background: 'var(--surface)', padding: '16px', borderRadius: '8px', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <h3 style={{ margin: 0, fontSize: '14px' }}>Новая запись</h3>
@@ -249,8 +227,8 @@ export function ClassCard({ item, variant = "classes" }: { item: ClassLoadSummar
                     </div>
                   </form>
                 )}
-                {importSummary ? (
-                  <p style={{ margin: '12px 0 0', fontSize: '13px', whiteSpace: 'pre-wrap', color: 'var(--muted)' }}>{importSummary}</p>
+                {exportNote ? (
+                  <p style={{ margin: '12px 0 0', fontSize: '13px', color: 'var(--brand)' }}>{exportNote}</p>
                 ) : null}
               </div>
             )}
