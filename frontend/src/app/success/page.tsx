@@ -13,7 +13,7 @@ export default function SuccessPage({
 
   return (
     <main className="site-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {eventId && <SuccessClient eventId={eventId} orderId={orderId} />}
+      <SuccessClient eventId={eventId} orderId={orderId} />
       <section 
         className="site-section" 
         style={{ 

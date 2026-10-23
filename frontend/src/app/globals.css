@@ -4886,6 +4886,19 @@ th {
   margin-bottom: 24px;
 }
 
+.payment-notice p {
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.payment-notice p + p {
+  color: var(--muted);
+  font-size: 16px;
+  margin-bottom: 28px;
+}
+
 .booking-form {
   display: flex;
   flex-direction: column;

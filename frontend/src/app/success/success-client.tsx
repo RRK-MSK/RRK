@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-export function SuccessClient({ eventId, orderId }: { eventId: string; orderId?: string }) {
+export function SuccessClient({ eventId, orderId }: { eventId?: string; orderId?: string }) {
+  const [isNoticeOpen, setIsNoticeOpen] = useState(true);
+
   useEffect(() => {
     if (!orderId) {
       return;
@@ -24,7 +26,7 @@ export function SuccessClient({ eventId, orderId }: { eventId: string; orderId?:
         try {
           const stored = localStorage.getItem("rrk_booked_events");
           const bookedEvents = stored ? JSON.parse(stored) : [];
-          if (!bookedEvents.includes(eventId)) {
+          if (eventId && !bookedEvents.includes(eventId)) {
             bookedEvents.push(eventId);
             localStorage.setItem("rrk_booked_events", JSON.stringify(bookedEvents));
           }
@@ -37,5 +39,19 @@ export function SuccessClient({ eventId, orderId }: { eventId: string; orderId?:
       });
   }, [eventId, orderId]);
 
-  return null;
+  if (!isNoticeOpen) {
+    return null;
+  }
+
+  return (
+    <div className="booking-modal-overlay" role="presentation">
+      <div className="booking-modal payment-notice" role="dialog" aria-modal="true" aria-labelledby="payment-notice-title">
+        <p id="payment-notice-title">Информацию о записи отправили тебе на почту!</p>
+        <p>Если письма нет, проверь папку «Спам»</p>
+        <button type="button" className="site-button primary full" onClick={() => setIsNoticeOpen(false)}>
+          Закрыть
+        </button>
+      </div>
+    </div>
+  );
 }
