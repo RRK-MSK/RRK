@@ -91,4 +91,3 @@ export const defaultHeroCarouselSlides: HeroCarouselSlide[] = [
     sortOrder: 12,
   },
 ];
-

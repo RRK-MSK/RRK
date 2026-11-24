@@ -12,6 +12,7 @@ import { formatEventPriceDisplay, hasTextOnlyEventPrice } from "@/lib/event-paym
 import { buildEventTariffOptions } from "@/lib/event-tariffs";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { getSupabaseAnonKey, getSupabaseUrl, hasSupabasePublicEnv } from "@/lib/supabase/env";
+import { defaultGalleryPhotos } from "@/lib/gallery-photos";
 import { defaultHeroCarouselSlides, type HeroCarouselSlide } from "@/lib/hero-carousel-slides";
 import { getSiteMediaItems } from "@/lib/site-media";
 import { normalizeEventBookingMode, type EventBookingMode } from "@/lib/event-booking-mode";
@@ -251,18 +252,6 @@ export async function getSiteEventById(id: string) {
   return events.find((event) => event.id === id) ?? null;
 }
 
-const fallbackGalleryPhotos = [
-  { src: "/RRK-0001.jpg", alt: "Встреча РРК" },
-  { src: "/RRK-0002.jpg", alt: "Встреча РРК" },
-  { src: "/RRK-0003.jpg", alt: "Встреча РРК" },
-  { src: "/RRK-0005.jpg", alt: "Встреча РРК" },
-  { src: "/IMG_0030.JPG", alt: "Встреча РРК" },
-  { src: "/IMG_0032.JPG", alt: "Встреча РРК" },
-  { src: "/IMG_0034.JPG", alt: "Встреча РРК" },
-  { src: "/IMG_0309.JPG", alt: "Встреча РРК" },
-  { src: "/IMG_0310.JPG", alt: "Встреча РРК" },
-];
-
 export async function getSiteHeroSlides(): Promise<HeroCarouselSlide[]> {
   const items = await getSiteMediaItems("hero");
   if (items.length === 0) {
@@ -279,17 +268,7 @@ export async function getSiteHeroSlides(): Promise<HeroCarouselSlide[]> {
 }
 
 export async function getSiteGalleryPhotos() {
-  const items = await getSiteMediaItems("gallery");
-  if (items.length === 0) {
-    return fallbackGalleryPhotos;
-  }
-
-  return items
-    .filter((item) => item.mediaType === "image")
-    .map((item) => ({
-      src: item.src,
-      alt: "Встреча РРК",
-    }));
+  return defaultGalleryPhotos;
 }
 
 export function getNearestSiteEvent(events: SitePosterEvent[]) {

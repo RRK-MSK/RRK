@@ -1,5 +1,19 @@
 export function getSupabaseUrl() {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const raw = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim().replace(/^["']|["']$/g, "");
+  if (!raw) {
+    return "";
+  }
+
+  try {
+    const url = new URL(raw);
+    // Dashboard "Data API" URL includes /rest/v1 — createClient adds that itself.
+    if (url.pathname === "/rest/v1" || url.pathname === "/rest/v1/") {
+      url.pathname = "/";
+    }
+    return url.origin;
+  } catch {
+    return raw.replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
+  }
 }
 
 export function getSupabaseAnonKey() {

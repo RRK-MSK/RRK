@@ -2,7 +2,7 @@
 
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { HeroBackgroundLayer } from "@/components/site/hero-background-layer";
 import {
@@ -16,12 +16,10 @@ import { PosterBeerFill } from "@/components/site/poster-beer-fill";
 
 import type { PosterEvent } from "./poster-calendar";
 
-const AUTOPLAY_MS = 10_000;
-
 const navItems = [
   { href: "#schedule", label: "Афиша" },
-  { href: "#about", label: "О клубе" },
-  { href: "#founders", label: "Основатели" },
+  // { href: "#about", label: "Философия" },
+  { href: "#founders", label: "Команда" },
 ];
 
 type VideoHeroProps = {
@@ -29,50 +27,18 @@ type VideoHeroProps = {
   slides?: HeroCarouselSlide[];
 };
 
-function modIndex(value: number, length: number) {
-  return ((value % length) + length) % length;
-}
-
 export function VideoHero({ nearestEvent, slides: slidesProp }: VideoHeroProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
-  const [reduceMotion, setReduceMotion] = useState(false);
 
-  const slides = useMemo(
-    () => (slidesProp?.length ? slidesProp : defaultHeroCarouselSlides),
-    [slidesProp],
-  );
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduceMotion(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-
-  useEffect(() => {
-    if (slides.length <= 1) {
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      setActiveSlideIndex((current) => modIndex(current + 1, slides.length));
-    }, AUTOPLAY_MS);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [slides.length]);
+  const heroBackground = useMemo(() => {
+    const source = slidesProp?.length ? slidesProp : defaultHeroCarouselSlides;
+    return source.length ? [source[0]] : [];
+  }, [slidesProp]);
 
   return (
     <section className="rrk-video-hero">
       <div className="rrk-video-shell">
-        <HeroBackgroundLayer
-          slides={slides}
-          activeIndex={activeSlideIndex}
-          reduceMotion={reduceMotion}
-        />
+        <HeroBackgroundLayer slides={heroBackground} activeIndex={0} reduceMotion />
         <div className="rrk-video-left-gradient" aria-hidden="true" />
         <div className="rrk-video-bottom-gradient" aria-hidden="true" />
 
@@ -92,7 +58,7 @@ export function VideoHero({ nearestEvent, slides: slidesProp }: VideoHeroProps) 
           <div className="rrk-video-hero-row">
             <div className="rrk-video-copy">
               <div className="rrk-video-copy-title">
-                <p className="rrk-video-eyebrow">Речь реакция культура</p>
+                <p className="rrk-video-eyebrow">саморазвитие через прикол</p>
                 <h1>
                   РУССКИЙ РАЗГОВОРНЫЙ
                   <br />
@@ -101,8 +67,9 @@ export function VideoHero({ nearestEvent, slides: slidesProp }: VideoHeroProps) 
                 </h1>
               </div>
               <p className="rrk-video-description">
-                Место, где ты раскрепощаешься, учишься быстро реагировать, находишь сильное
-                окружение и весело проводишь время.
+              интеллектуально-тусовочное комьюнити Москвы
+              <br />
+              новые нейронные связи
               </p>
               {!nearestEvent?.id ? (
                 <div className="rrk-video-actions">
@@ -151,7 +118,7 @@ export function VideoHero({ nearestEvent, slides: slidesProp }: VideoHeroProps) 
                     </div>
                     <Link
                       href={`/events/${nearestEvent.id}`}
-                      className="site-button primary rrk-hero-event-buy"
+                      className="site-button primary poster-event-register rrk-hero-event-buy"
                     >
                       {getEventCtaLabel(nearestEvent.bookingMode)}
                     </Link>

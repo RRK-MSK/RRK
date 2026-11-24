@@ -11,3 +11,5 @@ build
 coverage
 
 supabase/.temp
+.vercel
+.env*

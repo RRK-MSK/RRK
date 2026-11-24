@@ -9,23 +9,33 @@ type GalleryScrollerProps = {
   photos: GalleryPhoto[];
 };
 
-const COPY_COUNT = 4;
+const MOSAIC_SIZE = 9;
+
+function chunkPhotos<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
 
 export function GalleryScroller({ photos }: GalleryScrollerProps) {
+  const mosaics = chunkPhotos(photos, MOSAIC_SIZE);
+
   return (
     <div className="gallery-marquee">
       <div className="gallery-marquee-track">
-        {Array.from({ length: COPY_COUNT }, (_, copyIndex) => (
-          <div key={copyIndex} className="gallery-mosaic">
-            {photos.map((photo, index) => (
-              <div key={`${copyIndex}-${photo.src}`} className="gallery-photo">
+        {mosaics.map((mosaicPhotos, mosaicIndex) => (
+          <div key={`mosaic-${mosaicIndex}`} className="gallery-mosaic">
+            {mosaicPhotos.map((photo, photoIndex) => (
+              <div key={photo.src} className="gallery-photo">
                 <Image
                   src={photo.src}
                   alt={photo.alt}
                   fill
                   sizes="(max-width: 767px) 50vw, (max-width: 1100px) 40vw, 28vw"
                   quality={65}
-                  priority={copyIndex === 0 && index < 3}
+                  priority={mosaicIndex === 0 && photoIndex < 3}
                 />
               </div>
             ))}

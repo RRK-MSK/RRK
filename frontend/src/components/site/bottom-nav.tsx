@@ -36,14 +36,14 @@ export function BottomNav() {
         </svg>
         <span>Афиша</span>
       </Link>
-      <Link href="/#about" className="tma-nav-item">
+      {/* <Link href="/#about" className="tma-nav-item">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="16" x2="12" y2="12"></line>
           <line x1="12" y1="8" x2="12.01" y2="8"></line>
         </svg>
-        <span>О клубе</span>
-      </Link>
+        <span>Философия</span>
+      </Link> */}
       <Link href="/profile" className={`tma-nav-item ${pathname === "/profile" ? "active" : ""}`}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
