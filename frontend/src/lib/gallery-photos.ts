@@ -27,7 +27,6 @@ const carouselFolderImages = [
   "/carousel/photo_2026-08-24_09-43-45.jpg",
   "/carousel/photo_2026-08-26_21-02-39.jpg",
   "/carousel/photo_2026-09-10_21-48-37.jpg",
-  "/carousel/photo_2026-09-10_21-48-38 (2).jpg",
   "/carousel/photo_2026-09-11_18-08-39.jpg",
   "/carousel/photo_2026-11-04_17-27-41.jpg",
 ] as const;

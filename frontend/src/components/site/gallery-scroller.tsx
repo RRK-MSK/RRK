@@ -33,9 +33,10 @@ export function GalleryScroller({ photos }: GalleryScrollerProps) {
                   src={photo.src}
                   alt={photo.alt}
                   fill
-                  sizes="(max-width: 767px) 50vw, (max-width: 1100px) 40vw, 28vw"
+                  sizes="(max-width: 767px) 92vw, (max-width: 1100px) 70vw, 560px"
                   quality={65}
-                  priority={mosaicIndex === 0 && photoIndex < 3}
+                  loading="eager"
+                  priority={mosaicIndex === 0 && photoIndex < 2}
                 />
               </div>
             ))}
