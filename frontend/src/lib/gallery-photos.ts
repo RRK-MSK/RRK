@@ -29,6 +29,7 @@ const carouselFolderImages = [
   "/carousel/photo_2026-09-10_21-48-37.jpg",
   "/carousel/photo_2026-09-11_18-08-39.jpg",
   "/carousel/photo_2026-11-04_17-27-41.jpg",
+  "/carousel/picknik.jpg",
 ] as const;
 
 const legacyGalleryImages = ["/RRK-0003.jpg"] as const;
